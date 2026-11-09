@@ -222,6 +222,7 @@ function apply.run(prepared, request)
   -- Logging only when something changes mirrors the undo convention: an
   -- Arrangement that already matches the timeline leaves no trace in either
   -- (CLAUDE.md, Undo convention; lib/log.lua).
+  local plan_logged = false
   local function log_plan(planned_from, plan)
     if plan.is_empty and anchor_plan.is_noop then
       return
@@ -232,6 +233,25 @@ function apply.run(prepared, request)
       logger:line(line)
     end
     logger:write()
+    plan_logged = true
+  end
+
+  -- **A failure after the plan was logged is logged too (issue 10).** The plan
+  -- goes to the log before the applier runs so a run that dies halfway still has
+  -- its record, but the record alone reads like a run that finished. So when the
+  -- applier raises after that point, say so in the log, then raise again for the
+  -- front end. Before the plan is logged nothing was claimed, so nothing is added.
+  local function run_logged(body)
+    local ok, err = pcall(body)
+    if ok then
+      return
+    end
+    if plan_logged then
+      local logger = env.logger(snapshot.project_path)
+      logger:line(text.failure_line(err))
+      logger:write()
+    end
+    error(err, 0)
   end
 
   local function done(plan)
@@ -274,14 +294,16 @@ function apply.run(prepared, request)
     end
 
     log_plan(snapshot, plan)
-    undo.run({
-      api = api,
-      description = text.TITLE,
-      skip = plan.is_empty,
-      apply = function()
-        applier.plan(api, plan)
-      end,
-    })
+    run_logged(function()
+      undo.run({
+        api = api,
+        description = text.TITLE,
+        skip = plan.is_empty,
+        apply = function()
+          applier.plan(api, plan)
+        end,
+      })
+    end)
     return done(plan)
   end
 
@@ -298,41 +320,43 @@ function apply.run(prepared, request)
   -- the Arrangement, the tempo-env timebase), so what can still refuse here is
   -- an unsafe item timebase (#9) or Padding running a region into its
   -- neighbour.
-  undo.run({
-    api = api,
-    description = text.TITLE,
-    apply = function()
-      applier.anchors(api, anchor_plan.anchors)
+  run_logged(function()
+    undo.run({
+      api = api,
+      description = text.TITLE,
+      apply = function()
+        applier.anchors(api, anchor_plan.anchors)
 
-      -- Re-read: the tempo map changed, and `plan_pack`'s own contract asks for
-      -- a snapshot taken after the anchors land, so that both the oracle and
-      -- `snapshot.tempo_markers` reflect them. Reusing the stale snapshot would
-      -- transplant tempo markers by their old values.
-      local after_anchors = env.snapshot()
+        -- Re-read: the tempo map changed, and `plan_pack`'s own contract asks for
+        -- a snapshot taken after the anchors land, so that both the oracle and
+        -- `snapshot.tempo_markers` reflect them. Reusing the stale snapshot would
+        -- transplant tempo markers by their old values.
+        local after_anchors = env.snapshot()
 
-      -- Nothing should have moved: an anchor records the tempo already in
-      -- effect, so writing it is tempo-neutral. When something did, beat-
-      -- attached material has followed a tempo-map edit and the timeline phase
-      -- 2 is about to plan against is not the one the user has been looking at
-      -- -- and because phase 2 re-reads by design, it would plan a perfectly
-      -- self-consistent Repack against the drifted positions and nothing
-      -- downstream would notice (issue #19). Refusing here is the whole point:
-      -- the alternative is not a worse Repack, it is a silent one.
-      local held, moved = validate.items_did_not_move(snapshot, after_anchors)
-      if not held then
-        plan_err = { code = "anchors_moved_items", moved = moved }
-        return
-      end
+        -- Nothing should have moved: an anchor records the tempo already in
+        -- effect, so writing it is tempo-neutral. When something did, beat-
+        -- attached material has followed a tempo-map edit and the timeline phase
+        -- 2 is about to plan against is not the one the user has been looking at
+        -- -- and because phase 2 re-reads by design, it would plan a perfectly
+        -- self-consistent Repack against the drifted positions and nothing
+        -- downstream would notice (issue #19). Refusing here is the whole point:
+        -- the alternative is not a worse Repack, it is a silent one.
+        local held, moved = validate.items_did_not_move(snapshot, after_anchors)
+        if not held then
+          plan_err = { code = "anchors_moved_items", moved = moved }
+          return
+        end
 
-      plan, plan_err = plan_phase_two(after_anchors)
-      if not plan then
-        return
-      end
+        plan, plan_err = plan_phase_two(after_anchors)
+        if not plan then
+          return
+        end
 
-      log_plan(after_anchors, plan)
-      applier.plan(api, plan)
-    end,
-  })
+        log_plan(after_anchors, plan)
+        applier.plan(api, plan)
+      end,
+    })
+  end)
 
   if not plan then
     plan_err.anchors_written = anchor_plan.changing

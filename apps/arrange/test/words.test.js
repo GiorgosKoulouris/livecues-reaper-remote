@@ -100,6 +100,14 @@ test("an Apply that refused after its Tempo Anchors says they are one undo step"
   assert.match(words.error(replies.apply_refused.error), /1 Tempo Anchor\(s\) were written[\s\S]*Undo/);
 });
 
+test("an internal failure does not claim nothing was done (issue 10)", () => {
+  const text = words.error({ code: "internal", message: "could not find the envelope point" });
+  assert.match(text, /could not find the envelope point/);
+  assert.match(text, /stopped partway/);
+  assert.match(text, /Ctrl\+Z/);
+  assert.doesNotMatch(text, /Nothing may have been done/);
+});
+
 test("a stale token says which way", () => {
   assert.match(words.error({ code: "token_stale", reason: "other_project" }), /different project/);
   assert.match(words.error(replies.token_stale.error), /changed in REAPER/);

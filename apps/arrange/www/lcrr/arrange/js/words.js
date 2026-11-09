@@ -29,7 +29,7 @@
     request_truncated: function () { return "REAPER cut the request short, so nothing was done. Try a shorter name."; },
     unknown_command: function (e) { return "The bridge does not know the command " + q(e.command) + ". The page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
     missing_field: function (e) { return "The request left out " + q(e.field) + "."; },
-    internal: function (e) { return "The bridge failed: " + (e.message || "unknown error") + "\n\nNothing may have been done. Check the run log beside the project before trying again."; },
+    internal: function (e) { return "The bridge failed: " + (e.message || "unknown error") + "\n\nThe run stopped partway: whatever it changed before the failure is one REAPER undo step, and Ctrl+Z in REAPER reverts it. Check the run log beside the project, which says whether the run failed, before trying again."; },
     token_unknown: function () { return "This Check has expired, or was already used. Check again, then apply."; },
     token_stale: function (e) {
       if (e.reason === "other_project") return "A different project is open in REAPER now. Nothing was applied. Check again on the project you want.";

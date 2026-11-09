@@ -209,6 +209,21 @@ describe("lib/core/apply.lua run", function()
       }, world.labels())
     end)
 
+    it("records a failure after the plan was logged, but not one before it", function()
+      local given, world = bars({ applier_fails = { plan = "boom" } })
+      local ok = pcall(apply.run, apply.prepare(given), { name = "Reordered" })
+      assert.is_false(ok)
+      local log = world.files["/proj/Bars.arrange.log"]
+      assert.is_truthy(log:find("tempo anchor", 1, true))
+      assert.is_truthy(log:find("RUN FAILED: boom", 1, true))
+
+      -- Failing at the anchors, nothing has been logged yet, so nothing is claimed.
+      given, world = bars({ applier_fails = { anchors = "no anchors" } })
+      ok = pcall(apply.run, apply.prepare(given), { name = "Reordered" })
+      assert.is_false(ok)
+      assert.is_nil(world.files["/proj/Bars.arrange.log"])
+    end)
+
     it("hands the applier the plan it returns", function()
       local given, world = bars()
       local result = apply.run(apply.prepare(given), { name = "Reordered" })
@@ -272,6 +287,28 @@ describe("lib/core/apply.lua run", function()
         "apply.plan",
         "undo end Apply Arrangement",
       }, world.labels())
+    end)
+
+    it("records a failing applier in the log after the plan, closes the undo block and raises", function()
+      local given, world = packed({ applier_fails = { plan = "boom at 12.000s" } })
+      local prepared = apply.prepare(given)
+
+      local ok, err = pcall(apply.run, prepared, { name = "Swapped" })
+
+      assert.is_false(ok)
+      assert.are.equal("boom at 12.000s", err)
+      assert.are.same({
+        "console", "write /proj/Packed.arrange.log",
+        "undo begin", "apply.plan", "undo end Apply Arrangement",
+        "console", "write /proj/Packed.arrange.log",
+      }, world.labels())
+      local log = world.files["/proj/Packed.arrange.log"]
+      local plan_at = log:find("Apply Arrangement", 1, true)
+      local failed_at = log:find("RUN FAILED: boom at 12.000s", 1, true)
+      assert.is_truthy(plan_at)
+      assert.is_truthy(failed_at)
+      assert.is_true(failed_at > plan_at)
+      assert.is_truthy(log:find("not done", failed_at, true))
     end)
 
     it("refuses a plan with nothing written and no anchors to mention", function()

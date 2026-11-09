@@ -56,6 +56,8 @@ This is the largest outstanding gap in the suite, recorded as **issue #9** of th
 the answer is "set those tracks to a time timebase, or don't Repack this
 project".
 
+Beat-attached *envelope points* on a beat-timebase track are not refused: they follow the tempo map like items, and the applier lifts them before the tempo is rewritten and puts them back at their planned times (decisions.md, issue 10).
+
 **Fix:** **Show each track's timebase** lists them; **Check an Arrangement**
 names the specific items.
 

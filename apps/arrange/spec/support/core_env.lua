@@ -13,6 +13,8 @@
 --   options.tempo       tempo oracle (default: 2 s bars)
 --   options.automation  automation oracle (default: 0.5 everywhere)
 --   options.api         extra reaper functions, as for fake_reaper.new
+--   options.applier_fails  map applier name -> message: that applier call is
+--                       recorded and then raises the message
 
 local fake_reaper = require("spec.support.fake_reaper")
 local harness = require("spec.support.script_harness")
@@ -86,6 +88,10 @@ function core_env.new(options)
         assert(called_with == api or (wrapped and wrapped.__index == api),
           "applier called with something other than the api")
         record({ apply = name, value = value })
+        local failure = (options.applier_fails or {})[name]
+        if failure then
+          error(failure, 0)
+        end
       end
     end,
   })

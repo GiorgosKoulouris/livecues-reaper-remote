@@ -516,18 +516,53 @@ describe("apply.envelope_anchors", function()
   end)
 end)
 
-describe("apply.envelope_moves", function()
-  it("finds the envelope point by its recorded position, and repositions it, preserving its shape", function()
-    local env = { points = { { time = 12, value = 0.5, shape = 0, tension = 0, selected = false } } }
-    local fake_api = envelope_api({ [3] = { envelopes = { Volume = env } } })
+-- An envelope point is moved in two halves (issue 10): lifted off the timeline
+-- before the tempo map is touched, put back at its absolute `to` after it.
+describe("apply.lift_envelope_points", function()
+  it("deletes each point by its recorded position, and hands the moves back", function()
+    local env = { points = {
+      { time = 10, value = 0.1, shape = 0, tension = 0, selected = false },
+      { time = 20, value = 0.2, shape = 0, tension = 0, selected = false },
+    } }
+    local fake_api = envelope_api({ [1] = { envelopes = { Volume = env } } })
+    local moves = {
+      envelope_move(1, "Volume", 20, 5, 0.2, 0, 0, false),
+      envelope_move(1, "Volume", 10, 0, 0.1, 0, 0, false),
+    }
 
-    apply.envelope_moves(fake_api, { envelope_move(3, "Volume", 12, 2, 0.75, 1, 0.2, true) })
+    local lifted = apply.lift_envelope_points(fake_api, moves)
 
-    assert.are.equal(2, env.points[1].time)
-    assert.are.equal(0.75, env.points[1].value)
-    assert.are.equal(1, env.points[1].shape)
-    assert.are.equal(0.2, env.points[1].tension)
-    assert.is_true(env.points[1].selected)
+    assert.are.same({}, env.points)
+    assert.are.equal(moves, lifted)
+    assert.are.same({ "DeleteEnvelopePointEx", "DeleteEnvelopePointEx" },
+      (function()
+        local names = {}
+        for _, call in ipairs(fake_api.calls) do
+          if call.name:find("Envelope", 1, true) and call.name:find("Delete", 1, true) then
+            names[#names + 1] = call.name
+          end
+        end
+        return names
+      end)())
+  end)
+
+  -- Two points at one time are two plan entries; each takes the first point
+  -- left there, so both go and a third at another time stays.
+  it("deletes a step pair with one entry per point, leaving other points alone", function()
+    local env = { points = {
+      { time = 10, value = 0, shape = 1, tension = 0, selected = false },
+      { time = 10, value = 1, shape = 1, tension = 0, selected = false },
+      { time = 30, value = 0.5, shape = 1, tension = 0, selected = false },
+    } }
+    local fake_api = envelope_api({ [1] = { envelopes = { Volume = env } } })
+
+    apply.lift_envelope_points(fake_api, {
+      envelope_move(1, "Volume", 10, 0, 0, 1, 0, false),
+      envelope_move(1, "Volume", 10, 0, 1, 1, 0, false),
+    })
+
+    assert.are.equal(1, #env.points)
+    assert.are.equal(30, env.points[1].time)
   end)
 
   -- track_index < 0 is this suite's master-track convention
@@ -536,78 +571,83 @@ describe("apply.envelope_moves", function()
     local env = { points = { { time = 12, value = 0.5, shape = 0, tension = 0, selected = false } } }
     local fake_api = envelope_api({ [-1] = { envelopes = { Volume = env } } })
 
-    apply.envelope_moves(fake_api, { envelope_move(-1, "Volume", 12, 2, 0.5, 0, 0, false) })
+    apply.lift_envelope_points(fake_api, { envelope_move(-1, "Volume", 12, 2, 0.5, 0, 0, false) })
 
-    assert.are.equal(2, env.points[1].time)
+    assert.are.same({}, env.points)
   end)
 
-  it("moves every envelope move in the list, in order", function()
-    local env = { points = {
-      { time = 10, value = 0.1, shape = 0, tension = 0, selected = false },
-      { time = 20, value = 0.2, shape = 0, tension = 0, selected = false },
-    } }
-    local fake_api = envelope_api({ [1] = { envelopes = { Volume = env } } })
+  it("does nothing for an empty list", function()
+    local fake_api = envelope_api({})
+    apply.lift_envelope_points(fake_api, {})
+    assert.are.same({}, fake_api.call_names())
+  end)
+
+  it("raises a clear error when the envelope cannot be found", function()
+    local fake_api = envelope_api({ [1] = { envelopes = {} } })
+
+    local ok, err = pcall(apply.lift_envelope_points, fake_api, { envelope_move(1, "Volume", 12, 2) })
+
+    assert.is_false(ok)
+    assert.is_truthy(err:find("could not find envelope", 1, true))
+  end)
+
+  it("raises a clear error when the point cannot be found", function()
+    local fake_api = envelope_api({ [1] = { envelopes = { Volume = { points = {} } } } })
+
+    local ok, err = pcall(apply.lift_envelope_points, fake_api, { envelope_move(1, "Volume", 12, 2) })
+
+    assert.is_false(ok)
+    assert.is_truthy(err:find("could not find the envelope point to move", 1, true))
+  end)
+end)
+
+describe("apply.envelope_moves", function()
+  local function insert_api(envelope_map)
+    return envelope_api(envelope_map, {
+      InsertEnvelopePointEx = function(envelope, _, time, value, shape, tension, selected)
+        envelope.points[#envelope.points + 1] =
+          { time = time, value = value, shape = shape, tension = tension, selected = selected }
+        return true
+      end,
+      Envelope_SortPointsEx = function(envelope) envelope.sorted = (envelope.sorted or 0) + 1 end,
+    })
+  end
+
+  it("inserts each point at its planned time, preserving value, shape, tension and selection", function()
+    local env = { points = {} }
+    local fake_api = insert_api({ [3] = { envelopes = { Volume = env } } })
+
+    apply.envelope_moves(fake_api, { envelope_move(3, "Volume", 12, 2, 0.75, 1, 0.2, true) })
+
+    assert.are.same({ { time = 2, value = 0.75, shape = 1, tension = 0.2, selected = true } }, env.points)
+  end)
+
+  it("inserts without sorting and sorts each envelope once, so a step pair keeps its order", function()
+    local env = { points = {} }
+    local fake_api = insert_api({ [1] = { envelopes = { Volume = env } } })
 
     apply.envelope_moves(fake_api, {
-      envelope_move(1, "Volume", 10, 0, 0.1, 0, 0, false),
+      envelope_move(1, "Volume", 10, 0, 0, 1, 0, false),
+      envelope_move(1, "Volume", 10, 0, 1, 1, 0, false),
       envelope_move(1, "Volume", 20, 5, 0.2, 0, 0, false),
     })
 
-    local by_value = {}
-    for _, point in ipairs(env.points) do
-      by_value[point.value] = point.time
+    assert.are.same({ 0, 1, 0.2 }, { env.points[1].value, env.points[2].value, env.points[3].value })
+    assert.are.equal(1, env.sorted)
+    for _, call in ipairs(fake_api.calls_to("InsertEnvelopePointEx")) do
+      assert.is_true(call.args[8]) -- noSortIn
     end
-    assert.are.equal(0, by_value[0.1])
-    assert.are.equal(5, by_value[0.2])
+    local names = fake_api.call_names()
+    assert.are.equal("Envelope_SortPointsEx", names[#names])
   end)
 
-  -- CountEnvelopePoints/GetEnvelopePoint exposes no persistent per-point ID,
-  -- only a position-sorted enumeration index that can be invalidated by any
-  -- edit -- including one this same loop just made. Mirrors
-  -- apply.tempo_moves' equivalent test for the same reason (research
-  -- /reaper-scripting.md §4.4b).
-  it("re-locates by position rather than a stale index, even under re-sorting", function()
-    local points = {
-      { time = 12, value = 0.1, shape = 0, tension = 0, selected = false, label = "A" },
-      { time = 20, value = 0.2, shape = 0, tension = 0, selected = false, label = "B" },
-    }
-    local function sorted()
-      local copy = {}
-      for _, point in ipairs(points) do
-        copy[#copy + 1] = point
-      end
-      table.sort(copy, function(a, b) return a.time < b.time end)
-      return copy
-    end
-    local env = {}
-    local fake_api = fake_reaper.new({
-      GetTrack = function(_, idx) return ({ [1] = { envelopes = { Volume = env } } })[idx] end,
-      GetTrackEnvelopeByName = function(track) return track.envelopes.Volume end,
-      CountEnvelopePoints = function() return #points end,
-      GetEnvelopePoint = function(_, idx)
-        local point = sorted()[idx + 1]
-        if not point then
-          return false
-        end
-        return true, point.time, point.value, point.shape, point.tension, point.selected
-      end,
-      SetEnvelopePointEx = function(_, _, idx, time, value)
-        local point = sorted()[idx + 1]
-        point.time, point.value = time, value
-      end,
-    })
+  it("finds the envelope on the master track when track_index is negative", function()
+    local env = { points = {} }
+    local fake_api = insert_api({ [-1] = { envelopes = { Volume = env } } })
 
-    apply.envelope_moves(fake_api, {
-      envelope_move(1, "Volume", 12, 25, 0.9, 0, 0, false), -- A: 12 -> 25, now sorts after B
-      envelope_move(1, "Volume", 20, 5, 0.8, 0, 0, false),  -- B: 20 -> 5
-    })
+    apply.envelope_moves(fake_api, { envelope_move(-1, "Volume", 12, 2, 0.5, 0, 0, false) })
 
-    local by_label = {}
-    for _, point in ipairs(points) do
-      by_label[point.label] = point.time
-    end
-    assert.are.equal(25, by_label.A)
-    assert.are.equal(5, by_label.B)
+    assert.are.equal(2, env.points[1].time)
   end)
 
   it("does nothing for an empty list", function()
@@ -623,15 +663,6 @@ describe("apply.envelope_moves", function()
 
     assert.is_false(ok)
     assert.is_truthy(err:find("could not find envelope", 1, true))
-  end)
-
-  it("raises a clear error when the point cannot be found", function()
-    local fake_api = envelope_api({ [1] = { envelopes = { Volume = { points = {} } } } })
-
-    local ok, err = pcall(apply.envelope_moves, fake_api, { envelope_move(1, "Volume", 12, 2) })
-
-    assert.is_false(ok)
-    assert.is_truthy(err:find("could not find the envelope point to move", 1, true))
   end)
 end)
 
@@ -1000,27 +1031,24 @@ describe("apply.plan", function()
   -- anything is placed or moved); envelope_moves runs beside the tempo
   -- transplant, the other automation category (lib/apply.lua's apply.plan
   -- comment).
-  it("drops envelope points with the other drops, and moves them with the tempo transplant", function()
+  it("drops envelope points first, lifts the moved ones before the tempo write, puts them back after", function()
+    local tempo_points = { { position = 10, bpm = 120, timesig_num = 4, timesig_denom = 4 } }
     local env = { points = { { time = 10, value = 0.5, shape = 0, tension = 0, selected = false } } }
     local drop_env = { points = { { time = 30, value = 0.1, shape = 0, tension = 0, selected = false } } }
-    local fake_api = fake_reaper.new({
-      GetTrack = function(_, idx) return ({ [1] = { envelopes = { Volume = env, Pan = drop_env } } })[idx] end,
-      GetTrackEnvelopeByName = function(track, name) return track.envelopes[name] end,
-      CountEnvelopePoints = function(envelope) return #envelope.points end,
-      GetEnvelopePoint = function(envelope, idx)
-        local point = envelope.points[idx + 1]
-        if not point then
-          return false
-        end
-        return true, point.time, point.value, point.shape, point.tension, point.selected
+    local fake_api = envelope_api({ [1] = { envelopes = { Volume = env, Pan = drop_env } } }, {
+      InsertEnvelopePointEx = function(envelope, _, time, value, shape, tension, selected)
+        envelope.points[#envelope.points + 1] =
+          { time = time, value = value, shape = shape, tension = tension, selected = selected }
       end,
-      SetEnvelopePointEx = function(envelope, _, idx, time, value, shape, tension, selected)
-        local point = envelope.points[idx + 1]
-        point.time, point.value, point.shape, point.tension, point.selected =
-          time, value, shape, tension, selected
+      Envelope_SortPointsEx = true,
+      CountTempoTimeSigMarkers = function() return #tempo_points end,
+      GetTempoTimeSigMarker = function(_, idx)
+        local point = tempo_points[idx + 1]
+        return true, point.position, -1, -1, point.bpm, point.timesig_num, point.timesig_denom, false
       end,
-      DeleteEnvelopePointEx = function(envelope, _, idx)
-        table.remove(envelope.points, idx + 1)
+      SetTempoTimeSigMarker = function(_, idx, timepos)
+        tempo_points[idx + 1].position = timepos
+        return true
       end,
     })
 
@@ -1028,18 +1056,22 @@ describe("apply.plan", function()
       splits = {}, drops = {},
       envelope_drops = { { track_index = 1, envelope_name = "Pan", position = 30 } },
       places = {},
-      tempo_moves = {},
+      tempo_moves = { tempo_move(10, 0, 120, 4, 4, false) },
       envelope_moves = { envelope_move(1, "Volume", 10, 0, 0.5, 0, 0, false) },
       marker_moves = {}, item_moves = {},
     })
 
     local mutating = {}
     for _, call in ipairs(fake_api.calls) do
-      if call.name == "DeleteEnvelopePointEx" or call.name == "SetEnvelopePointEx" then
+      if call.name == "DeleteEnvelopePointEx" or call.name == "InsertEnvelopePointEx"
+        or call.name == "SetTempoTimeSigMarker" then
         mutating[#mutating + 1] = call.name
       end
     end
-    assert.are.same({ "DeleteEnvelopePointEx", "SetEnvelopePointEx" }, mutating)
+    -- The drop, then the lift, then the tempo write, and only then the insert:
+    -- a beat-timebase point is not findable by its old time once the map moves.
+    assert.are.same({ "DeleteEnvelopePointEx", "DeleteEnvelopePointEx", "SetTempoTimeSigMarker",
+      "InsertEnvelopePointEx" }, mutating)
     assert.are.equal(0, env.points[1].time)
   end)
 
@@ -1541,22 +1573,12 @@ describe("apply.plan parking", function()
   -- a transplant: parking moves a point, it does not redraw the curve.
   it("moves a parked envelope point without redrawing it", function()
     local env = { points = { { time = 120, value = 0.5, shape = 1, tension = 0, selected = false } } }
-    local fake_api = fake_reaper.new({
-      GetTrack = function(_, idx) return ({ [1] = { envelopes = { Volume = env } } })[idx] end,
-      GetTrackEnvelopeByName = function(track, name) return track.envelopes[name] end,
-      CountEnvelopePoints = function(envelope) return #envelope.points end,
-      GetEnvelopePoint = function(envelope, idx)
-        local point = envelope.points[idx + 1]
-        if not point then
-          return false
-        end
-        return true, point.time, point.value, point.shape, point.tension, point.selected
+    local fake_api = envelope_api({ [1] = { envelopes = { Volume = env } } }, {
+      InsertEnvelopePointEx = function(envelope, _, time, value, shape, tension, selected)
+        envelope.points[#envelope.points + 1] =
+          { time = time, value = value, shape = shape, tension = tension, selected = selected }
       end,
-      SetEnvelopePointEx = function(envelope, _, idx, time, value, shape, tension, selected)
-        local point = envelope.points[idx + 1]
-        point.time, point.value, point.shape, point.tension, point.selected =
-          time, value, shape, tension, selected
-      end,
+      Envelope_SortPointsEx = true,
     })
 
     apply.plan(fake_api, {

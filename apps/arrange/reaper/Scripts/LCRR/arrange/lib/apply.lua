@@ -488,15 +488,35 @@ local function find_envelope_point_index(api, envelope, position)
   return nil
 end
 
---- Move every envelope point the plan transplanted along with a moving
---- region (lib/regions.lua's `envelope_moves`, issue #8). Value, shape and
---- tension are carried through unchanged -- a transplant moves the point, it
---- does not redraw the curve -- and `selected` is preserved too, since
---- flipping it would silently change the user's automation-lane selection.
+--- Take every envelope point the plan moves off the timeline, before the tempo
+--- map is touched, and return them ready to be put back by
+--- `apply.envelope_moves`.
+--
+-- **Envelope points follow the tempo map on a beat-timebase track, exactly as
+-- items do** (research/reaper-scripting.md §4.1c), and a point's time is
+-- therefore no identity once `apply.tempo_moves` has run. This was a real
+-- failure, issue 10: on a project whose every track is `BEAT 2`, Payback's
+-- 121 bpm marker landed where Deserve's 120 bpm one had been, a point at
+-- 275.600s drifted to about 275.583s, and `apply.envelope_moves` stopped the
+-- run with "could not find the envelope point to move" -- after the tempo map
+-- had been rewritten. Items were fixed by locating their handles first
+-- (`apply.locate_items`); a point has no handle (`ptidx` is a sorted index),
+-- so the equivalent is to lift it: delete it here, while its recorded time is
+-- still right, and insert it at its absolute `to` once the map is final. The
+-- plan already carries everything the point holds (value, shape, tension,
+-- selected), so nothing is lost by deleting it.
+--
+-- Each delete re-scans for the first point at `from`, which is the right one
+-- even for a step pair: two points at one time are two plan entries, and each
+-- takes the first remaining point there. Plan order is read order
+-- (`project.sort_by_position`), and the returned list keeps it, so the pair is
+-- written back in the order it was read.
 -- @param api table the `reaper` table
--- @param envelope_moves table plan.envelope_moves -- { track_index,
---   envelope_name, from, to, value, shape, tension, selected }
-function apply.envelope_moves(api, envelope_moves)
+-- @param envelope_moves table plan.envelope_moves followed by the parked
+--   envelope points -- { track_index, envelope_name, from, to, value, shape,
+--   tension, selected }
+-- @return table the same moves, for `apply.envelope_moves`
+function apply.lift_envelope_points(api, envelope_moves)
   for _, move in ipairs(envelope_moves) do
     local envelope = find_envelope(api, move.track_index, move.envelope_name)
     if not envelope then
@@ -509,7 +529,41 @@ function apply.envelope_moves(api, envelope_moves)
         .. "did the project change after this run started?")
         :format(describe_envelope_track(move.track_index), move.envelope_name, move.from), 0)
     end
-    api.SetEnvelopePointEx(envelope, -1, idx, move.to, move.value, move.shape, move.tension, move.selected, false)
+    api.DeleteEnvelopePointEx(envelope, -1, idx)
+  end
+  return envelope_moves
+end
+
+--- Put back every envelope point `apply.lift_envelope_points` took off, at its
+--- planned `to`. Value, shape and tension are carried through unchanged -- a
+--- transplant moves the point, it does not redraw the curve -- and `selected`
+--- is preserved too, since flipping it would silently change the user's
+--- automation-lane selection.
+--
+-- `to` is an absolute time, so it is right whatever the tempo map now is: a
+-- beat-timebase point re-anchors to the beat that sits there (the same
+-- argument as `apply.item_moves`). Points are inserted unsorted, in plan order,
+-- and each envelope is sorted once at the end -- the documented way to avoid a
+-- re-sort per insert, and what keeps a step pair in the order it was read.
+-- @param api table the `reaper` table
+-- @param envelope_moves table the list `apply.lift_envelope_points` returned
+function apply.envelope_moves(api, envelope_moves)
+  local touched, order = {}, {}
+  for _, move in ipairs(envelope_moves) do
+    local envelope = find_envelope(api, move.track_index, move.envelope_name)
+    if not envelope then
+      error(("could not find envelope %q on %s -- did the project change after this run started?")
+        :format(move.envelope_name, describe_envelope_track(move.track_index)), 0)
+    end
+    api.InsertEnvelopePointEx(envelope, -1, move.to, move.value, move.shape, move.tension,
+      move.selected, true)
+    if not touched[envelope] then
+      touched[envelope] = true
+      order[#order + 1] = envelope
+    end
+  end
+  for _, envelope in ipairs(order) do
+    api.Envelope_SortPointsEx(envelope, -1)
   end
 end
 
@@ -837,10 +891,11 @@ end
 -- research/reaper-scripting.md §4.1b), so an item's effective time can depend
 -- on the tempo map even after its own D_POSITION is set. Finishing every
 -- tempo-map edit first means later moves are made against the tempo map's
--- final state, not one still partway through being rewritten. Envelope moves
--- run right after -- they carry no such tempo-map dependency (a point's time
--- is a plain seconds value, not derived from the tempo map), but grouping the
--- two automation categories together keeps the order easy to reason about.
+-- final state, not one still partway through being rewritten. Envelope points
+-- are the exception that proves it: on a beat-timebase track they follow the
+-- tempo map exactly as items do, so they are lifted off the timeline before the
+-- first tempo write and inserted at their absolute `to` after the last
+-- (`apply.lift_envelope_points`, issue 10).
 --
 -- That same tempo-map dependency runs the other way too, which is why the item
 -- moves are split in half. Writing an item last is right; *finding* it last is
@@ -867,11 +922,20 @@ function apply.plan(api, plan)
   apply.envelope_drops(api, plan.envelope_drops)
   local items = apply.locate_items(api, plan.item_moves)
   local parked_items = apply.locate_items(api, parked.items)
+  -- Envelope points are lifted before the tempo map is touched and put back
+  -- after it, for the reason `apply.lift_envelope_points` gives.
+  local lifted = {}
+  for _, move in ipairs(plan.envelope_moves) do
+    lifted[#lifted + 1] = move
+  end
+  for _, move in ipairs(parked.envelopes) do
+    lifted[#lifted + 1] = move
+  end
+  apply.lift_envelope_points(api, lifted)
   apply.places(api, plan.places)
   apply.places(api, parked.regions)
   apply.tempo_moves(api, plan.tempo_moves)
-  apply.envelope_moves(api, plan.envelope_moves)
-  apply.envelope_moves(api, parked.envelopes)
+  apply.envelope_moves(api, lifted)
   apply.envelope_anchors(api, plan.envelope_anchors or {})
   apply.marker_moves(api, plan.marker_moves)
   apply.marker_moves(api, parked.markers)

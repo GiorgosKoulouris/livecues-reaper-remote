@@ -31,6 +31,16 @@ function text.heading(name)
   return ("%s -- %q"):format(text.TITLE, name)
 end
 
+--- The run-log line for a run that failed after its plan was logged (issue 10).
+-- The plan logged above it is what the run *meant* to do; this says it stopped,
+-- so the log is not read as a record of a finished run.
+-- @param err any the error the applier raised
+-- @return string
+function text.failure_line(err)
+  return ("  RUN FAILED: %s -- every step after the failing one was not done, and what came "
+    .. "before it was. All of it is one REAPER undo step."):format(tostring(err))
+end
+
 --- The run log's body for one Repack: every decision the run made, one line
 --- each, in the order the reader needs them.
 -- @param snapshot table the snapshot the plan was made from
