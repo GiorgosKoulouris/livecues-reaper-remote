@@ -24,4 +24,4 @@ Each `LCRR_Arrange_*` action is split in three (`.scratch/arrange/spec.md`, step
 
 `spec/dialog_spec.lua` runs every script, as REAPER loads it, through 78 scenarios that reach every abort, cancel, prompt answer and run path. It compares each run with a transcript in `spec/fixtures/dialogs/` covering dialogs and their text, console output, files written, undo calls, and the snapshot, plan and anchors handed to the applier. The transcripts were recorded from the scripts *before* the split (commit `983047b`), and the split left every one byte-identical. To re-record after a deliberate change, run `LCRR_RECORD_DIALOGS=1 busted spec/dialog_spec.lua` and read the diff.
 
-The transcripts stop at `lib/project.lua`'s snapshot and `lib/apply.lua`. Those two are covered as before, by `project_spec`, `apply_spec` and the golden `.RPP` pair (ADR-0005). REAPER itself has not run the split (see `HANDOFF.md`).
+The transcripts stop at `lib/project.lua`'s snapshot and `lib/apply.lua`. Those two are covered as before, by `project_spec`, `apply_spec` and the golden `.RPP` pair (ADR-0005). REAPER itself has not run the split (see `docs/limitations.md`).

@@ -367,7 +367,7 @@ end)
 
 -- The second run, planned against the saved result of the first (issue #13).
 --
--- HANDOFF's headline verification rule is "run it twice, always": four of this
+-- CLAUDE.md's headline verification rule is "run it twice, always": four of this
 -- work's bugs produced correct output on a first run and appeared only when
 -- the same Arrangement was applied to the operation's own output. Until now
 -- that rule had no automated expression at all -- every fixture spec planned

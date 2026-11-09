@@ -900,6 +900,32 @@ describe("regions.plan_pack automation anchor redundancy", function()
   end)
 end)
 
+describe("regions.plan_pack: nothing is written for a region that stays put", function()
+  -- apply.lift_envelope_points only lifts the points the plan moves, so a point
+  -- in a region whose delta is 0 would still follow a tempo write on a
+  -- beat-timebase track (docs/decisions.md, issue 10). That is harmless only
+  -- while a tempo write never happens without a region move, and while no
+  -- tempo or envelope entry has a zero delta. This pins both.
+  it("plans no tempo or envelope entry with a zero delta, and none for the region that stays", function()
+    local plan = assert(regions.plan_pack(
+      snapshot({
+        regions = { region("A", 0, 6, 1), region("B", 8, 14, 2), region("C", 16, 22, 3) },
+        tempo_markers = { { position = 1, bpm = 120 }, { position = 9, bpm = 100 } },
+        envelope_points = { envelope_point(2, 1), envelope_point(10, 2) },
+      }), { "A", "C", "B" }, grid))
+
+    for _, move in ipairs(plan.tempo_moves) do
+      assert.are_not.equal(0, move.delta)
+      assert.are_not.equal("A", move.region_name)
+    end
+    for _, move in ipairs(plan.envelope_moves) do
+      assert.are_not.equal(0, move.delta)
+      assert.are_not.equal("A", move.region_name)
+    end
+    assert.is_true(#plan.envelope_moves > 0)
+  end)
+end)
+
 describe("regions.plan_pack envelope points", function()
   -- Mirrors the tempo transplant: a region only keeps its automation in sync
   -- with its audio if the points inside it move by the same delta (issue #8).

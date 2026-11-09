@@ -273,7 +273,7 @@ Needed by the splitting half of the Repack applier (ADR-0002, issue #6). Two fet
 | `reascripthelp.html` (fetch 2) | `int SplitMediaItem(MediaItem* item, double snapoffset)` | "the index of the new item" |
 | Community/search consensus (secondary) | `MediaItem reaper.SplitMediaItem(MediaItem item, number position)` | the **right-hand** split; the original item becomes the **left-hand** split; `nil`/NULL on failure |
 
-The `int`/`snapoffset` variant is almost certainly a bad read — `snapoffset` is a `D_SNAPOFFSET` parameter name and returning a bare index is not the idiom used elsewhere for item creation — but "almost certainly" is not this repo's standard, and REAPER is unreachable from this container (HANDOFF.md), so it cannot be settled here.
+The `int`/`snapoffset` variant is almost certainly a bad read — `snapoffset` is a `D_SNAPOFFSET` parameter name and returning a bare index is not the idiom used elsewhere for item creation — but "almost certainly" is not this repo's standard, and REAPER is unreachable from this container (CLAUDE.md, "Traps"), so it cannot be settled here.
 
 **How `lib/apply.lua` works around it, deliberately:** the applier does **not** use the return value's identity at all. It splits, then re-locates both resulting pieces by position with the existing `find_item`, and treats "the expected right-hand piece is not there afterwards" as the failure signal. That is correct under either candidate semantics, and under the consensus one too, so the ambiguity cannot produce a wrong edit — only a clear error. **Do not "simplify" that back to trusting the returned handle** until the signature is confirmed in-app.
 
@@ -295,7 +295,7 @@ Two things this settles that matter beyond the names:
 - **Manual and auto are separate properties**, and the split preference writes the **manual** one. `repack_bars`' cut piece came back carrying `FADEIN 1 0.01 0 1 0 0 0` — the manual field set to REAPER's default 0.01 s, the auto field zero. So `apply.splits` overwrites `D_FADEINLEN`/`D_FADEOUTLEN`, which is a different pair from the `_AUTO` keys `apply.item_moves` clears, and the two passes do not interact: a cut creates no overlap, so it creates no auto-crossfade.
 - **Only length is written, not shape or curvature.** `C_FADEINSHAPE` and `D_FADEINDIR` are equally preference-derived, so a fully machine-independent cut edge would pin them too. ADR-0002 specifies a length and nothing else, and inventing a shape decision here would be going beyond it. Recorded as a known narrowing, not an oversight — the audible difference a 5 ms fade's curve makes is far smaller than the 5 ms-vs-10 ms one this closed.
 
-`regions.CUT_FADE` is therefore **planned and applied** as of issue #15. It has **not** run against real REAPER — see HANDOFF.md.
+`regions.CUT_FADE` is therefore **planned and applied** as of issue #15. It has **not** run against real REAPER — see `docs/limitations.md`.
 
 ### 4.4 Tempo markers and track envelopes — read-only, used by the #12 refusal
 

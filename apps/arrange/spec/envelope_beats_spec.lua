@@ -5,7 +5,7 @@
 -- to move on track 12, envelope "Mute", at 275.600s".
 --
 -- These specs run a whole plan against `fake_reaper.world`, which models that
--- drift, and then run the same Arrangement a second time (HANDOFF.md's
+-- drift, and then run the same Arrangement a second time (CLAUDE.md's
 -- run-it-twice rule).
 
 local apply = require("lib.apply")

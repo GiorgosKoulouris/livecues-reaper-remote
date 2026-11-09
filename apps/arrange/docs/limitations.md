@@ -226,3 +226,14 @@ and the `.arrange.log` files beside each fixture's `.RPP`.
 | macOS/Linux installer (`scripts/install.ps1` is PowerShell; copy by hand) | — |
 
 `#N` references are issues of the retired ReaperScripts repo (none was open at the migration). New work goes in `.scratch/arrange/issues/`.
+
+## Not yet observed in real REAPER
+
+Everything else here has run in REAPER 7.82 (Windows): Capture, Check, Verify, Find Duplicate Region Names, Apply (twice, on `podium-dummy` and `Rehearsal_Current`), the bridge, the page and `install.ps1`'s `__startup.lua` line. Not yet seen:
+
+- Show Bar Lines and Show Track Timebase (`LCRR_Arrange_ShowTrackTimebase` requires `lib/`, so it needs the whole folder installed).
+- An Apply that refuses after its Tempo Anchors (the "one undo step" message).
+- `install.ps1 -Uninstall`, and a repeated install (the `__startup.lua` line).
+- `apply.splits`' cut fade-out: written but unobserved. `repack_bars`' one cut leaves its left piece Dropped before anything reads it; covering it needs an item straddling a region end.
+- Several page checks (Edit tab edge cases, Undo, the Headroom clear offer, the check token): see `.scratch/arrange/host-checks.md` and `host-checks-06-07-09.md`.
+

@@ -523,7 +523,7 @@
     els.newBtn.disabled = !ready || (v.sidecar !== "ok" && v.sidecar !== "missing");
     var next = editor.peekUndo();
     els.undoBtn.disabled = !ready || !next;
-    els.undoBtn.title = next ? "Undo " + words.undoLabel(next) : "Nothing to undo";
+    els.undoBtn.title = words.undoTitle(next);
     els.dupBtn.disabled = els.renameBtn.disabled = els.deleteBtn.disabled = els.editCheck.disabled = !ready || !has;
     document.querySelectorAll("#arrange-editor .arrange-row button, #arrange-editor .arrange-row input").forEach(function (b) {
       b.disabled = !ready || b.getAttribute("data-off") === "1";
@@ -694,7 +694,7 @@
     }
     var handle = h("button", "arrange-handle", "⠇⠇");
     handle.type = "button";
-    handle.setAttribute("aria-label", "Drag " + row.name + " to a new position");
+    handle.setAttribute("aria-label", words.dragLabel(row.name));
     handle.addEventListener("pointerdown", function (e) { startDrag(e, handle, arrangement, row.name, i); });
     li.appendChild(handle);
     li.appendChild(nameBox);
@@ -702,7 +702,7 @@
     var hr = h("span", "arrange-headroom");
     var input = h("input");
     input.type = "text"; input.value = E.formatSeconds(row.headroom); input.autocomplete = "off";
-    input.setAttribute("aria-label", "Headroom in seconds for " + row.name);
+    input.setAttribute("aria-label", words.headroomInputLabel(row.name));
     var label = h("span", "arrange-headroom-label", words.headroomLabel(row.headroom));
     function setHeadroom(seconds) {
       if (seconds === row.headroom) return;

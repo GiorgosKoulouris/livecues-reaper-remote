@@ -186,8 +186,8 @@ describe("LCRR_Arrange_Apply pipeline against the real repack_basic fixture", fu
     assert.are.same({}, plan.parks)
   end)
 
-  -- The two adjacent transpositions the sidecar was hand-edited to carry
-  -- (HANDOFF.md): Sleep Tight <-> Darkness of Blue, and NES_19 <-> NES_11.
+  -- The two adjacent transpositions the sidecar was hand-edited to carry:
+  -- Sleep Tight <-> Darkness of Blue, and NES_19 <-> NES_11.
   -- Closing the fixture's real inter-region gaps moves every region here
   -- (Repack's job, not a bug -- see the file header), so the swap itself is
   -- checked by relative order, not by an isolated four-entry plan.

@@ -143,8 +143,8 @@ function validate.arrangement_regions_exist(region_names, regions)
 end
 
 --- Does an Arrangement name every region in the project?
--- Parking omitted regions is #7's job and its clamp is not yet ratified
--- (HANDOFF.md), so until then an Arrangement that omits a region is refused
+-- Parking omitted regions is #7's job and its clamp is not yet ratified,
+-- so until then an Arrangement that omits a region is refused
 -- rather than silently parked.
 -- @param region_names table ordered list of Region Names from an Arrangement
 -- @param regions table list of { name = string }

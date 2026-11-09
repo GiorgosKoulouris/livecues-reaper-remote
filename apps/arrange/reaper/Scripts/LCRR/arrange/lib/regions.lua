@@ -466,7 +466,7 @@ end
 -- amount, four orders of magnitude above this tolerance. Measured by the real
 -- oracle on that project, the eight genuine pads run from 0.211s to 1.836s.
 -- (The pad sizes quoted above were estimated in this container and turned out
--- to be wrong -- see HANDOFF.md. What the estimate did establish, and what the
+-- to be wrong (CLAUDE.md, "Traps": do not compute bar positions here). What the estimate did establish, and what the
 -- real run confirmed, is the *class* of error this tolerance prevents: a
 -- spurious whole-bar pad on a region that is already aligned.)
 local function pad_regions(ordered, in_arrangement, tempo)

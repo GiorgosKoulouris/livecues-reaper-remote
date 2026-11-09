@@ -12,7 +12,7 @@ local project = require("lib.project")
 -- Legacy: EnumProjectMarkers3(proj, idx) -> retval, isrgn, pos, rgnend, name,
 -- number, with retval 0 when there is nothing at that index. Entries are handed
 -- back in an order this suite deliberately does not depend on either way
--- (HANDOFF, API facts).
+-- (CLAUDE.md, "Traps").
 local function api_with(entries, project_path)
   return {
     EnumProjects = function() return 0, project_path or [[D:\P\Song.RPP]] end,
@@ -397,7 +397,7 @@ describe("project.snapshot items", function()
   end)
 
   -- -1 (project default) is treated as unsafe: what it resolves to isn't
-  -- confirmed yet, and this suite refuses rather than guesses (HANDOFF).
+  -- confirmed yet, and this suite refuses rather than guesses.
   it("is unsafe on a project-default track (-1)", function()
     local snapshot = project.snapshot(api_with_tracks({ { mode = -1, items = { item(0, 1) } } }, {}))
     assert.is_false(snapshot.items[1].timebase_safe)

@@ -285,7 +285,7 @@ recalled.
 `TEMPOENVLOCKMODE` is **`0` (Time)**, unlike `repack_basic`, which carries `1`
 and therefore has to be fixed by hand in Project Settings before every run
 (`validate.tempo_env_is_time_based` refuses otherwise). Fixing it at source here
-is deliberate: HANDOFF's API facts call this out as one of the traps that
+is deliberate: CLAUDE.md's "Traps" call this out as one of the traps that
 recurs, because the setting lives inside the `.RPP` and reverting to a baseline
 copy resurrects it.
 

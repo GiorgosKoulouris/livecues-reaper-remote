@@ -38,12 +38,12 @@ end
 -- The next step is the one nothing else explains. A captured Arrangement is
 -- the *starting point*: the usual move is to duplicate it and reorder the
 -- copy, so the original stays as a record of how the project was laid out.
--- ADR-0003 makes the sidecar the authoring surface, so duplicating is a text
--- edit and there is no action for it -- which is exactly why it is spelled
+-- Duplicating is done on the Arrange page's Edit tab (ADR-0009) or in a text
+-- editor; there is no Action for it -- which is exactly why it is spelled
 -- out here rather than left to be inferred.
 function text.summary(result)
   local name = result.name
-  return ("%s %q with %d regions.\n\n%s\n\nNext, in a text editor:\n\n"
+  return ("%s %q with %d regions.\n\n%s\n\nNext, on the Arrange page's Edit tab (or in a text editor):\n\n"
     .. "  1. Duplicate the [%q] = { ... } block and give the copy a different name.\n"
     .. "  2. Reorder the Region Names inside the copy, or delete some to make a subset.\n"
     .. "  3. Set `headroom` on any entry to add or remove seconds at that region's end. It "

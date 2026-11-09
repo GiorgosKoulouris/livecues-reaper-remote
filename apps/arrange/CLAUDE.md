@@ -6,7 +6,7 @@ Suite rules in `/CLAUDE.md` apply: work on `dev`, never `main`; **no Claude/Anth
 
 ## Start here
 
-`HANDOFF.md` is the entry point. It carries only what nothing else does: REAPER is not reachable from the container, the run-it-twice rule, API traps, the fixtures, and what has never been run. Then **`docs/decisions.md` before "fixing" anything surprising**. The engine was tested by hand at length on real projects.
+Read the **Traps** section below, then **`docs/decisions.md` before "fixing" anything surprising**. The engine was tested by hand at length on real projects.
 
 | File | What it holds |
 |---|---|
@@ -15,18 +15,34 @@ Suite rules in `/CLAUDE.md` apply: work on `dev`, never `main`; **no Claude/Anth
 | `docs/workflow.md` | The user-facing path end to end: capture, duplicate, reorder, check, apply, verify |
 | `docs/actions.md` | Per-action reference: what each needs, changes and refuses on. Add a row here when adding a script |
 | `docs/bridge.md` | The bridge's wire contract with the page: ExtState keys, request/reply format, commands, the check token |
-| `docs/limitations.md` | What the suite will not do, and why |
+| `docs/limitations.md` | What the suite will not do, and why, and what has never been observed in real REAPER |
 | `docs/decisions.md` | Decisions that look like bugs and are not |
 | `docs/adr/` | Nine ADRs: architecture, splitting, storage, bar alignment, verification, the injected tempo oracle, Headroom's non-idempotence, headless cores with thin front ends, the page editing the sidecar |
 | `research/reaper-scripting.md` | Sourced ReaScript API research, tagged primary vs secondary. **Prefer it to recollection** |
 
-Open work: `.scratch/arrange/` (spec, issues numbered from `02`). `#N` in code and docs means an issue of the retired ReaperScripts GitHub repo: historical, not tracked anywhere now.
+Open work: `.scratch/arrange/` (spec, numbered issues, host checks). `#N` in code and docs means an issue of the retired ReaperScripts GitHub repo: historical, not tracked anywhere now.
+
+## Traps
+
+Cheap to trip over, expensive to discover.
+
+- **REAPER is not reachable from this container.** It runs on the Windows host, on a drive that is not mounted, so no script can be run against the real API from here (the reason for ADR-0001 and ADR-0005). The container also has no PowerShell and no browser: `install.ps1` and `arrange.js` can only be checked on the host.
+- **Install is one-way, repo to REAPER, via `scripts/install.ps1` (or `install.bat`), run on the Windows side.** Editing files here changes nothing REAPER runs until it is re-run (unless installed with `-Link`). When real-REAPER behaviour does not match the code, the first question is "was `install.ps1` re-run?" The repo is the only source of truth: never edit these files in REAPER's script editor, the next install overwrites them.
+- **`lib/` stays beside the `LCRR_Arrange_*.lua` files** (`Scripts\LCRR\arrange\{*.lua, lib\}` in REAPER, `reaper/Scripts/LCRR/arrange/` here), because scripts find it through `reaper.get_action_context()`. `spec/layout_spec.lua` checks it; specs reach `lib/` through `.busted`'s `lpath`.
+- **Run it twice, always.** A single clean run proves nothing about anything idempotent: four of this work's bugs gave correct output on a first run and appeared only when the same Arrangement was applied to the operation's own output (a first Repack never meets its own anchors, never writes onto an occupied tempo position, never has to vacate the timeline origin). Run it twice and diff the results. Its only automated expression is `spec/repack_bars_fixture_spec.lua`'s "Subset applied twice" block, which covers the plan half on one fixture. **Headroom reads this backwards** (ADR-0007): it is deliberately not idempotent, so a second run is still the test, but the expected result is a further change, and a second run that changes nothing means it has quietly become an absolute length.
+- **Do not read `reascripthelp.html` through a summarizing fetch tool.** It confabulates: two fetches of the same page gave two different, both wrong, signatures for one function. `curl` it and grep locally (the copy self-reports `REAPER v7.78`, the version this suite runs against) and cross-check `reaper_plugin_functions.h`. Method in `research/reaper-scripting.md` section 4.5, which is to be preferred to recollection.
+- **Do not compute bar positions in this container.** An estimate of the live project's Padding predicted 2 regions and about 3.5 s; the real oracle produced 8 regions and 7.237 s, and only one of the eight matched. `LCRR_Arrange_ShowBarLines.lua` asks the real oracle without writing anything.
+- **`TEMPOENVLOCKMODE` must be `0`**, or a Repack is refused up front (`1` is Beats, under which writing one tempo marker re-derives the time of every marker after it: measured at 1.121486470 s across 64 markers). It lives inside the `.RPP`, so reverting to a baseline copy resurrects it. `repack_basic` carries `1`; `repack_bars` carries `0` deliberately.
+- **An item's position is not a stable identity across a tempo edit.** Rewriting the tempo map drags every beat-anchored item, so `apply.locate_items` resolves every `MediaItem*` before the first tempo write.
+- **Requests from the page stay under about 900 encoded URL characters, and REAPER answers web requests on its main thread**, so every request hangs while the bridge works. Spike facts are in `/CONTEXT.md`.
+- **Never commit media.** `spec/fixtures/repack_basic/` is a 4.6 GB live project that exists only on the host. See `spec/fixtures/README.md`.
+- SHAs and `TSB_*` script names in old notes and fixture logs refer to the ReaperScripts repo this suite was migrated from, without its history.
 
 ## Layout
 
 - `reaper/`: a **reaper slice**, mirroring REAPER's resource path as `www/` mirrors the web root (suite ADR-0001). Scripts in `reaper/Scripts/LCRR/arrange/LCRR_Arrange_<Verb>.lua`, with `lib/` **beside them**: each script adds its own folder to `package.path` via `reaper.get_action_context()` and requires `lib.<module>`. `spec/layout_spec.lua` guards this.
 - Inside the slice, `lib/` holds the planners and appliers, plus `lib/core/<action>.lua` (one headless core per action) and `lib/text/<action>.lua` (its wording). Each `LCRR_Arrange_<Verb>.lua` script is only the dialog front end over its core (ADR-0008).
-- `spec/`: busted specs, `spec/support/` (`fake_reaper.lua`, `core_env.lua` for driving cores, `script_harness.lua` for running whole scripts) and `spec/fixtures/` (golden records, see `HANDOFF.md`). `spec/fixtures/dialogs/` holds the dialog transcripts `spec/dialog_spec.lua` compares against.
+- `spec/`: busted specs, `spec/support/` (`fake_reaper.lua`, `core_env.lua` for driving cores, `script_harness.lua` for running whole scripts) and `spec/fixtures/` (golden records, see `spec/fixtures/README.md`). `spec/fixtures/dialogs/` holds the dialog transcripts `spec/dialog_spec.lua` compares against.
 - `www/` and `test/`: the page (`lcrr-arrange.html`, `lcrr/arrange/{css,js}/`) and its node tests. `js/wire.js` (request/reply format, heartbeat), `client.js` (one call over the shared fetch) and `words.js` (every sentence) and `editor.js` (the editor's list model, move and Headroom arithmetic, and where an edit is sent) are pure and tested; `arrange.js` is the DOM wiring. IDs and classes use `arrange-`. `test/fixtures/bridge-replies.txt` is the bridge's real output, recorded by `spec/bridge_contract_spec.lua` (`LCRR_RECORD_BRIDGE=1 busted spec/bridge_contract_spec.lua`), and `test/words.test.js` pushes it through `words.js`. A change to a reply's shape fails the busted spec; a field `words.js` doesn't know fails the node test.
 - `lib/bridge/`: the bridge front end (`service.lua` requests and replies, `request.lua`, `json.lua`, `tokens.lua`, `runner.lua` the ExtState loop). The wire contract is `docs/bridge.md`: read it before changing either end.
 - Installed by `scripts/install.ps1` (Windows) into `<resource path>\Scripts\LCRR\arrange\`.

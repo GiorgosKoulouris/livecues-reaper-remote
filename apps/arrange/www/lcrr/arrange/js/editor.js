@@ -71,13 +71,13 @@
     return /e/i.test(s) ? Number(s).toFixed(3).replace(/\.?0+$/, "") : s;
   }
 
-  function stepHeadroom(current, delta) { return round3((Number(current) || 0) + delta); }
+  function stepHeadroom(current, step) { return round3((Number(current) || 0) + step); }
 
   // ---- names ------------------------------------------------------------------------------------------------------
 
   // The page's own check before it sends New, Duplicate or Rename: { ok, name } or { ok: false, code }. The core
-  // checks again; this only saves a round trip. `except` is a name that may be reused (renaming to the same name is
-  // refused as taken by the core, so the page treats it as a no-op instead).
+  // checks again; this only saves a round trip. `existing` is every name already taken, so renaming to the
+  // current name is refused as taken, here and in the core.
   function checkName(raw, existing) {
     var name = String(raw == null ? "" : raw).trim();
     if (name === "") return { ok: false, code: "name_empty" };

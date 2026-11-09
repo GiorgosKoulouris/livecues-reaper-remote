@@ -259,6 +259,9 @@
       default: return "the last change";
     }
   }
+  function undoTitle(entry) { return entry ? "Undo " + undoLabel(entry) : "Nothing to undo"; }
+  function dragLabel(name) { return "Drag " + name + " to a new position"; }
+  function headroomInputLabel(name) { return "Headroom in seconds for " + name; }
   function undone(entry) { return "Undid " + undoLabel(entry) + "."; }
   function undoPartial(entry) { return "Undoing " + undoLabel(entry) + " stopped half way. Look at the Arrangement; it may be partly restored."; }
   function undoRefused(entry) { return "Could not undo " + undoLabel(entry) + ": it no longer applies. That step is dropped from Undo."; }
@@ -287,18 +290,18 @@
 
   function captureSummary(r) {
     return (r.replaced ? "Replaced " : "Captured ") + q(r.name) + " with " + r.regions.length + " regions.\n\n" +
-      "Next, in a text editor on the host, open " + r.path + ":\n" +
-      "  1. Duplicate the [" + q(r.name) + "] = { ... } block and give the copy a different name.\n" +
-      "  2. Reorder the Region Names inside the copy, or delete some to make a subset.\n" +
-      "  3. Set `headroom` on any entry to add or remove seconds at that region's end. It is rounded to the nearest bar, and it is relative: applying twice moves twice.\n" +
+      "Next, on the Edit tab:\n" +
+      "  1. Duplicate " + q(r.name) + " and give the copy a different name.\n" +
+      "  2. Reorder the regions in the copy, or remove some to make a subset.\n" +
+      "  3. Set Headroom on any region to add or remove seconds at its end. It is rounded to the nearest bar, and it is relative: applying twice moves twice.\n" +
       "  4. Come back here: Check the new name, then Apply, then Verify.\n\n" +
-      "Editing the copy leaves " + q(r.name) + " intact as a record of the current order.";
+      "Editing the copy leaves " + q(r.name) + " intact as a record of the current order. The file is " + r.path + "; a text editor works too.";
   }
 
   return { error: error, failure: failure, finding: finding, severityHeading: severityHeading, blindSpot: blindSpot,
     paddingNote: paddingNote, checkVerdict: checkVerdict, verifyVerdict: verifyVerdict, headroomQuestion: headroomQuestion,
     applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion,
-    undoLabel: undoLabel, undone: undone, undoPartial: undoPartial, undoRefused: undoRefused, undoStale: undoStale,
+    undoLabel: undoLabel, undoTitle: undoTitle, dragLabel: dragLabel, headroomInputLabel: headroomInputLabel, undone: undone, undoPartial: undoPartial, undoRefused: undoRefused, undoStale: undoStale,
     headroomLabel: headroomLabel, deleteQuestion: deleteQuestion, emptyArrangementNote: emptyArrangementNote,
     headroomInputInvalid: headroomInputInvalid, clearOffer: clearOffer, noSidecarEditNote: noSidecarEditNote, trackLabel: trackLabel };
 });

@@ -1,7 +1,8 @@
 # The Arrangement workflow
 
 The end-to-end path from a project you have laid out by hand to a repacked one
-you have confirmed. Seven steps, four REAPER actions and one text edit.
+you have confirmed. Seven steps: four REAPER actions, and the Edit tab (or a text
+editor) for authoring.
 
 Vocabulary is `CONTEXT.md`'s — **Arrangement**, **Repack**, **Padding**,
 **Headroom**, **Tempo Anchor**, **Packed Block**, **Parked Material**,
@@ -31,12 +32,29 @@ action `Find duplicate or unnamed regions` lists every offender.
 
 ## 2. Duplicate it
 
-**No action — this is a text edit, by design.**
+**No REAPER action. On the Arrange page's Edit tab: pick the Arrangement and
+press Duplicate.** Give the copy a name. (Or edit the file by hand, below.)
 
-ADR-0003 makes the sidecar the authoring surface: REAPER gets two Arrangement
-actions and everything else happens in a text editor. Open
-`<YourProject>.arrangements.lua` beside the `.RPP`, copy the whole block and
-change the key:
+The Edit tab is the quick way to author. Its list shows "In this Arrangement"
+and "Left out", and every edit is written to the sidecar straight away
+([ADR-0009](adr/0009-the-page-edits-the-sidecar.md)):
+
+- **New, Duplicate, Rename, Delete** manage Arrangements. Delete names the
+  Arrangement and its region count before it asks.
+- **Drag** a row by its handle, or use the ↑/↓ buttons, to reorder. Drag works
+  only inside "In this Arrangement".
+- **Add** appends a region from "Left out" at the end; **Remove** puts it back.
+- **Undo** reverses the latest edit, including a Remove's position and
+  Headroom. It is cleared when the file changes under the page (for example a
+  Capture or a text editor), and it does not survive a page reload.
+- If you have edited the file by hand, the first edit from the page asks before
+  it rewrites the file, because the rewrite drops comments and hand formatting.
+  If the file changed since the page read it, the edit is refused and the page
+  reloads it: redo the edit.
+
+ADR-0003 still makes the sidecar the authoring surface, so a text editor works
+as well. Open `<YourProject>.arrangements.lua` beside the `.RPP`, copy the whole
+block and change the key:
 
 ```lua
 return {
@@ -67,7 +85,8 @@ you can always get back to it by applying it.
 
 ## 3. Reorder or subset the copy
 
-Still in the text editor. Reorder the Region Names, or delete some.
+On the Edit tab, drag or use ↑/↓, Add and Remove. In a text editor, reorder the
+Region Names, or delete some.
 
 The order of the list **is** the Arrangement. An Arrangement may name a subset
 of the project's regions — a radio edit is a subset — and the regions it omits
@@ -84,8 +103,9 @@ rather than a partly applied Arrangement.
 
 ## 4. Set the Headroom, where you want it
 
-Still in the text editor. `headroom` is the number of seconds to add to or take
-off that region's end:
+On the Edit tab, type it in the region's Headroom box or step it ±1 s; the box
+shows what it will become at the next Apply. In a text editor, `headroom` is the
+number of seconds to add to or take off that region's end:
 
 ```lua
 ["Radio"] = {

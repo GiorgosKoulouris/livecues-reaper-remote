@@ -41,7 +41,7 @@ Decided in a grilling session on 2026-11-07. The Lua engine stays; the web page 
 1. Bridge spike on real REAPER (`issues/01-bridge-spike.md`). Everything else depends on it.
 2. Migrate and rename into `apps/arrange/`, then get the tests green (npm wraps busted and luacheck).
 3. Split scripts into core and front ends, and make `report.lua` structured.
-4. Build the bridge and the page. **Built 2026-11-07; not yet run in REAPER** (see `HANDOFF.md`). Apply's timing is still to be measured and recorded here.
+4. Build the bridge and the page. **Built 2026-11-07; not yet run in REAPER** (see `apps/arrange/docs/limitations.md`). Apply's timing is still to be measured and recorded here.
 
 ## Phase 2: the Arrangement editor
 
@@ -59,7 +59,7 @@ Decided in a grilling session on 2026-11-07. Decisions only; the work is split i
 - **When the page re-reads:** on regaining focus, before each Check, and after any stale refusal. No background polling of the file.
 
 ### Check token
-- **The token also binds the checked Arrangement's contents** (its order and Headroom). If they changed before Apply, from the page or a text editor, Apply refuses (`token_stale`, a new reason `arrangement_changed`). Edits to other Arrangements do not stale it. Renaming the checked Arrangement does (the token already binds the name). This closes the gap HANDOFF lists under "Known gaps", for the dialog-less page path; the dialog front end has no token and is unchanged.
+- **The token also binds the checked Arrangement's contents** (its order and Headroom). If they changed before Apply, from the page or a text editor, Apply refuses (`token_stale`, a new reason `arrangement_changed`). Edits to other Arrangements do not stale it. Renaming the checked Arrangement does (the token already binds the name). This closes a known gap, for the dialog-less page path; the dialog front end has no token and is unchanged.
 
 ### Undo and the record
 - **Undo is the page's**, an in-session stack of inverse operations, each sent as an ordinary edit through the same revision check. Lost on reload. **No Redo.** REAPER's Undo does not cover the sidecar.

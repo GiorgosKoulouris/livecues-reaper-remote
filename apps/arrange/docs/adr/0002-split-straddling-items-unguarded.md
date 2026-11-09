@@ -43,7 +43,7 @@ full Repack is usually all of them.
   `research/reaper-scripting.md` §4.3a — on the two edges each cut creates, and
   on nothing else. Length only: the fade *shape* and curvature are equally
   preference-derived and are still inherited, because this bullet specifies a
-  length and nothing more. Not yet observed in real REAPER (HANDOFF.md).
+  length and nothing more. Not yet observed in real REAPER (`docs/limitations.md`).
 - The piece a cut leaves outside every region is **discarded**, not moved —
   Dropped Material (`CONTEXT.md`), decided 2026-07-30. For a tail that is a
   song's ring-out, that means the ring-out is destroyed, not merely separated

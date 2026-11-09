@@ -217,11 +217,15 @@ describe("lib/core/apply.lua run", function()
       assert.is_truthy(log:find("tempo anchor", 1, true))
       assert.is_truthy(log:find("RUN FAILED: boom", 1, true))
 
-      -- Failing at the anchors, nothing has been logged yet, so nothing is claimed.
+      -- Failing at the anchors, the plan is not logged yet but the tempo map may
+      -- be half rewritten, so the failure gets a heading and a line of its own.
       given, world = bars({ applier_fails = { anchors = "no anchors" } })
       ok = pcall(apply.run, apply.prepare(given), { name = "Reordered" })
       assert.is_false(ok)
-      assert.is_nil(world.files["/proj/Bars.arrange.log"])
+      log = world.files["/proj/Bars.arrange.log"]
+      assert.is_truthy(log:find('Apply Arrangement -- "Reordered"', 1, true))
+      assert.is_truthy(log:find("RUN FAILED: no anchors", 1, true))
+      assert.is_nil(log:find("tempo anchor (region", 1, true))
     end)
 
     it("hands the applier the plan it returns", function()

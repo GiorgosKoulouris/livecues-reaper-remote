@@ -6,8 +6,9 @@
 --   sidecar beside the .RPP as a named Arrangement.
 --
 --   This is one of only two Arrangement actions REAPER gets; authoring and
---   reordering happen in a text editor, on the sidecar file (ADR-0003). Use
---   this to seed a sidecar from a project you have already laid out by hand.
+--   reordering happen on the Arrange page's Edit tab, or in a text editor on
+--   the sidecar file (ADR-0003, ADR-0009). Use this to seed a sidecar from a
+--   project you have already laid out by hand.
 --
 --   Changes no project state -- it writes one file next to the project.
 

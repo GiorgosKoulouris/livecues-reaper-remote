@@ -97,9 +97,10 @@ want the first run to be one you can throw away.
 2. **Capture the current order.** Run **Capture the current region order as an
    Arrangement** and call it something like `Full`. This writes
    `<YourProject>.arrangements.lua` next to your `.RPP`.
-3. **Duplicate and edit it.** Open that file in a text editor, copy the block,
-   rename the copy, and reorder the names inside it. Delete names to make a
-   subset.
+3. **Duplicate and edit it.** On the Arrange page's Edit tab, pick the
+   Arrangement and Duplicate it, then drag or use ↑/↓ to reorder and Remove to
+   make a subset. (You can still edit `<YourProject>.arrangements.lua` in a text
+   editor.)
 4. **Adjust lengths, if you want to.** Set `headroom` on an entry to add or
    remove seconds at that region's end. The result lands on the nearest bar
    line, and `0` — the default — changes nothing.
@@ -184,8 +185,9 @@ The short version — the full list, with reasoning, is in
   On `Beats` a Repack cannot move tempo markers reliably, and it refuses.
 - **Material outside every region is discarded**, and straddling items are cut.
   Clean up before you Repack.
-- **Editing Arrangements is a text-file job.** There is no GUI, and no action to
-  duplicate an Arrangement — that is a copy/paste in your editor, by design.
+- **Arrangements are edited on the page, not by a REAPER action.** The Arrange
+  page's Edit tab does New, Duplicate, Rename, Delete, reorder, Headroom and
+  Undo. The sidecar is still plain text you can edit by hand.
 - **Headroom is not idempotent.** It is the one operation here that a second run
   repeats. Apply's prompt is the only guard, and Verify cannot detect a double
   application.
@@ -200,7 +202,7 @@ docs/                              user documentation and architecture decision 
 ```
 
 Contributor-facing notes: [CLAUDE.md](CLAUDE.md) for conventions,
-[HANDOFF.md](HANDOFF.md) for current state, [docs/adr/](docs/adr/) for the seven
+[docs/limitations.md](docs/limitations.md) for what is not yet observed in REAPER, [docs/adr/](docs/adr/) for the seven
 architecture decisions, and `research/reaper-scripting.md` for sourced ReaScript
 API findings.
 

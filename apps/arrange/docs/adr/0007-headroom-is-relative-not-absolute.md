@@ -9,7 +9,7 @@ not *leave exactly four seconds after the last item*.
 The consequence is deliberate and is the whole of this decision: applying the
 same Arrangement twice moves that end twice. Headroom is the first operation in
 this suite that is intentionally not idempotent, and
-[`HANDOFF.md`](../../HANDOFF.md)'s central rule — that a single clean run proves
+[`CLAUDE.md`](../../CLAUDE.md)'s central rule ("Run it twice") — that a single clean run proves
 nothing — is precisely the rule it breaks.
 
 ## The alternative that was rejected

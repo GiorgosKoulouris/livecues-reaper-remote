@@ -284,7 +284,7 @@ end
 -- project's 69/69 successful transplant was that case. Reordering an
 -- *already-packed* project makes destinations land exactly where other regions'
 -- markers already sit -- and it is the same family of bug as the transient
--- crossfades (HANDOFF): moving things one at a time creates intermediate states
+-- crossfades: moving things one at a time creates intermediate states
 -- the plan never describes.
 --
 -- The ordering is a topological sort done the simple way: repeatedly write any

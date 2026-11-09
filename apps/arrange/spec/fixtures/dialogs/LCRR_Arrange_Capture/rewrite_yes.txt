@@ -75,7 +75,7 @@ Captured "Live" with 4 regions.
 
 /proj/Bars.arrangements.lua
 
-Next, in a text editor:
+Next, on the Arrange page's Edit tab (or in a text editor):
 
   1. Duplicate the ["Live"] = { ... } block and give the copy a different name.
   2. Reorder the Region Names inside the copy, or delete some to make a subset.

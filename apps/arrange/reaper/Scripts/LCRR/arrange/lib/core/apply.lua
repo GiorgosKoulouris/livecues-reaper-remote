@@ -223,6 +223,10 @@ function apply.run(prepared, request)
   -- Arrangement that already matches the timeline leaves no trace in either
   -- (CLAUDE.md, Undo convention; lib/log.lua).
   local plan_logged = false
+  -- Set just before the anchors are written. The plan cannot be logged until
+  -- they are (phase 2 is planned against the grid they make), so a failure in
+  -- that window would otherwise leave a rewritten tempo map and no log at all.
+  local anchors_started = false
   local function log_plan(planned_from, plan)
     if plan.is_empty and anchor_plan.is_noop then
       return
@@ -240,14 +244,19 @@ function apply.run(prepared, request)
   -- goes to the log before the applier runs so a run that dies halfway still has
   -- its record, but the record alone reads like a run that finished. So when the
   -- applier raises after that point, say so in the log, then raise again for the
-  -- front end. Before the plan is logged nothing was claimed, so nothing is added.
+  -- front end. Before the plan is logged nothing was claimed, so nothing is added,
+  -- except that a run which began writing anchors has already changed the tempo
+  -- map, so that failure is logged under its own heading.
   local function run_logged(body)
     local ok, err = pcall(body)
     if ok then
       return
     end
-    if plan_logged then
+    if plan_logged or anchors_started then
       local logger = env.logger(snapshot.project_path)
+      if not plan_logged then
+        logger:heading(text.heading(name))
+      end
       logger:line(text.failure_line(err))
       logger:write()
     end
@@ -325,6 +334,7 @@ function apply.run(prepared, request)
       api = api,
       description = text.TITLE,
       apply = function()
+        anchors_started = true
         applier.anchors(api, anchor_plan.anchors)
 
         -- Re-read: the tempo map changed, and `plan_pack`'s own contract asks for
