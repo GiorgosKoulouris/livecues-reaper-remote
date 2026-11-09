@@ -1,6 +1,6 @@
 # LiveCues ReaperRemote (LCRR): suite context
 
-A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher), **Podium** (`lcrr-podium.html`, the stage transport and cue list) and **Arrange** (`lcrr-arrange.html`, a page over region Repack ReaScript actions through a background Lua bridge). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
+A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher), **Podium** (`lcrr-podium.html`, the stage transport and cue list), **Monitor** (`lcrr-monitor.html`, personal in-ear mixes from a phone) and **Arrange** (`lcrr-arrange.html`, a page over region Repack ReaScript actions through a background Lua bridge). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
 
 ## Terms
 

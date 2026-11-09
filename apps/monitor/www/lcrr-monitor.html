@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor · LiveCues ReaperRemote</title>
+<link rel="icon" href="lcrr/shared/img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="lcrr/shared/img/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="lcrr/shared/img/apple-touch-icon.png">
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/monitor/css/monitor.css">
+</head>
+<body>
+<header id="monitor-bar">
+  <div class="monitor-bar-inner">
+    <h1 id="monitor-title">Monitor</h1>
+    <span id="monitor-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="monitor-shape" aria-hidden="true"></i><span id="monitor-state-text">connecting&hellip;</span></span>
+  </div>
+  <div id="monitor-banner" role="alert"></div>
+</header>
+
+<main>
+  <section id="monitor-list-view" aria-label="Mixes" aria-busy="true">
+    <p id="monitor-notice" class="monitor-notice" hidden></p>
+    <p id="monitor-loading" class="monitor-empty">Looking for mixes&hellip;</p>
+    <ul id="monitor-mixes" class="monitor-mixes" hidden></ul>
+    <div id="monitor-setup" class="monitor-setup" hidden>
+      <h2>No mixes yet</h2>
+      <p>A mix is a REAPER track set up for one musician:</p>
+      <ol>
+        <li>Name a track <code>IEM_&lt;name&gt;</code>, for example <code>IEM_Drums</code>.</li>
+        <li>Give it at least one receive, one for each source to monitor.</li>
+        <li>Give it at least one hardware output, going to the performer&rsquo;s output. The overall fader controls the first one.</li>
+        <li>Usually turn off its master send.</li>
+      </ol>
+      <p>The list updates by itself. The prefix is exactly <code>IEM_</code>, capitals and underscore.</p>
+    </div>
+  </section>
+
+  <section id="monitor-mix-view" aria-label="Mix" hidden>
+    <div class="monitor-mix-head">
+      <button type="button" id="monitor-back" class="monitor-back">&larr; Mixes</button>
+      <h2 id="monitor-mix-name" class="monitor-mix-title"></h2>
+    </div>
+    <div class="monitor-overall">
+      <div class="monitor-overall-head"><span class="monitor-overall-label">Overall</span><span id="monitor-overall-db" class="monitor-overall-db">&ndash;</span></div>
+      <div id="monitor-overall-fader"></div>
+    </div>
+    <p id="monitor-rows-empty" class="monitor-empty">Loading sources&hellip;</p>
+    <ul id="monitor-rows" class="monitor-rows"></ul>
+  </section>
+</main>
+
+<footer class="lcrr-footer">
+  <div class="lcrr-footer-inner">
+    <a class="lcrr-home" href="lcrr.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Home</a>
+  </div>
+</footer>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/monitor/js/core.js"></script>
+<script src="lcrr/monitor/js/fader.js"></script>
+<script src="lcrr/monitor/js/monitor.js"></script>
+</body>
+</html>

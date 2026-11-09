@@ -1,0 +1,57 @@
+/* Monitor: page styles. Tokens and base styles come from lcrr/shared/css/. */
+#monitor-bar { position:sticky; top:0; z-index:10; background:var(--console-grey); }
+.monitor-bar-inner { display:flex; align-items:center; gap:.625rem; max-width:48rem; margin:0 auto; padding:.375rem 1rem; min-height:3rem; }
+#monitor-title { flex:1; min-width:0; margin:0; font-size:1.25rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#monitor-state { display:inline-flex; align-items:center; gap:.5rem; flex:none; padding:.3rem .625rem; border:2px solid currentColor; border-radius:6px; text-transform:uppercase; font-size:.875rem; font-weight:600; letter-spacing:.06em; line-height:1; color:var(--paper-white); }
+#monitor-state[data-state=offline] { color:var(--warn-amber); }
+#monitor-state[data-state=connecting] { opacity:.7; }
+.monitor-shape { display:block; width:.8rem; height:.8rem; flex:none; background:currentColor; border-radius:50%; }
+#monitor-state[data-state=offline] > .monitor-shape, #monitor-state[data-state=connecting] > .monitor-shape { background:none; border:2px solid currentColor; }
+#monitor-banner { max-width:48rem; margin:0 auto; padding:0 1rem .375rem; color:var(--warn-amber); }
+#monitor-banner:empty { display:none; }
+main { padding:1rem; max-width:48rem; margin:0 auto; }
+.monitor-empty { opacity:.6; }
+.monitor-notice { margin:0 0 1rem; padding:.75rem; background:var(--warn-umber); border:1px solid var(--warn-edge); border-radius:6px; color:var(--warn-cream); }
+.monitor-mixes { list-style:none; margin:0; padding:0; }
+.monitor-mixes li { border-bottom:1px solid var(--hairline); }
+.monitor-mix { display:flex; align-items:center; gap:.75rem; width:100%; min-height:56px; padding:.5rem .75rem; font:inherit; font-size:1.1rem; text-align:left; border:0; background:none; color:inherit; }
+.monitor-mix-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.monitor-mix-note { flex:none; font-size:.85rem; opacity:.7; }
+button.monitor-mix:active { background:var(--paper-white); color:var(--stage-black); }
+@media (hover:hover) { button.monitor-mix:hover { background:var(--key-grey-hover); } }
+.monitor-mix:focus-visible { outline:2px solid var(--cue-blue); outline-offset:-2px; }
+.monitor-mix.duplicate { opacity:.6; cursor:not-allowed; }
+.monitor-setup h2 { margin:0 0 .5rem; font-size:1.1rem; }
+.monitor-setup li { margin-bottom:.5rem; }
+.monitor-setup code { padding:.1rem .3rem; background:var(--key-grey); border-radius:4px; }
+.monitor-mix-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+.monitor-back { flex:none; min-height:44px; padding:.4rem .75rem; font:inherit; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; }
+.monitor-back:focus-visible { outline:2px solid var(--cue-blue); outline-offset:2px; }
+@media (hover:hover) { .monitor-back:hover { background:var(--key-grey-hover); } }
+.monitor-mix-title { flex:1; min-width:0; margin:0; font-size:1.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.monitor-overall { padding:.25rem .25rem .75rem; margin-bottom:.5rem; border-bottom:1px solid var(--hairline); }
+.monitor-overall-head { display:flex; justify-content:space-between; align-items:baseline; gap:.75rem; }
+.monitor-overall-label { font-weight:700; }
+.monitor-overall-db { min-width:5rem; text-align:right; font-variant-numeric:tabular-nums; }
+.monitor-rows { list-style:none; margin:0; padding:0; }
+.monitor-row { display:grid; grid-template-columns:.5rem minmax(0,1fr) auto auto; align-items:center; gap:0 .75rem; min-height:56px; padding:.5rem .25rem; border-bottom:1px solid var(--hairline); }
+.monitor-row-swatch { grid-row:1 / span 2; width:.5rem; align-self:stretch; border-radius:3px; background:var(--key-grey-hover); }
+.monitor-row-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.monitor-row-db { min-width:5rem; text-align:right; font-variant-numeric:tabular-nums; }
+.monitor-row-mute { min-width:5rem; min-height:44px; padding:.3rem .5rem; font:inherit; text-align:center; background:none; color:inherit; border:2px solid var(--hairline); border-radius:6px; }
+.monitor-row-mute.on { opacity:1; border-color:var(--paper-white); background:var(--paper-white); color:var(--stage-black); font-weight:700; text-decoration:line-through; }
+.monitor-row-mute:active:not(:disabled) { background:var(--cue-blue); border-color:var(--cue-blue); color:var(--stage-black); }
+.monitor-row-mute:focus-visible { outline:2px solid var(--cue-blue); outline-offset:2px; }
+.monitor-row-mute:disabled { opacity:.4; cursor:not-allowed; }
+@media (hover:hover) { .monitor-row-mute:hover:not(:disabled):not(.on) { background:var(--key-grey-hover); } }
+/* Fader: only the thumb takes touches. The track and the row leave vertical scrolling alone, and tapping them does nothing. */
+.monitor-fader { grid-column:2 / -1; position:relative; height:44px; --thumb:44px; }
+.monitor-fader-track { position:absolute; left:calc(var(--thumb) / 2); right:calc(var(--thumb) / 2); top:calc(50% - 2px); height:4px; border-radius:2px; background:var(--key-grey-hover); pointer-events:none; }
+.monitor-fader-mark { position:absolute; top:calc(50% - 9px); width:2px; height:18px; margin-left:-1px; left:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); background:var(--paper-white); opacity:.7; pointer-events:none; }
+.monitor-fader-thumb { position:absolute; top:0; left:calc((100% - var(--thumb)) * var(--pos, 0)); width:var(--thumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
+.monitor-fader-thumb::after { content:""; position:absolute; left:6px; right:6px; top:8px; bottom:8px; border-radius:6px; background:var(--paper-white); border:2px solid var(--hairline); }
+.monitor-fader-thumb.over::after { border-color:var(--warn-amber); }
+.monitor-fader-thumb.dragging { cursor:grabbing; }
+.monitor-fader-thumb.dragging::after { background:var(--cue-blue); }
+.monitor-fader-thumb:focus-visible { outline:2px solid var(--cue-blue); outline-offset:-2px; }
+body.offline #monitor-mix-view { opacity:.6; }
