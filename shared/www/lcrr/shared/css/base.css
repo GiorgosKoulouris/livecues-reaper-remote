@@ -1,0 +1,24 @@
+/* LCRR shared: base styles and the suite footer. Loaded after tokens.css, before the app's own CSS. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust:100%; }
+/* Column page: the app's <main> grows, so the footer sits at the bottom of short pages and sticks there on long ones. */
+body { margin:0; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; -webkit-tap-highlight-color:transparent; background:var(--stage-black); color:var(--paper-white); font:16px/1.4 system-ui,sans-serif; }
+body > main { flex:1 0 auto; width:100%; }
+button:disabled { opacity:.4; }
+button, a, [role=tab] { touch-action:manipulation; }
+.lcrr-sr { position:absolute; width:1px; height:1px; margin:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* Suite footer: the one fixed place for Home in every app (docs/adr/0003). Not shown on the home page. */
+.lcrr-footer { position:sticky; bottom:0; z-index:10; margin-top:auto; background:var(--console-grey); border-top:1px solid var(--hairline); }
+.lcrr-footer-inner { display:flex; align-items:center; max-width:var(--lcrr-content-max); min-height:var(--lcrr-footer-h); margin:0 auto; padding:0 1rem; }
+.lcrr-home { display:inline-flex; align-items:center; gap:.5rem; min-width:44px; min-height:44px; padding:0 .75rem 0 .25rem; color:inherit; text-decoration:none; border-radius:6px; }
+.lcrr-home svg { width:1.125rem; height:1.125rem; flex:none; }
+.lcrr-home:active { background:var(--paper-white); color:var(--stage-black); }
+.lcrr-home:focus-visible { outline:2px solid var(--cue-blue); outline-offset:-2px; }
+
+@media (max-width: 480px) {
+  .lcrr-footer-inner { padding:0 .5rem; }
+}
+@media (min-width: 900px) {
+  body { font-size:18px; }
+}

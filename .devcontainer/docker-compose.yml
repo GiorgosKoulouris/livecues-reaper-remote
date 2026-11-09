@@ -1,0 +1,20 @@
+services:
+  dev:
+    container_name: reapermarkers-devcontainer
+    image: reapermarkers-devcontainer:latest
+    pull_policy: never
+    tty: true
+    # Do NOT publish 8080 here: it is REAPER's web interface port on the Windows host,
+    # and a Docker port mapping hijacks http://localhost:8080 (ERR_EMPTY_RESPONSE).
+    # For smoke tests, run `python3 -m http.server 8081` and use VS Code port forwarding.
+    volumes:
+      - ..:/workspace
+      - claude:/home/vscode/.claude
+      # Fast, container-local storage instead of the slow bind-mounted workspace:
+      - node_modules:/workspace/node_modules
+      - npm-cache:/home/vscode/.npm
+
+volumes:
+  claude:
+  node_modules:
+  npm-cache:

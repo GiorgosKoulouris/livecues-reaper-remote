@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiveCues ReaperRemote</title>
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/home/css/home.css">
+</head>
+<body>
+<header class="home-bar">
+  <div class="home-bar-inner">
+    <h1 class="home-title">LiveCues <span>ReaperRemote</span></h1>
+    <span id="home-conn" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="home-shape" aria-hidden="true"></i><span id="home-conn-text">Connecting&hellip;</span></span>
+  </div>
+</header>
+
+<main>
+  <nav aria-label="Apps">
+    <ul class="home-apps">
+      <li><a class="home-app" href="lcrr-podium.html"><span class="home-app-name">Podium</span><span class="home-app-desc">Regions, markers and transport for the stage</span></a></li>
+    </ul>
+  </nav>
+</main>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/home/js/status.js"></script>
+<script src="lcrr/home/js/home.js"></script>
+</body>
+</html>

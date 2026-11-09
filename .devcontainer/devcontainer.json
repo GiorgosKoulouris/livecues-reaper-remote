@@ -1,0 +1,22 @@
+{
+    "name": "ReaperMarkers Development",
+
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "dev",
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopCompose",
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true,
+    "initializeCommand": ["docker", "build", "-t", "reapermarkers-devcontainer:latest", ".devcontainer"],
+    // "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "postStartCommand": "bash .devcontainer/setup-onstart.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code"
+            ]
+        }
+    }
+    // "forwardPorts": [3000, 5000],
+    // "postStartCommand": "bash .devcontainer/post-start.sh"
+}

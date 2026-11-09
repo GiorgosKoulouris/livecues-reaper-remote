@@ -1,0 +1,13 @@
+{
+  "name": "livecues-reaper-remote",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LiveCues ReaperRemote (LCRR): remote-control pages for REAPER's web interface",
+  "author": "Giorgos Koulouris",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\" \"shared/test/*.test.js\" \"apps/*/test/*.test.js\"",
+    "check": "node scripts/check.js",
+    "serve": "node scripts/serve.js",
+    "release": "node scripts/build-release.js"
+  }
+}

@@ -1,0 +1,11 @@
+/* LCRR shared: design tokens (see DESIGN.md). Every page loads this first. */
+:root {
+  color-scheme: dark;
+  --stage-black:#16181b; --console-grey:#1e2125; --key-grey:#2a2e33; --hairline:#2b2f34;
+  --paper-white:#e8e8e8;
+  --cue-blue:#4aa3ff; --cue-blue-wash:#245382;
+  --live-green:#5ad77a; --rec-red:#ff5a5a; --warn-amber:#e0a030;
+  --warn-umber:#5a3d0c; --warn-edge:#8a5d14; --warn-cream:#ffd48a;
+  --lcrr-content-max:48rem;
+  --lcrr-footer-h:44px;
+}

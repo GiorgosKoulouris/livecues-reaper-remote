@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Podium · LiveCues ReaperRemote</title>
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/podium/css/podium.css">
+</head>
+<body>
+<div id="podium-sticky">
+<header id="podium-transport" aria-label="Transport">
+  <div class="podium-bar">
+    <h1 class="podium-title">Podium</h1>
+    <span id="podium-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="podium-shape" aria-hidden="true"></i><span id="podium-state-text">connecting&hellip;</span></span>
+    <span id="podium-region" class="idle" aria-live="polite" aria-atomic="true">Connecting to REAPER&hellip;</span>
+    <span id="podium-time">&ndash;:&ndash;&ndash;</span>
+    <div class="podium-controls">
+      <button type="button" id="podium-play" disabled>Play</button>
+      <button type="button" id="podium-stop" hidden disabled aria-label="Hold to stop"><i class="podium-stop-glyph" aria-hidden="true"></i></button>
+      <button type="button" id="podium-rec" disabled aria-describedby="podium-rec-hint">Rec</button>
+      <span id="podium-rec-hint" class="podium-sr">Hold the button for a moment to record</span>
+    </div>
+  </div>
+  <div id="podium-banner" role="alert"></div>
+</header>
+
+<nav role="tablist" aria-label="Lists">
+  <button role="tab" id="tab-regions" aria-controls="panel-regions" aria-selected="true" tabindex="0">Regions</button>
+  <button role="tab" id="tab-markers" aria-controls="panel-markers" aria-selected="false" tabindex="-1">Markers</button>
+</nav>
+</div>
+
+<main>
+  <section role="tabpanel" id="panel-regions" aria-labelledby="tab-regions" tabindex="0" aria-busy="true"><p class="empty">Loading regions&hellip;</p></section>
+  <section role="tabpanel" id="panel-markers" aria-labelledby="tab-markers" tabindex="0" aria-busy="true" hidden><p class="empty">Loading markers&hellip;</p></section>
+</main>
+
+<footer class="lcrr-footer">
+  <div class="lcrr-footer-inner">
+    <a class="lcrr-home" href="lcrr.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Home</a>
+  </div>
+</footer>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/hold.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/podium/js/core.js"></script>
+<script src="lcrr/podium/js/podium.js"></script>
+</body>
+</html>
