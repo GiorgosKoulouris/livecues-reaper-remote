@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert");
 const core = require("../www/lcrr/monitor/js/core.js");
 
-// Real reply shape, from .scratch/monitor/api-check-report.txt (issue 01).
+// Real reply shape, captured from real REAPER (Nov 2026).
 function trackLine(n, name, recv, hw, color) {
   return ["TRACK", n, name, 128, "1.000000", "0.000000", -1500, -1500, "1.000000", 3, 0, recv, hw, color || 0].join("\t");
 }

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 *.rpp-bak
+*.rpp
+*.log
+*arrangements.lua
 Backups/
 .impeccable/hook.cache.json
 

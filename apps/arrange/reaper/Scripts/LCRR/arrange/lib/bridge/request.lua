@@ -7,7 +7,7 @@
 --   body    flat fields, `key=value&key=value`, each value percent-encoded
 --
 -- **Why the length.** REAPER cuts a request URL at about 1026 characters and
--- answers HTTP 200 anyway (`.scratch/arrange/issues/01-bridge-spike.md`), so
+-- answers HTTP 200 anyway (found in the bridge spike), so
 -- the only way to know a request arrived whole is for it to say how long it
 -- is. A body shorter than declared is refused, never guessed at. The page
 -- keeps requests under about 900 encoded characters.
