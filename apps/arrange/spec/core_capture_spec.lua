@@ -7,7 +7,16 @@ local sidecar = require("lib.sidecar")
 local core_env = require("spec.support.core_env")
 local projects = require("spec.support.projects")
 
+-- The fixture sidecar is hand-written (bare strings), so it is not canonical.
+-- Most specs run on its canonical rewrite; `hand_written` keeps it as it is.
+local CANONICAL = sidecar.serialize(assert(sidecar.parse(projects.BARS_ARRANGEMENTS)))
+
 local function bars(options)
+  return core_env.new(projects.merge({ snapshots = { projects.BARS },
+    files = projects.bars_files({ [projects.BARS_SIDECAR] = CANONICAL }) }, options))
+end
+
+local function hand_written(options)
   return core_env.new(projects.merge({ snapshots = { projects.BARS }, files = projects.bars_files() },
     options))
 end
@@ -95,5 +104,44 @@ describe("lib/core/capture.lua", function()
 
     assert.are.equal("save_failed", result.error.code)
     assert.is_string(result.error.error)
+  end)
+
+  describe("a hand-edited sidecar", function()
+    local hand_edited = hand_written
+
+    it("asks before rewriting it, writing nothing", function()
+      local given, world = hand_edited()
+      local result = capture.run(capture.prepare(given), { name = "Live" })
+
+      assert.are.equal("confirm", result.status)
+      assert.are.same({ code = "rewrite" }, result.confirm)
+      assert.is_true(world.untouched())
+    end)
+
+    it("asks the replace question first, then the rewrite one, and takes both answers at once", function()
+      local given, world = hand_edited()
+      local prepared = capture.prepare(given)
+
+      assert.are.equal("replace", capture.run(prepared, { name = "Identity" }).confirm.code)
+      assert.are.equal("rewrite",
+        capture.run(prepared, { name = "Identity", replace = true }).confirm.code)
+      assert.is_true(world.untouched())
+      assert.are.equal("ok",
+        capture.run(prepared, { name = "Identity", replace = true, rewrite = true }).status)
+    end)
+
+    it("does not ask again once the file has been rewritten", function()
+      local given, world = hand_edited()
+      capture.run(capture.prepare(given), { name = "Live", rewrite = true })
+      assert.is_true(sidecar.is_canonical(world.files[projects.BARS_SIDECAR]))
+
+      local second = capture.run(capture.prepare(given), { name = "Again" })
+      assert.are.equal("ok", second.status)
+    end)
+
+    it("does not ask when there is no sidecar yet", function()
+      local given = bars({ files = { [projects.BARS_PATH] = projects.RPP_TIME } })
+      assert.are.equal("ok", capture.run(capture.prepare(given), { name = "Live" }).status)
+    end)
   end)
 end)

@@ -17,7 +17,7 @@ Suite rules in `/CLAUDE.md` apply: work on `dev`, never `main`; **no Claude/Anth
 | `docs/bridge.md` | The bridge's wire contract with the page: ExtState keys, request/reply format, commands, the check token |
 | `docs/limitations.md` | What the suite will not do, and why |
 | `docs/decisions.md` | Decisions that look like bugs and are not |
-| `docs/adr/` | Eight ADRs: architecture, splitting, storage, bar alignment, verification, the injected tempo oracle, Headroom's non-idempotence, headless cores with thin front ends |
+| `docs/adr/` | Nine ADRs: architecture, splitting, storage, bar alignment, verification, the injected tempo oracle, Headroom's non-idempotence, headless cores with thin front ends, the page editing the sidecar |
 | `research/reaper-scripting.md` | Sourced ReaScript API research, tagged primary vs secondary. **Prefer it to recollection** |
 
 Open work: `.scratch/arrange/` (spec, issues numbered from `02`). `#N` in code and docs means an issue of the retired ReaperScripts GitHub repo: historical, not tracked anywhere now.

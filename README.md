@@ -72,6 +72,8 @@ Each `www/` folder holds files at the paths REAPER serves them from. Install, re
 
 ## Release (zip + ReaPack)
 
+> **For now the suite is delivered only through `scripts\install.ps1` / `install.bat`.** The zip and ReaPack index below don't carry the Arrange Lua (its bridge and actions) or its `__startup.lua` line, so Arrange would not work from them. Delivery through them will be revisited.
+
 ```
 npm test && npm run check
 npm run release -- --base-url https://raw.githubusercontent.com/<user>/<repo>/<tag>

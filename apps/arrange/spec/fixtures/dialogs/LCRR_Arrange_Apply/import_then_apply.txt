@@ -9,6 +9,8 @@ file /proj/Bars.arrangements.lua (w) <<
 -- new end is always rounded to the nearest bar line. Shrinking may only ever
 -- remove silence -- a run refuses rather than cutting into a region's content.
 -- Edit freely; this file is read in a sandbox and validated on load.
+-- Capture and the Arrange page rewrite this whole file when they save, so
+-- comments and hand formatting are not kept.
 return {
   ["Ghost"] = {
     { "Alpha", headroom = 0 },

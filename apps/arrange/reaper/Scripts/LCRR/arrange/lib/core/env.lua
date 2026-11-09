@@ -13,6 +13,8 @@
 --
 --   api         the `reaper` table (required)
 --   snapshot    function() -> lib/project.lua snapshot
+--   project_path  function() -> the active project's .RPP path, without a
+--               snapshot (cores that only touch the sidecar)
 --   tempo       tempo oracle (ADR-0006)
 --   automation  automation oracle
 --   applier     lib/apply.lua or a stand-in
@@ -37,6 +39,13 @@ function env.new(given)
       return given.snapshot()
     end
     return project.snapshot(api)
+  end
+
+  function resolved.project_path()
+    if given.project_path then
+      return given.project_path()
+    end
+    return project.path(api)
   end
 
   function resolved.tempo()

@@ -144,3 +144,24 @@ proved the obvious version wrong. Read the entry — and the ADR it names — be
   user's explicit choice over two narrower options: a per-item mode-`1` override
   cannot be detected through any confirmed numeric API key, so `lib/project.lua`
   chunk-parses `BEAT`. Do not simplify it to a track-only check.
+- **The edit core (`lib/core/edit.lua`, issue 04) choices the spec left open.**
+  The revision is FNV-1a 64 over the file's exact text (16 hex digits), and a
+  missing file's revision is the fixed string `none`, so New on a missing
+  sidecar needs `none` and a file that appeared meanwhile is `sidecar_changed`.
+  Checks run in the order: operation known, project saved, same project,
+  revision, parse, the operation's own validation, the round-trip guard, and
+  only then the rewrite question, so a bad edit is refused rather than asked
+  about. A non-New operation on a missing sidecar answers
+  `arrangement_not_found`. The core does not check that an added region exists
+  in the project (an Arrangement may name a region that is not there; Check
+  reports it). It reads the project path alone (`env.project_path`), not a
+  whole snapshot, since an edit needs nothing else. Numbers may arrive as text
+  (the bridge's flat fields) and are converted by the core. The operations are
+  in `lib/arrangement_ops.lua`, pure and copying.
+
+## The editor's wire (issue 05)
+
+- **`arrangements` is a new read command; `info` is unchanged.** `info` stays the cheap names-only call the page already uses. `arrangements` carries entries, Headroom, the revision and the regions in timeline order, and reads the sidecar's text once so the revision is the text the Arrangements came from.
+- **The edit's field names on the wire:** `operation`, `revision`, `project` (the project path; not `path`, which would clash with the reply's `path` for the file), `arrangement`, `region`, `slot`, `headroom`, `name`, `rewrite=1`. Everything is a string; the core parses numbers.
+- **An unreadable sidecar still has a revision** (of its text), and `arrangements` sends the parse error. The page never edits it, so the revision is only informational there.
+- **A long project path eats the URL budget** (see `bridge.md`). No fix now: the client refuses what does not fit with a clear message. If a real path ever makes ordinary edits unsendable, send a short hash of the path instead of the path.

@@ -8,8 +8,8 @@
 -- This module owns no ExtState and no loop (LCRR_Arrange_Bridge.lua has those),
 -- so the whole of it runs under busted.
 --
--- **What the page can ask for** (`cmd`): `info`, `duplicates`, `timebase`,
--- `barlines`, `capture`, `verify`, `check` and `apply`. Each reply is
+-- **What the page can ask for** (`cmd`): `info`, `arrangements`, `duplicates`,
+-- `timebase`, `barlines`, `capture`, `edit`, `verify`, `check` and `apply`. Each reply is
 --
 --   { v, command, project = { name, path }, status, ... }
 --
@@ -29,7 +29,8 @@
 -- **Apply only after Check** (`.scratch/arrange/spec.md`). A Check that would
 -- proceed returns a `token`. Apply carries the token and the Headroom answer
 -- and nothing else: the bridge looks up the Arrangement name, and refuses
--- unless the project's path and state-change count are what the Check saw.
+-- unless the project's path and state-change count are what the Check saw and
+-- the Arrangement's entries and Headroom are what the Check read.
 --
 -- A reply is never a core result passed through whole: those carry `env`,
 -- the snapshot and plans keyed by number. Each view below picks its fields.
@@ -44,6 +45,7 @@ local tokens = require("lib.bridge.tokens")
 local apply = require("lib.core.apply")
 local capture = require("lib.core.capture")
 local check = require("lib.core.check")
+local edit = require("lib.core.edit")
 local verify = require("lib.core.verify")
 local find_duplicates = require("lib.core.find_duplicate_region_names")
 local show_bar_lines = require("lib.core.show_bar_lines")
@@ -179,6 +181,95 @@ local function handlers(self)
     }
   end
 
+  -- The sidecar as the editor needs it: its state, revision, every Arrangement
+  -- with its Headroom, and the project's regions in timeline order.
+  function h.arrangements()
+    local env = env_lib.new(given)
+    local snapshot = env.snapshot()
+    local project_path = snapshot.project_path or ""
+
+    local regions = {}
+    for _, region in ipairs(snapshot.regions) do
+      regions[#regions + 1] = { name = region.name, start_time = region.start_time, end_time = region.end_time }
+    end
+
+    local view = {
+      status = "ok",
+      saved = project_path ~= "",
+      sidecar = "unsaved",
+      revision = "none",
+      arrangements = {},
+      regions = regions,
+    }
+    local path = sidecar.path_for(project_path)
+    if not path then
+      return view
+    end
+
+    local source = env.read(path)
+    view.revision = sidecar.revision(source)
+    if source == nil then
+      view.sidecar = "missing"
+      return view
+    end
+    local parsed, parse_err = sidecar.parse(source)
+    if not parsed then
+      view.sidecar = "invalid"
+      view.parse_error = parse_err
+      return view
+    end
+    view.sidecar = "ok"
+    view.canonical = sidecar.is_canonical(source)
+    for _, name in ipairs(sidecar.names(parsed)) do
+      view.arrangements[#view.arrangements + 1] = { name = name, entries = edit.entries_of(parsed[name]) }
+    end
+    return view
+  end
+
+  -- One edit (lib/core/edit.lua). `revision` and `project` are what the page
+  -- read; the core refuses when either no longer holds.
+  function h.edit(fields)
+    local operation, bad = need(fields, "operation")
+    if not operation then
+      return bad
+    end
+    local revision
+    revision, bad = need(fields, "revision")
+    if not revision then
+      return bad
+    end
+    local project_path
+    project_path, bad = need(fields, "project")
+    if not project_path then
+      return bad
+    end
+    local result = edit.run(given, {
+      operation = operation,
+      arrangement = fields.arrangement,
+      region = fields.region,
+      slot = fields.slot,
+      headroom = fields.headroom,
+      name = fields.name,
+      revision = revision,
+      project_path = project_path,
+      rewrite = fields.rewrite == "1",
+    })
+    if result.status ~= "ok" then
+      return result
+    end
+    return {
+      status = "ok",
+      operation = result.operation,
+      name = result.name,
+      from = result.from,
+      revision = result.revision,
+      path = result.path,
+      names = result.names,
+      entries = result.entries,
+      deleted_entries = result.deleted_entries,
+    }
+  end
+
   function h.duplicates()
     local result = find_duplicates.run(given)
     return {
@@ -220,7 +311,8 @@ local function handlers(self)
     if prepared.status == "refused" then
       return prepared
     end
-    local result = capture.run(prepared, { name = name, replace = fields.replace == "1" })
+    local result = capture.run(prepared, { name = name, replace = fields.replace == "1",
+      rewrite = fields.rewrite == "1" })
     if result.status ~= "ok" then
       return result
     end
@@ -261,6 +353,7 @@ local function handlers(self)
     if result.verdict == "will proceed" then
       view.token = self.tokens.issue({
         name = result.name,
+        fingerprint = tokens.fingerprint(prepared.arrangements[result.name]),
         path = project.path(api),
         changes = api.GetProjectStateChangeCount(0),
       })
@@ -295,6 +388,14 @@ local function handlers(self)
     if prepared.status == "refused" then
       self.tokens.drop(token)
       return prepared
+    end
+
+    -- Edited since the Check, from the page or a text editor: this Apply would
+    -- do something the user has not read. Other Arrangements don't matter.
+    local current = prepared.arrangements[checked.name]
+    if not current or tokens.fingerprint(current) ~= checked.fingerprint then
+      self.tokens.drop(token)
+      return refusal("token_stale", { reason = "arrangement_changed" })
     end
 
     local result = apply.run(prepared, { name = checked.name, headroom = answer })

@@ -1,5 +1,7 @@
 # Arrangements live in a name-keyed Lua sidecar
 
+> Amended by [ADR-0009](0009-the-page-edits-the-sidecar.md): the web page is now a second authoring surface. The storage decision below stands.
+
 An Arrangement is stored beside the project (`MySong.RPP` →
 `MySong.arrangements.lua`) as a Lua file returning a table, read with `load()` in
 an empty environment. A sidecar was chosen over project ExtState because the file

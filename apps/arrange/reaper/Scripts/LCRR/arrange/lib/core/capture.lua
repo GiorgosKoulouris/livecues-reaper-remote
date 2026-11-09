@@ -3,8 +3,9 @@
 --
 --   local prepared = capture.prepare({ api = reaper })
 --   local result = capture.run(prepared, { name = "Live" })
---   -- result.status == "confirm": an Arrangement of that name exists. Nothing
---   -- has been written; run again with replace = true to overwrite it.
+--   -- result.status == "confirm": nothing has been written; run again with
+--   -- replace = true (an Arrangement of that name exists) and/or rewrite = true
+--   -- (the sidecar has hand edits a rewrite would drop).
 --
 -- Every step returns `{ status = "refused", error = { code, ... } }` when it
 -- cannot go on, with nothing written.
@@ -46,7 +47,7 @@ function capture.prepare(given)
     return env_lib.refused({ code = "region_names", problems = problems })
   end
 
-  local existing, load_err, reason = sidecar.load(snapshot.project_path, env.open)
+  local existing, load_err, reason, canonical = sidecar.load(snapshot.project_path, env.open)
   if reason == "invalid" then
     -- Overwriting here would silently discard Arrangements the user hand-wrote.
     return env_lib.refused({ code = "sidecar_invalid", error = load_err })
@@ -58,14 +59,17 @@ function capture.prepare(given)
     snapshot = snapshot,
     project_path = snapshot.project_path,
     arrangements = existing or {},
+    -- A missing file has nothing to lose, so only an existing one can be non-canonical.
+    rewrites_hand_edits = existing ~= nil and canonical == false,
   }
 end
 
 --- Capture the current order under `name`, and log it.
 -- @param prepared table from `capture.prepare`
--- @param request table { name, replace }
+-- @param request table { name, replace, rewrite }
 -- @return table { status = "ok", name, replaced, regions, path, region_reader,
---   project_path }, { status = "confirm", confirm = { code = "replace", name } },
+--   project_path }, { status = "confirm", confirm = { code = "replace", name } }
+--   or { code = "rewrite" } (the file is not canonical: comments would be lost),
 --   or a refusal with code name_empty or save_failed { error }
 function capture.run(prepared, request)
   local env, snapshot, arrangements = prepared.env, prepared.snapshot, prepared.arrangements
@@ -78,6 +82,11 @@ function capture.run(prepared, request)
   local replacing = arrangements[name] ~= nil
   if replacing and request.replace ~= true then
     return { status = "confirm", confirm = { code = "replace", name = name } }
+  end
+
+  -- Both questions can be answered in one request; the first unanswered one is asked.
+  if prepared.rewrites_hand_edits and request.rewrite ~= true then
+    return { status = "confirm", confirm = { code = "rewrite" } }
   end
 
   arrangements[name] = project.region_names(snapshot)

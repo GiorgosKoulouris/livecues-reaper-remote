@@ -27,6 +27,12 @@ function text.replace_question(confirm)
   return ("An Arrangement named %q already exists. Replace it?"):format(confirm.name)
 end
 
+--- The question asked before a hand-edited sidecar is rewritten.
+function text.rewrite_question()
+  return "The Arrangement sidecar has comments or formatting that Capture does not keep. "
+    .. "Saving rewrites the whole file. Continue?"
+end
+
 --- What a finished capture tells the user.
 --
 -- The next step is the one nothing else explains. A captured Arrangement is

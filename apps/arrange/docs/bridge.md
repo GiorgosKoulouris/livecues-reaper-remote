@@ -53,15 +53,54 @@ Problems with the request itself are refusals: `bad_request`, `request_truncated
 | `cmd` | Fields | Core | Reply (on `ok`) |
 |---|---|---|---|
 | `info` | | none | `bridge_version`, `saved`, `sidecar` (`ok`, `missing`, `invalid` or `unsaved`), `arrangements` (names), `regions` (`name`, `start_time`, `end_time`) |
+| `arrangements` | | none (`sidecar`, `edit`) | `saved`, `sidecar` (`ok`, `missing`, `invalid` or `unsaved`), `revision` (`none` when there is no file), `parse_error` (the parse error, only when `invalid`), `canonical` (only when `ok`: false means a write asks the rewrite question first), `arrangements` (name order; each `{ name, entries: [{ name, headroom }] }`, entries in play order, `headroom` in seconds, 0 when none), `regions` (`name`, `start_time`, `end_time`, timeline order). `info` stays, with names only |
+| `edit` | `operation`, `revision`, `project`, `rewrite=1`, and the operation's own fields (below) | Edit | `operation`, `name`, `from` (Duplicate and Rename), `revision`, `path`, `names`, `entries` (the edited Arrangement; absent after Delete), `deleted_entries` (Delete) |
 | `duplicates` | | Find Duplicate Region Names | `verdict` (`no_regions`, `clean`, `problems`), `problems`, `region_count`, `region_reader` |
 | `timebase` | | Show Track Timebase | `tracks` (`track_index`, `name`, `mode`), `tally` (`mode`, `count`, ascending) |
 | `barlines` | | Show Bar Lines | `regions` (per region bar figures and `pad`), `padded`, `total_pad`, `origin`, `pad_threshold`, `region_reader` |
-| `capture` | `name`, `replace=1` | Capture | `name`, `replaced`, `regions`, `path`. Without `replace=1` an existing name answers `confirm` (`confirm: { code: "replace", name }`) and writes nothing |
+| `capture` | `name`, `replace=1`, `rewrite=1` | Capture | `name`, `replaced`, `regions`, `path`. Without `replace=1` an existing name answers `confirm` (`confirm: { code: "replace", name }`) and writes nothing. Without `rewrite=1`, a sidecar that is not canonical (differs from what `serialize` would write for it: comments, hand formatting, bare strings) answers `confirm: { code: "rewrite" }` and writes nothing. One question is asked per reply, `replace` first; the page repeats the request with every Yes so far |
 | `verify` | `name` | Verify | `verdict` (`pass`, `fail`), `findings`, `blind_spots`, `region_reader` |
 | `check` | `name` | Check | as Verify, plus `padding_exact`, and **`token` when the verdict is `will proceed`** |
 | `apply` | `token`, `headroom` | Apply | `name`, `noop`, `counts`, `anchors`, `places`, `headroom`, `pads`, `parked`, `dropped` |
 
-`headroom` is `apply`, `zero` or `cancel`. An Arrangement with a Headroom answers
+### Edits
+
+One operation per request, saved at once (ADR-0009). `operation` is one of the
+rows below; `revision` is `arrangements`' (or the last `edit` reply's) and
+`project` is the project path the page read (the reply's `project.path`), so an
+edit made against a changed file or another project is refused and nothing is
+written. A reply's `revision` is the one for the next edit.
+
+| `operation` | Own fields |
+|---|---|
+| `move` | `arrangement`, `region`, `slot` (1-based) |
+| `set_headroom` | `arrangement`, `region`, `headroom` (seconds, may be negative) |
+| `add` | `arrangement`, `region`, `slot` (1-based; omitted appends) |
+| `remove` | `arrangement`, `region` |
+| `clear_headroom` | `arrangement` |
+| `new` | `name` |
+| `duplicate` | `arrangement` (source), `name` (the copy) |
+| `rename` | `arrangement`, `name` |
+| `delete` | `arrangement` |
+
+Refusals (`error.code`): `project_unsaved`, `other_project`, `sidecar_changed`,
+`sidecar_invalid` (with `error`), `operation_unknown`, `would_be_invalid`,
+`save_failed` (with `error`), and the operations' own: `name_empty`,
+`name_taken`, `arrangement_not_found`, `region_empty`, `region_repeated`,
+`region_not_in_arrangement`, `slot_invalid`, `headroom_invalid`. A missing
+`operation`, `revision` or `project` is `missing_field`.
+
+A file that is not canonical (comments, hand formatting) answers `confirm`
+(`confirm: { code: "rewrite" }`) and writes nothing; the page asks, and repeats
+the request with `rewrite=1`. New, Duplicate, Rename and Delete leave a run-log
+entry; the other operations do not.
+
+**Request size.** `project` is in every edit and is encoded twice (once in the
+body, once in the URL), so a path of 80 characters with backslashes costs
+about 200 of the ~900 URL characters. The client (`client.edit`) refuses, without
+sending, a request that would not fit (`request_too_long`).
+
+`headroom` (Apply's) is `apply`, `zero` or `cancel`. An Arrangement with a Headroom answers
 `confirm` (`confirm: { code: "headroom", name, headroom: [{ name, seconds }] }`)
 and writes nothing; the page asks, then sends the same request again with the
 answer. The token survives that. `cancel` answers `cancelled`.
@@ -70,11 +109,15 @@ answer. The token survives that. `cancel` answers `cancelled`.
 
 A Check that would proceed returns a short `token`, and the bridge remembers, in
 memory only, the Arrangement name, the project's path and its state-change count
-from that moment. Apply carries nothing but the token and the Headroom answer.
-It refuses with:
+from that moment, plus a fingerprint of the checked Arrangement's entries (in
+order) and Headroom. Apply carries nothing but the token and the Headroom answer.
+Apply re-reads the sidecar and compares. Edits to other Arrangements don't
+matter; a rename does (the old name is gone). It refuses with:
 
 - `token_unknown`: never issued, already used (a double tap), forgotten (the last 16 are kept), or issued before the bridge restarted.
-- `token_stale`, with `reason: "other_project"` (another project tab is active) or `"project_changed"` (the project's state-change count differs). Check again.
+- `token_stale`, with `reason: "other_project"` (another project tab is active) or `"project_changed"` (the project's state-change count differs) or `"arrangement_changed"` (the checked Arrangement's entries or Headroom differ, or it no longer exists, e.g. edited on the page or in a text editor). Check again.
+
+A Check of an Arrangement with no entries refuses with the finding `arrangement_empty` and issues no token.
 
 A token is spent by any final answer from Apply: success, refusal, `cancelled`. Only `confirm` keeps it.
 

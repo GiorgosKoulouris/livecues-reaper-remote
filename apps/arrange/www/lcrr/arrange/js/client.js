@@ -57,7 +57,22 @@
       });
     }
 
-    return { call: call };
+    // The editor's two commands over `call`.
+    //   arrangements()  the sidecar's state, revision, Arrangements and the project's regions
+    //   edit(base, operation, fields)  one operation. `base` is what the page last read:
+    //     { project: the project path, revision, rewrite: true once the rewrite question was answered Yes }.
+    //     `fields` are the operation's own (arrangement, region, slot, headroom, name; docs/bridge.md).
+    //   Both reject with request_too_long, without sending, when the URL would be cut.
+    function arrangements() { return call("arrangements", {}); }
+
+    function edit(base, operation, fields) {
+      var all = { operation: operation, project: base.project, revision: base.revision };
+      if (base.rewrite) all.rewrite = "1";
+      Object.keys(fields || {}).forEach(function (k) { all[k] = fields[k]; });
+      return call("edit", all);
+    }
+
+    return { call: call, arrangements: arrangements, edit: edit };
   }
 
   return { createClient: createClient, APPLY_TIMEOUT_MS: APPLY_TIMEOUT_MS, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };

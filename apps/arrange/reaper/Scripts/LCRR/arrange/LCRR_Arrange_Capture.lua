@@ -40,12 +40,15 @@ local function main()
   local request = { name = name }
   local result = capture.run(prepared, request)
 
-  if result.status == "confirm" then
-    local confirm = reaper.ShowMessageBox(text.replace_question(result.confirm), TITLE, 4)
-    if confirm ~= 6 then -- 6 = Yes
+  -- Each question can come up once; the core names the next unanswered one.
+  while result.status == "confirm" do
+    local code = result.confirm.code
+    local question = code == "rewrite" and text.rewrite_question()
+      or text.replace_question(result.confirm)
+    if reaper.ShowMessageBox(question, TITLE, 4) ~= 6 then -- 6 = Yes
       return
     end
-    request.replace = true
+    request[code] = true
     result = capture.run(prepared, request)
   end
 

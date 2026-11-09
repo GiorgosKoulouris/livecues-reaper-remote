@@ -17,6 +17,11 @@ Writes the project's regions, in timeline order, into the Arrangement sidecar
 beside the `.RPP` as a named Arrangement. Name it after what it is — `Full`,
 `Album`, `As recorded`.
 
+Capture rewrites the whole sidecar. If the file has comments or hand formatting
+(anything `Capture` would not write itself), it asks first, because the rewrite
+drops them; after one accepted rewrite the file is in Capture's own form and the
+question does not come back until it is hand-edited again.
+
 This changes no project state. It is the only thing that writes the sidecar
 from REAPER.
 

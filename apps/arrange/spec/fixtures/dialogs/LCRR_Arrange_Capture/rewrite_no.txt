@@ -1,0 +1,5 @@
+project.snapshot() #1
+GetUserInputs("Capture Region Order", 1, "Arrangement name:,extrawidth=200", "Captured") -> true, "Live"
+ShowMessageBox("Capture Region Order", 4) -> 7 <<
+The Arrangement sidecar has comments or formatting that Capture does not keep. Saving rewrites the whole file. Continue?
+>>

@@ -30,6 +30,13 @@ local UNSAVED_BARS = projects.UNSAVED_BARS
 local RPP_TIME = projects.RPP_TIME
 local RPP_BEATS = projects.RPP_BEATS
 
+local sidecar = require("lib.sidecar")
+
+-- The fixture sidecar is hand-written, so Capture asks before rewriting it. These
+-- scenarios use its canonical rewrite to stay clear of that question.
+local CANONICAL_BARS = sidecar.serialize(assert(sidecar.parse(BARS_ARRANGEMENTS)))
+local canonical_files = { files = bars_files({ [BARS_SIDECAR] = CANONICAL_BARS }) }
+
 local function name(text)
   return { GetUserInputs = { { true, text } } }
 end
@@ -83,10 +90,14 @@ return {
     cancelled = bars(CANCEL),
     blank_name = bars(name("   ")),
     first_capture = bars(name("  Live  "), { files = { [BARS_PATH] = RPP_TIME } }),
-    new_name = bars(name("Live")),
-    replace_yes = bars({ GetUserInputs = { { true, "Identity" } }, ShowMessageBox = { 6, 1 } }),
+    new_name = bars(name("Live"), canonical_files),
+    replace_yes = bars({ GetUserInputs = { { true, "Identity" } }, ShowMessageBox = { 6, 6, 1 } }),
+    rewrite_yes = bars({ GetUserInputs = { { true, "Live" } }, ShowMessageBox = { 6, 1 } }),
+    rewrite_no = bars({ GetUserInputs = { { true, "Live" } }, ShowMessageBox = { 7 } }),
+    replace_yes_rewrite_no = bars({ GetUserInputs = { { true, "Identity" } }, ShowMessageBox = { 6, 7 } }),
+    canonical_no_question = bars(name("Live"), canonical_files),
     replace_no = bars({ GetUserInputs = { { true, "Identity" } }, ShowMessageBox = { 7 } }),
-    save_fails = bars(name("Live"), { unwritable = { [BARS_SIDECAR] = true } }),
+    save_fails = bars(name("Live"), merge(canonical_files, { unwritable = { [BARS_SIDECAR] = true } })),
   },
 
   ["LCRR_Arrange_Check.lua"] = {
@@ -100,6 +111,9 @@ return {
     reordered = bars(name("Reordered")),
     subset = bars(name("Subset")),
     headroom = bars(name("Headroom")),
+    empty_arrangement = bars(name("Empty"), {
+      files = bars_files({ [BARS_SIDECAR] = 'return { ["Empty"] = {} }' }),
+    }),
     many_refusals = bars(name("Ghost"), { files = bars_files({ [BARS_PATH] = RPP_BEATS }) }),
     unsafe_timebase = bars(name("Reordered"), { snapshots = { BARS_UNSAFE } }),
     bad_names = packed(name("Packed"), { snapshots = { DUPES } }),

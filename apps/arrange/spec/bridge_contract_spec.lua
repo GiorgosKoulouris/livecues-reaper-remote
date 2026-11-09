@@ -8,6 +8,7 @@
 -- and read the diff.
 
 local service = require("lib.bridge.service")
+local sidecar = require("lib.sidecar")
 local core_env = require("spec.support.core_env")
 local projects = require("spec.support.projects")
 
@@ -31,7 +32,7 @@ end
 local function bridge(options)
   options = options or {}
   local state = { changes = 10, path = options.path or projects.BARS_PATH }
-  local given = core_env.new(merge({
+  local given, world = core_env.new(merge({
     snapshots = options.snapshots or { projects.BARS, projects.BARS, projects.BARS_ANCHORED },
     files = options.files or projects.bars_files(),
     tempo = projects.bars_tempo(),
@@ -52,11 +53,20 @@ local function bridge(options)
     count = count + 1
     local _, reply = handler.handle(raw("q" .. count, merge({ cmd = command }, fields)))
     return reply
-  end, state
+  end, state, world
 end
 
 local function token_of(reply)
   return reply:match('"token":"(%w+)"')
+end
+
+-- An edit based on the sidecar as it stands (rewrite answered, since the fixture is hand-written).
+local function edit_fields(world, fields)
+  return merge({
+    revision = sidecar.revision(world.files[projects.BARS_SIDECAR]),
+    project = projects.BARS_PATH,
+    rewrite = "1",
+  }, fields)
 end
 
 local scenarios = {
@@ -64,6 +74,53 @@ local scenarios = {
   { "info_no_sidecar", function()
     local ask = bridge({ files = { [projects.BARS_PATH] = projects.RPP_TIME } })
     return ask("info", {})
+  end },
+  { "arrangements", function(ask) return ask("arrangements", {}) end },
+  { "arrangements_missing", function()
+    local ask = bridge({ files = { [projects.BARS_PATH] = projects.RPP_TIME } })
+    return ask("arrangements", {})
+  end },
+  { "arrangements_invalid", function()
+    local ask = bridge({ files = projects.bars_files({ [projects.BARS_SIDECAR] = "return {" }) })
+    return ask("arrangements", {})
+  end },
+  { "arrangements_unsaved", function()
+    return bridge({ snapshots = { projects.UNSAVED_BARS } })("arrangements", {})
+  end },
+  { "edit_move", function(ask, _, world)
+    local fields = { operation = "move", arrangement = "Identity", region = "Delta", slot = "1" }
+    return ask("edit", edit_fields(world, fields))
+  end },
+  { "edit_new", function(ask, _, world)
+    return ask("edit", edit_fields(world, { operation = "new", name = "Fresh" }))
+  end },
+  { "edit_duplicate", function(ask, _, world)
+    return ask("edit", edit_fields(world, { operation = "duplicate", arrangement = "Headroom", name = "Copy" }))
+  end },
+  { "edit_delete", function(ask, _, world)
+    return ask("edit", edit_fields(world, { operation = "delete", arrangement = "Headroom" }))
+  end },
+  { "edit_confirm", function(ask, _, world)
+    local fields = edit_fields(world, { operation = "clear_headroom", arrangement = "Headroom" })
+    fields.rewrite = nil
+    return ask("edit", fields)
+  end },
+  { "edit_name_taken", function(ask, _, world)
+    return ask("edit", edit_fields(world, { operation = "new", name = "Identity" }))
+  end },
+  { "edit_sidecar_changed", function(ask, _, world)
+    local fields = edit_fields(world, { operation = "new", name = "Fresh" })
+    fields.revision = "0000000000000000"
+    return ask("edit", fields)
+  end },
+  { "edit_other_project", function(ask, _, world)
+    local fields = edit_fields(world, { operation = "new", name = "Fresh" })
+    fields.project = "/elsewhere/Other.rpp"
+    return ask("edit", fields)
+  end },
+  { "edit_invalid", function(ask, _, world)
+    local fields = { operation = "set_headroom", arrangement = "Identity", region = "Alpha", headroom = "nan" }
+    return ask("edit", edit_fields(world, fields))
   end },
   { "duplicates_problems", function()
     return bridge({ snapshots = { projects.DUPES }, files = projects.packed_files() })("duplicates", {})
@@ -74,9 +131,11 @@ local scenarios = {
   end },
   { "timebase", function(ask) return ask("timebase", {}) end },
   { "barlines", function(ask) return ask("barlines", {}) end },
-  { "capture_ok", function(ask) return ask("capture", { name = "Fresh" }) end },
+  { "capture_ok", function(ask) return ask("capture", { name = "Fresh", rewrite = "1" }) end },
+  -- The fixture sidecar is hand-written, so the first Capture asks before rewriting it.
+  { "capture_rewrite", function(ask) return ask("capture", { name = "Fresh" }) end },
   { "capture_confirm", function(ask)
-    ask("capture", { name = "Fresh" })
+    ask("capture", { name = "Fresh", rewrite = "1" })
     return ask("capture", { name = "Fresh" })
   end },
   { "capture_refused", function()
@@ -89,6 +148,10 @@ local scenarios = {
   { "verify_refused", function(ask) return ask("verify", { name = "Nope" }) end },
   { "check_proceed", function(ask) return ask("check", { name = "Identity" }) end },
   { "check_refuse", function(ask) return ask("check", { name = "Ghost" }) end },
+  { "check_empty", function()
+    local ask = bridge({ files = projects.bars_files({ [projects.BARS_SIDECAR] = 'return { ["Empty"] = {} }' }) })
+    return ask("check", { name = "Empty" })
+  end },
   { "check_headroom", function(ask) return ask("check", { name = "Headroom" }) end },
   { "check_subset", function(ask) return ask("check", { name = "Subset" }) end },
   { "check_unsafe", function()
@@ -122,6 +185,13 @@ local scenarios = {
     state.changes = state.changes + 1
     return ask("apply", { token = token })
   end },
+  { "token_stale_arrangement", function()
+    local ask, _, world = bridge()
+    local token = token_of(ask("check", { name = "Identity" }))
+    world.files[projects.BARS_SIDECAR] =
+      projects.BARS_ARRANGEMENTS:gsub('"Alpha", "Bravo", "Charlie"', '"Bravo", "Alpha", "Charlie"')
+    return ask("apply", { token = token })
+  end },
   { "unknown_command", function(ask) return ask("nope", {}) end },
 }
 
@@ -143,7 +213,8 @@ describe("bridge replies the page is written against", function()
 
   for _, scenario in ipairs(scenarios) do
     local name, play = scenario[1], scenario[2]
-    local reply = play((bridge()))
+    local ask, state, world = bridge()
+    local reply = play(ask, state, world)
     lines[#lines + 1] = name .. "\t" .. reply
 
     it(name .. " matches test/fixtures/bridge-replies.txt", function()

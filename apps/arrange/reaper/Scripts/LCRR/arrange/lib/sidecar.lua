@@ -215,6 +215,8 @@ function sidecar.serialize(arrangements)
     "-- new end is always rounded to the nearest bar line. Shrinking may only ever",
     "-- remove silence -- a run refuses rather than cutting into a region's content.",
     "-- Edit freely; this file is read in a sandbox and validated on load.",
+    "-- Capture and the Arrange page rewrite this whole file when they save, so",
+    "-- comments and hand formatting are not kept.",
     "return {",
   }
 
@@ -231,6 +233,33 @@ function sidecar.serialize(arrangements)
 
   out[#out + 1] = "}"
   return table.concat(out, "\n") .. "\n"
+end
+
+--- Whether sidecar text is exactly what `serialize` writes for what it parses to.
+-- Anything else (comments, hand formatting, bare-string entries, reordered keys,
+-- CRLF line endings) would be changed by a rewrite, so Capture asks first.
+-- @param source string contents of the sidecar file
+-- @return boolean
+function sidecar.is_canonical(source)
+  local arrangements = sidecar.parse(source)
+  return arrangements ~= nil and sidecar.serialize(arrangements) == source
+end
+
+--- A fingerprint of a sidecar's exact text (FNV-1a, 64 bit, as 16 hex digits).
+-- An edit carries the revision it was based on; if the file's text has changed
+-- since, the edit is refused rather than written over the change. A missing
+-- file has the fixed revision "none". Pure Lua (Lua 5.4 integers wrap).
+-- @param source string|nil contents of the file, nil when it does not exist
+-- @return string
+function sidecar.revision(source)
+  if source == nil then
+    return "none"
+  end
+  local hash = -3750763034362895579 -- 0xcbf29ce484222325
+  for index = 1, #source do
+    hash = (hash ~ source:byte(index)) * 1099511628211
+  end
+  return ("%016x"):format(hash)
 end
 
 --- The Arrangement names a sidecar holds, sorted.
@@ -255,7 +284,8 @@ end
 -- offer to import one in the first case and abort in the second.
 -- @param project_path string
 -- @param open function io.open-alike (injected for specs)
--- @return table|nil arrangements, string|nil error, string|nil reason
+-- A fourth value says whether the file is canonical (`is_canonical`).
+-- @return table|nil arrangements, string|nil error, string|nil reason, boolean|nil canonical
 function sidecar.load(project_path, open)
   local path, path_err = sidecar.path_for(project_path)
   if not path then
@@ -274,7 +304,7 @@ function sidecar.load(project_path, open)
   if not arrangements then
     return nil, ("%s: %s"):format(path, parse_err), "invalid"
   end
-  return arrangements
+  return arrangements, nil, nil, sidecar.is_canonical(source)
 end
 
 --- Write Arrangements to the sidecar beside a project.

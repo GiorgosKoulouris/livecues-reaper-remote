@@ -99,6 +99,9 @@ function core_env.new(options)
     end,
     tempo = options.tempo or harness.even_grid(2, 200),
     automation = options.automation or { value_at = function() return 0.5 end },
+    project_path = function()
+      return snapshots[1] and snapshots[1].project_path or ""
+    end,
     applier = applier,
     open = open,
     clock = function() return "2026-11-07 12:00:00" end,

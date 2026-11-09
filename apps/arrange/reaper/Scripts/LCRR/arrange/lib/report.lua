@@ -160,8 +160,16 @@ function report.check(input)
     end
   end
 
+  -- An Arrangement with no entries would park every region; nobody means that,
+  -- and it is what a New Arrangement is before its first region is added. It is
+  -- refused on its own, and nothing below is worked out for it.
+  local empty = arrangement ~= nil and #arrangement == 0
+  if empty then
+    add("refusal", "arrangement_empty", { name = input.name })
+  end
+
   local exists_ok = true
-  if arrangement then
+  if arrangement and not empty then
     local missing
     exists_ok, missing = validate.arrangement_regions_exist(arrangement, snapshot.regions)
     if not exists_ok then
@@ -206,7 +214,7 @@ function report.check(input)
 
   -- Planning needs a resolved Arrangement whose names all exist, and needs the
   -- Region Name invariant to hold or the planner's name lookup is ambiguous.
-  local can_plan = arrangement ~= nil and exists_ok and names_ok
+  local can_plan = arrangement ~= nil and not empty and exists_ok and names_ok
   if not can_plan then
     -- **Saying so is not optional.** Everything the planner would have told us
     -- -- Padding, Dropped Material, cuts, and whether the pack itself refuses

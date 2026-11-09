@@ -68,6 +68,11 @@ local FINDINGS = {
       :format(entry.name, table.concat(entry.available, ", "))
   end,
 
+  arrangement_empty = function(entry)
+    return ("Arrangement %q has no regions in it. Applying it would park every region, which is "
+      .. "never what an Arrangement is for. Add the regions it should play, in order."):format(entry.name)
+  end,
+
   arrangement_missing_regions = function(entry)
     return ("This Arrangement names regions the project does not have:\n  %s")
       :format(table.concat(entry.missing, "\n  "))

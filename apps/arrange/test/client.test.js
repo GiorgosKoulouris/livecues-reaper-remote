@@ -110,3 +110,43 @@ test("the request waits as long as it is told to, and the reads are short", asyn
   assert.strictEqual(reaper.log[0].timeoutMs, 120000);
   assert.strictEqual(reaper.log[1].timeoutMs, 3000);
 });
+
+const BASE = { project: "C:\\Music\\Song.rpp", revision: "0123456789abcdef" };
+
+test("an edit carries the operation, the project and the revision it was based on", async () => {
+  const reaper = fakeReaper({ on: answer({ status: "ok" }) });
+  await clientFor(reaper).edit(BASE, "move", { arrangement: "Live", region: "Intro", slot: 3 });
+  const body = reaper.state.req.split("|").slice(2).join("|");
+  const fields = Object.fromEntries(body.split("&").map((p) => p.split("=").map(decodeURIComponent)));
+  assert.deepStrictEqual(fields, { cmd: "edit", operation: "move", project: BASE.project, revision: BASE.revision,
+    arrangement: "Live", region: "Intro", slot: "3" });
+});
+
+test("an edit sends rewrite=1 only once the rewrite question was answered Yes", async () => {
+  const reaper = fakeReaper({ on: answer({ status: "ok" }) });
+  await clientFor(reaper).edit(Object.assign({ rewrite: true }, BASE), "delete", { arrangement: "Live" });
+  assert.match(reaper.state.req, /rewrite=1/);
+  await clientFor(reaper).edit(BASE, "delete", { arrangement: "Live" });
+  assert.doesNotMatch(reaper.state.req, /rewrite/);
+});
+
+test("an edit that would exceed the URL limit is refused before anything is sent", async () => {
+  const reaper = fakeReaper({ on: answer({ status: "ok" }) });
+  await assert.rejects(clientFor(reaper).edit(BASE, "new", { name: "x".repeat(900) }), (e) => e.code === "request_too_long");
+  await assert.rejects(clientFor(reaper).edit(BASE, "add", { arrangement: "Live", region: "é".repeat(200) }),
+    (e) => e.code === "request_too_long");
+  assert.strictEqual(reaper.log.length, 0);
+});
+
+test("an edit with a long Windows project path and an ordinary name still fits", async () => {
+  const reaper = fakeReaper({ on: answer({ status: "ok" }) });
+  const project = "C:\\Users\\someone\\Documents\\REAPER Media\\Church Services\\2026\\Rehearsal_Current.rpp";
+  await clientFor(reaper).edit({ project, revision: BASE.revision }, "rename", { arrangement: "Sunday morning", name: "Sunday morning, short" });
+  assert.strictEqual(reaper.log.length > 0, true);
+});
+
+test("the read command takes no fields", async () => {
+  const reaper = fakeReaper({ on: answer({ status: "ok" }) });
+  await clientFor(reaper).arrangements();
+  assert.match(reaper.state.req, /\|cmd=arrangements$/);
+});

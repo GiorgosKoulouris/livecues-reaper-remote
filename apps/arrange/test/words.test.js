@@ -111,6 +111,12 @@ test("Capture explains what to do next", () => {
   assert.match(text, /Bars\.arrangements\.lua/);
 });
 
+test("Capture's questions come from the recorded confirms", () => {
+  assert.strictEqual(replies.capture_rewrite.confirm.code, "rewrite");
+  assert.match(words.rewriteQuestion(), /rewrites the whole file/);
+  assert.match(words.replaceQuestion(replies.capture_confirm.confirm.name), /"Fresh" already exists/);
+});
+
 test("track timebases are named, and an unknown one is said to be unknown", () => {
   assert.strictEqual(words.timebase(0), "time");
   assert.strictEqual(words.timebase(-1), "project default");
@@ -127,4 +133,28 @@ test("a call that never got an answer says whether to trust Apply", () => {
   assert.match(words.failure("no_reply"), /run log/);
   assert.match(words.failure("unreachable"), /did not take the request/);
   assert.match(words.failure("request_too_long"), /too long/);
+});
+
+test("the edit replies the page is built on are recorded, and each refusal is worded", () => {
+  ["edit_name_taken", "edit_sidecar_changed", "edit_other_project", "edit_invalid"].forEach((name) => {
+    assert.strictEqual(replies[name].status, "refused", name);
+    clean(words.error(replies[name].error), name);
+  });
+  assert.match(words.error(replies.edit_sidecar_changed.error), /redo the edit/);
+  assert.match(words.error({ code: "sidecar_invalid", error: "boom" }), /Fix the file in a text editor/);
+});
+
+test("the edit and read replies carry what the editor needs", () => {
+  const read = replies.arrangements;
+  assert.strictEqual(read.sidecar, "ok");
+  assert.strictEqual(typeof read.revision, "string");
+  assert.ok(read.arrangements.every((a) => a.name && Array.isArray(a.entries)));
+  assert.ok(read.regions.length > 0);
+  assert.strictEqual(replies.arrangements_missing.revision, "none");
+  assert.strictEqual(replies.arrangements_invalid.sidecar, "invalid");
+  assert.strictEqual(replies.arrangements_unsaved.sidecar, "unsaved");
+  assert.deepStrictEqual(replies.edit_new.entries, []);
+  assert.strictEqual(replies.edit_confirm.confirm.code, "rewrite");
+  assert.strictEqual(replies.edit_delete.entries, undefined);
+  assert.ok(replies.edit_delete.deleted_entries.length > 0);
 });

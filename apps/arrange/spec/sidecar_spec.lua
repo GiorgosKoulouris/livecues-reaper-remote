@@ -353,3 +353,33 @@ describe("sidecar.serialize", function()
     assert.are.same({}, assert(sidecar.parse(sidecar.serialize({}))))
   end)
 end)
+
+describe("sidecar.is_canonical", function()
+  local canonical = sidecar.serialize({ A = { "x", "y", headroom = { x = 0, y = 2 } } })
+
+  it("accepts exactly what serialize writes", function()
+    assert.is_true(sidecar.is_canonical(canonical))
+  end)
+
+  local cases = {
+    { "a comment", canonical:gsub("return {", "-- mine\nreturn {", 1) },
+    { "bare strings", 'return {\n  ["A"] = { "x", "y" },\n}\n' },
+    { "reordered keys", sidecar.serialize({ B = { "x", headroom = {} }, A = { "y", headroom = {} } })
+      :gsub('(  %[.-\n  },\n)(  %[.-\n  },\n)', "%2%1") },
+    { "CRLF line endings", canonical:gsub("\n", "\r\n") },
+    { "a file that will not parse", "return {" },
+  }
+  for _, case in ipairs(cases) do
+    it("rejects " .. case[1], function()
+      assert.is_false(sidecar.is_canonical(case[2]))
+    end)
+  end
+
+  it("is reported by load as a fourth value", function()
+    local function opener(contents)
+      return function() return { read = function() return contents end, close = function() end } end
+    end
+    assert.is_true(select(4, sidecar.load("/p/S.rpp", opener(canonical))))
+    assert.is_false(select(4, sidecar.load("/p/S.rpp", opener('return { A = { "x" } }'))))
+  end)
+end)

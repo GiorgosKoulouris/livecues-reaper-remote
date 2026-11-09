@@ -114,7 +114,10 @@ you want to see the grid itself rather than a verdict about an Arrangement.
 
 Writes the project's regions, in timeline order, into the sidecar as a named
 Arrangement. Prompts for the name, and asks before replacing an Arrangement that
-already exists.
+already exists. It also asks before rewriting a sidecar that is not in the form
+Capture itself writes (comments, hand formatting, bare-string entries), since the
+rewrite drops those; a first Capture, or a file Capture wrote, is not asked about.
+The Replace question comes first, then the rewrite one.
 
 This is how you seed a sidecar from a project you have already laid out by hand.
 It is one of only two Arrangement actions REAPER gets — authoring and reordering
@@ -148,6 +151,7 @@ check is one round trip:
 | `sidecar_invalid` | The sidecar exists but will not parse — usually a hand-edit typo |
 | `arrangement_unknown` | That name is not in the sidecar. Lists the names that are |
 | `arrangement_missing_regions` | The Arrangement names a region the project does not have — a misspelling |
+| `arrangement_empty` | The Arrangement has no entries (it would park every region). Nothing else is planned for it |
 | `region_names` | Duplicate or unnamed regions |
 | `tempo_env_beats` | Project Settings → "Timebase for tempo/time signature env" is `Beats` |
 | `plan_refused` | The Repack itself cannot be planned — an item on an unsafe timebase, Padding that would run a region into its neighbour, or a Headroom that would shrink a region past its contents. Every offending region is named, with the largest shrink each could legally take |

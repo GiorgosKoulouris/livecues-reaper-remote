@@ -26,21 +26,21 @@
   // Why something stopped: a refusal's `error`. Bridge codes first, then the cores'.
   var ERRORS = {
     bad_request: function () { return "The bridge could not read the request. Reload the page; if it keeps happening, the page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
-    request_truncated: function () { return "REAPER cut the request short, so nothing was done. Try a shorter Arrangement name."; },
+    request_truncated: function () { return "REAPER cut the request short, so nothing was done. Try a shorter name."; },
     unknown_command: function (e) { return "The bridge does not know the command " + q(e.command) + ". The page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
     missing_field: function (e) { return "The request left out " + q(e.field) + "."; },
     internal: function (e) { return "The bridge failed: " + (e.message || "unknown error") + "\n\nNothing may have been done. Check the run log beside the project before trying again."; },
     token_unknown: function () { return "This Check has expired, or was already used. Check again, then apply."; },
     token_stale: function (e) {
-      return e.reason === "other_project"
-        ? "A different project is open in REAPER now. Nothing was applied. Check again on the project you want."
-        : "The project changed in REAPER since this Check. Nothing was applied. Check again, then apply.";
+      if (e.reason === "other_project") return "A different project is open in REAPER now. Nothing was applied. Check again on the project you want.";
+      if (e.reason === "arrangement_changed") return "This Arrangement was edited since this Check, so what you read is not what would run. Nothing was applied. Check again, then apply.";
+      return "The project changed in REAPER since this Check. Nothing was applied. Check again, then apply.";
     },
     project_unsaved: function (e) { return e.message; },
     tempo_env_beats: function (e) { return e.message; },
     no_regions: function () { return "This project has no regions."; },
     region_names: function (e) { return "Every region needs a unique, non-empty name:\n\n" + problems(e.problems) + "\n\nFind them with Duplicate and unnamed regions under Diagnostics."; },
-    sidecar_invalid: function (e) { return "The Arrangement sidecar exists but could not be read:\n\n" + e.error; },
+    sidecar_invalid: function (e) { return "The Arrangement sidecar exists but could not be read, so it will not be changed. Fix the file in a text editor:\n\n" + e.error; },
     sidecar_missing: function () { return "This project has no Arrangement sidecar yet. Capture an Arrangement here, or run LCRR Arrange: Apply Arrangement in REAPER to import one."; },
     sidecar_unsaved: function () { return "This project has never been saved, so it has no Arrangement sidecar. Save it in REAPER first."; },
     no_arrangements: function () { return "This project has no Arrangements yet. Capture one first."; },
@@ -52,6 +52,17 @@
       return "Writing the Tempo Anchors moved media items, so this run was stopped before it planned anything against the moved timeline.\n\nBeat-attached material follows a tempo-map edit, and these items followed one:\n\n" + problems(e.moved);
     },
     name_empty: function () { return "An Arrangement needs a name."; },
+    name_taken: function () { return "An Arrangement with that name already exists. Pick another name."; },
+    other_project: function () { return "A different project is active in REAPER now. Nothing was changed. Reload the page's view of the project before editing."; },
+    sidecar_changed: function () { return "The Arrangement file changed since this page read it (in a text editor, or by a Capture). Nothing was changed. The page has reloaded it: redo the edit."; },
+    operation_unknown: function () { return "The bridge does not know that edit. The page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
+    arrangement_not_found: function () { return "There is no Arrangement with that name."; },
+    region_empty: function () { return "A region needs a name."; },
+    region_repeated: function () { return "That region is already in the Arrangement."; },
+    region_not_in_arrangement: function () { return "That region is not in the Arrangement."; },
+    slot_invalid: function () { return "That position is outside the Arrangement."; },
+    headroom_invalid: function () { return "Headroom must be a number of seconds."; },
+    would_be_invalid: function () { return "That edit would produce a file that cannot be read, so nothing was written."; },
     save_failed: function (e) { return e.error; },
     no_tracks: function () { return "This project has no tracks."; }
   };
@@ -67,7 +78,7 @@
 
   // Why a call never got a proper answer. `code` is the client's.
   function failure(code) {
-    if (code === "request_too_long") return "That request is too long to send. Use a shorter Arrangement name.";
+    if (code === "request_too_long") return "That request is too long to send. Use a shorter name.";
     if (code === "no_reply") return "REAPER took the request but the bridge did not answer in time. If this was Apply, it may still be running or may have finished: check REAPER and the run log beside the project before doing anything else.";
     return "REAPER did not take the request. Check the connection and try again.";
   }
@@ -94,6 +105,7 @@
     tempo_env_beats: function (e) { return e.message; },
     region_names: function (e) { return "Every region needs a unique, non-empty name before an Arrangement can key on it:\n" + problems(e.problems); },
     arrangement_unknown: function (e) { return q(e.name) + " is not a known Arrangement. Available: " + (e.available || []).join(", "); },
+    arrangement_empty: function (e) { return "Arrangement " + q(e.name) + " has no regions in it. Applying it would park every region, which is never what an Arrangement is for. Add the regions it should play, in order."; },
     arrangement_missing_regions: function (e) { return "This Arrangement names regions the project does not have:\n  " + e.missing.join("\n  "); },
     parked: function (e) {
       return e.regions.length + " region(s) this Arrangement omits will be moved beyond the Packed Block as Parked Material. Nothing is deleted, and the run log records the offset that reverses it:\n  " + e.regions.join("\n  ");
@@ -214,6 +226,14 @@
   function timebase(mode) { return TIMEBASE[String(mode)] || "UNKNOWN"; }
 
   // Capture's next step, which nothing else explains.
+  function replaceQuestion(name) {
+    return "An Arrangement named " + q(name) + " already exists. Replace it with the project's current region order?";
+  }
+
+  function rewriteQuestion() {
+    return "The Arrangement sidecar has comments or formatting that saving does not keep. Saving rewrites the whole file. Continue?";
+  }
+
   function captureSummary(r) {
     return (r.replaced ? "Replaced " : "Captured ") + q(r.name) + " with " + r.regions.length + " regions.\n\n" +
       "Next, in a text editor on the host, open " + r.path + ":\n" +
@@ -226,5 +246,5 @@
 
   return { error: error, failure: failure, finding: finding, severityHeading: severityHeading, blindSpot: blindSpot,
     paddingNote: paddingNote, checkVerdict: checkVerdict, verifyVerdict: verifyVerdict, headroomQuestion: headroomQuestion,
-    applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, trackLabel: trackLabel };
+    applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion, trackLabel: trackLabel };
 });

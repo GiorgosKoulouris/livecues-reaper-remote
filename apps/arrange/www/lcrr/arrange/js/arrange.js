@@ -299,22 +299,32 @@
     });
   }
 
-  function doCapture(replace) {
+  // `answers` carries the Yes answers given so far ({ replace, rewrite }): the
+  // bridge asks one question at a time, and each answer is repeated with the request.
+  function doCapture(answers) {
+    answers = answers || {};
     var name = els.captureName.value.trim();
-    run("capture", { name: name, replace: replace ? "1" : undefined }, "Capturing…").then(function (reply) {
+    run("capture", { name: name, replace: answers.replace ? "1" : undefined,
+      rewrite: answers.rewrite ? "1" : undefined }, "Capturing…").then(function (reply) {
       if (!reply) return;
       if (reply.status === "ok") {
         var c = fresh("Captured");
         c.appendChild(h("p", "arrange-text arrange-pre", words.captureSummary(reply)));
         refreshInfo();
       } else if (reply.status === "confirm") {
-        var q = fresh("Replace " + reply.confirm.name + "?");
-        paragraphs(q, ["An Arrangement named “" + reply.confirm.name + "” already exists. Replace it with the project's current region order?"]);
+        var code = reply.confirm.code;
+        var isRewrite = code === "rewrite";
+        var q = fresh(isRewrite ? "Rewrite the sidecar?" : "Replace " + reply.confirm.name + "?");
+        paragraphs(q, [isRewrite ? words.rewriteQuestion() : words.replaceQuestion(reply.confirm.name)]);
         var row = h("div", "arrange-apply-row");
-        var yes = h("button", "arrange-answer arrange-primary", "Replace");
+        var yes = h("button", "arrange-answer arrange-primary", isRewrite ? "Rewrite" : "Replace");
         yes.type = "button";
-        yes.addEventListener("click", function () { doCapture(true); });
-        var no = h("button", "arrange-answer", "Keep it");
+        yes.addEventListener("click", function () {
+          var next = { replace: answers.replace, rewrite: answers.rewrite };
+          next[code] = true;
+          doCapture(next);
+        });
+        var no = h("button", "arrange-answer", isRewrite ? "Keep the file" : "Keep it");
         no.type = "button";
         no.addEventListener("click", function () { fresh("Kept"); paragraphs(els.result, ["Nothing was written."]); });
         row.appendChild(yes); row.appendChild(no);

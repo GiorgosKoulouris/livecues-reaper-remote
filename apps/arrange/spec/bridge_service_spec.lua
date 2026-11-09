@@ -288,6 +288,113 @@ describe("lib/bridge/service.lua info", function()
   end)
 end)
 
+describe("lib/bridge/service.lua arrangements", function()
+  it("sends the state, revision, every Arrangement with its Headroom, and the regions in order", function()
+    local ask, world = bridge()
+    local reply = ask("arrangements", {})
+    assert.are.equal("ok", reply.status)
+    assert.are.equal("ok", reply.sidecar)
+    assert.is_true(reply.saved)
+    assert.are.equal(require("lib.sidecar").revision(world.files[projects.BARS_SIDECAR]), reply.revision)
+    assert.is_false(reply.canonical)
+    assert.are.equal(6, #reply.arrangements)
+    assert.are.equal("Ghost", reply.arrangements[1].name)
+    local headroom
+    for _, one in ipairs(reply.arrangements) do
+      if one.name == "Headroom" then headroom = one end
+    end
+    assert.are.same({ { name = "Alpha", headroom = 0 }, { name = "Bravo", headroom = 4 },
+      { name = "Delta", headroom = 0 } }, headroom.entries)
+    assert.are.equal("Alpha", reply.regions[1].name)
+    assert.are.equal(4, #reply.regions)
+  end)
+
+  it("says missing, with the revision of no file", function()
+    local ask = bridge({ core = { files = { [projects.BARS_PATH] = projects.RPP_TIME } } })
+    local reply = ask("arrangements", {})
+    assert.are.equal("missing", reply.sidecar)
+    assert.are.equal("none", reply.revision)
+    assert.are.same({}, reply.arrangements)
+  end)
+
+  it("sends the parse error of a sidecar that will not load", function()
+    local ask = bridge({ core = { files = projects.bars_files({ [projects.BARS_SIDECAR] = "return {" }) } })
+    local reply = ask("arrangements", {})
+    assert.are.equal("invalid", reply.sidecar)
+    assert.is_string(reply.parse_error)
+    assert.are.same({}, reply.arrangements)
+  end)
+
+  it("says unsaved for a project with no path", function()
+    local ask = bridge({ snapshots = { projects.UNSAVED_BARS } })
+    local reply = ask("arrangements", {})
+    assert.are.equal("unsaved", reply.sidecar)
+    assert.is_false(reply.saved)
+  end)
+end)
+
+describe("lib/bridge/service.lua edit", function()
+  local sidecar = require("lib.sidecar")
+  local function based_on(world, fields)
+    return projects.merge({
+      revision = sidecar.revision(world.files[projects.BARS_SIDECAR]),
+      project = projects.BARS_PATH,
+      rewrite = "1",
+    }, fields)
+  end
+
+  it("runs one operation and answers with the new revision and entries", function()
+    local ask, world = bridge()
+    local fields = { operation = "move", arrangement = "Identity", region = "Delta", slot = "1" }
+    local reply = ask("edit", based_on(world, fields))
+    assert.are.equal("ok", reply.status)
+    assert.are.equal("move", reply.operation)
+    assert.are.equal("Delta", reply.entries[1].name)
+    assert.are.equal(sidecar.revision(world.files[projects.BARS_SIDECAR]), reply.revision)
+    assert.are.equal(6, #reply.names)
+  end)
+
+  it("asks before rewriting a file that is not canonical", function()
+    local ask, world = bridge()
+    local fields = based_on(world, { operation = "remove", arrangement = "Identity", region = "Delta" })
+    fields.rewrite = nil
+    local reply = ask("edit", fields)
+    assert.are.equal("confirm", reply.status)
+    assert.are.equal("rewrite", reply.confirm.code)
+  end)
+
+  it("refuses an edit based on an older revision", function()
+    local ask, world = bridge()
+    local fields = based_on(world, { operation = "rename", arrangement = "Identity", name = "X" })
+    fields.revision = "0000000000000000"
+    local reply = ask("edit", fields)
+    assert.are.equal("refused", reply.status)
+    assert.are.equal("sidecar_changed", reply.error.code)
+  end)
+
+  it("refuses an edit made against another project", function()
+    local ask, world = bridge()
+    local fields = based_on(world, { operation = "delete", arrangement = "Identity" })
+    fields.project = "/elsewhere/Other.rpp"
+    assert.are.equal("other_project", ask("edit", fields).error.code)
+  end)
+
+  it("needs an operation, a revision and a project", function()
+    local ask = bridge()
+    assert.are.equal("operation", ask("edit", { revision = "x", project = "y" }).error.field)
+    assert.are.equal("revision", ask("edit", { operation = "new", project = "y" }).error.field)
+    assert.are.equal("project", ask("edit", { operation = "new", revision = "x" }).error.field)
+  end)
+
+  it("opens no console window and no dialog", function()
+    local ask, world = bridge()
+    ask("edit", based_on(world, { operation = "new", name = "Fresh" }))
+    for _, event in ipairs(world.events) do
+      assert.is_nil(type(event) == "table" and event.console or nil)
+    end
+  end)
+end)
+
 describe("lib/bridge/service.lua read-only commands", function()
   it("finds duplicate and unnamed regions", function()
     local ask = bridge({ snapshots = { projects.DUPES }, core = { files = projects.packed_files() } })
@@ -333,7 +440,13 @@ end)
 describe("lib/bridge/service.lua capture", function()
   it("captures, and asks before replacing", function()
     local ask, world = bridge()
-    local first = ask("capture", { name = "Fresh" })
+    -- The fixture sidecar is hand-written: Capture asks before rewriting it.
+    local rewrite = ask("capture", { name = "Fresh" })
+    assert.are.equal("confirm", rewrite.status)
+    assert.are.same({ code = "rewrite" }, rewrite.confirm)
+    assert.is_nil(world.files[projects.BARS_SIDECAR]:find("Fresh", 1, true))
+
+    local first = ask("capture", { name = "Fresh", rewrite = "1" })
     assert.are.equal("ok", first.status)
     assert.is_false(first.replaced)
     assert.are.same({ "Alpha", "Bravo", "Charlie", "Delta" }, first.regions)
@@ -361,7 +474,7 @@ describe("lib/bridge/service.lua capture", function()
     local ask = bridge({ snapshots = { projects.merge(projects.BARS, {
       regions = { { name = name, number = 1, start_time = 0, end_time = 8 } },
     }) } })
-    local reply = ask("capture", { name = name })
+    local reply = ask("capture", { name = name, rewrite = "1" })
     assert.are.equal(name, reply.name)
     assert.are.same({ name }, reply.regions)
   end)
@@ -455,6 +568,51 @@ describe("lib/bridge/service.lua check and apply", function()
     assert.are.equal("project_changed", reply.error.reason)
     assert.is_nil(world.files["/proj/Bars.arrange.log"]:find("Apply Arrangement", 1, true))
     assert.are.equal("token_unknown", ask("apply", { token = checked.token }).error.code)
+  end)
+
+  describe("binds the checked Arrangement's contents", function()
+    it("refuses when the same Arrangement was edited after the Check", function()
+      local ask, world = flow()
+      local checked = ask("check", { name = "Identity" })
+      world.files[projects.BARS_SIDECAR] = projects.BARS_ARRANGEMENTS:gsub(
+        '%["Identity"%] = { "Alpha", "Bravo", "Charlie", "Delta" }',
+        '["Identity"] = { "Bravo", "Alpha", "Charlie", "Delta" }')
+      local reply = ask("apply", { token = checked.token })
+      assert.are.equal("token_stale", reply.error.code)
+      assert.are.equal("arrangement_changed", reply.error.reason)
+      assert.is_nil(world.files["/proj/Bars.arrange.log"]:find("Apply Arrangement", 1, true))
+      assert.are.equal("token_unknown", ask("apply", { token = checked.token }).error.code)
+    end)
+
+    it("refuses when only its Headroom changed", function()
+      local ask, world = flow()
+      local checked = ask("check", { name = "Headroom" })
+      world.files[projects.BARS_SIDECAR] = projects.BARS_ARRANGEMENTS:gsub("headroom = 4", "headroom = 8")
+      assert.are.equal("arrangement_changed", ask("apply", { token = checked.token }).error.reason)
+    end)
+
+    it("refuses when the Arrangement was renamed away or deleted", function()
+      local ask, world = flow()
+      local checked = ask("check", { name = "Identity" })
+      world.files[projects.BARS_SIDECAR] = projects.BARS_ARRANGEMENTS:gsub('%["Identity"%]', '["Renamed"]')
+      assert.are.equal("arrangement_changed", ask("apply", { token = checked.token }).error.reason)
+    end)
+
+    it("proceeds when another Arrangement was edited", function()
+      local ask, world = flow()
+      local checked = ask("check", { name = "Identity" })
+      world.files[projects.BARS_SIDECAR] = projects.BARS_ARRANGEMENTS:gsub(
+        '%["Reordered"%] = { "Charlie", "Alpha", "Delta", "Bravo" }',
+        '["Reordered"] = { "Alpha" }')
+      assert.are.equal("ok", ask("apply", { token = checked.token }).status)
+    end)
+
+    it("proceeds when the file was rewritten with the same contents", function()
+      local ask, world = flow()
+      local checked = ask("check", { name = "Identity" })
+      world.files[projects.BARS_SIDECAR] = "-- a comment\n" .. projects.BARS_ARRANGEMENTS
+      assert.are.equal("ok", ask("apply", { token = checked.token }).status)
+    end)
   end)
 
   it("refuses a token when another project is active", function()
