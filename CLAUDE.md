@@ -13,7 +13,7 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 
 - Each `www/` folder is a slice of REAPER's `reaper_www_root`, at the exact paths it deploys to. Install, release and `npm run serve` lay the slices over each other (`docs/adr/0001`).
 - Naming: entry pages `lcrr.html` (home) and `lcrr-<app>.html` at the top level of a slice; everything else under `lcrr/<app>/{css,js}/` with no file prefix. CSS classes and IDs use `lcrr-` for shared parts and `<app>-` for app parts. JS goes under the one global `LCRR` (`LCRR.shared.*`, `LCRR.<app>.*`), using the UMD wrapper already in use so node tests can `require` the same file.
-- Every app page loads `lcrr/shared/css/tokens.css` and `base.css` first, and ends with the shared footer (Home link to `lcrr.html`). The home page has no footer (`docs/adr/0003`).
+- Every app page links the shared icons (`lcrr/shared/img/`), loads `lcrr/shared/css/tokens.css` and `base.css` first, and ends with the shared footer (Home link to `lcrr.html`). The home page has no footer (`docs/adr/0003`).
 - A new app: add `apps/<app>/` with the same shape, add its button to `apps/home/www/lcrr.html`, and add it to `CONTEXT-MAP.md`.
 - One ReaPack package and one version for the whole suite (`docs/adr/0002`); the version lives in the root `package.json`.
 - `npm test` and `npm run check` must pass before committing.

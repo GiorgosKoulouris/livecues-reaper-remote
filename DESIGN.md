@@ -5,6 +5,7 @@ colors:
   stage-black: "#16181b"
   console-grey: "#1e2125"
   key-grey: "#2a2e33"
+  key-grey-hover: "#3a3f46"
   hairline: "#2b2f34"
   cue-blue-wash: "#245382"
   paper-white: "#e8e8e8"
@@ -174,7 +175,7 @@ Flat. There are no shadows. Depth is conveyed by tonal steps (Stage Black → Co
 
 ## Shapes
 
-Mostly rectangular and square-cornered. Buttons use a gentle 6px radius with a 1px Hairline border. The region color swatch is a 1rem circle with a hairline outline when no color is set. Tabs are borderless with a 3px bottom indicator. Rows have no radius.
+Mostly rectangular and square-cornered. Buttons use a gentle 6px radius with a 1px Hairline border. The region color swatch is a 1rem circle with a hairline outline when no color is set. Tabs are borderless with a 3px bottom indicator. Rows have no radius, except the active row, which has the same 6px radius as buttons.
 
 ## Components
 

@@ -51,15 +51,19 @@ main { padding:1rem; max-width:48rem; margin:0 auto; }
   #podium-rec.holding::after, #podium-stop.holding::after { opacity:.55; transition:opacity var(--hold-ms, 800ms) linear; }
 }
 .podium-list { list-style:none; margin:0; padding:0; }
-.podium-list li { position:relative; display:flex; align-items:center; gap:.75rem; padding:.375rem .25rem; border-bottom:1px solid var(--hairline); }
+.podium-list li { position:relative; display:flex; align-items:center; gap:.75rem; padding:.375rem .75rem .375rem .5rem; border-bottom:1px solid var(--hairline); }
 .podium-go { width:48px; height:48px; min-width:44px; flex:none; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; font:inherit; }
 .podium-swatch { width:1rem; height:1rem; flex:none; border-radius:50%; background:transparent; border:1px solid var(--hairline); }
 .podium-name { flex:1; min-width:0; font-size:1.1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .podium-start { font-variant-numeric:tabular-nums; opacity:.6; font-size:.85rem; }
-.podium-list li.active { background:var(--cue-blue-wash); border-bottom-color:var(--cue-blue); }
+.podium-list li.active { background:var(--cue-blue-wash); border-bottom-color:transparent; border-radius:6px; }
 .podium-list li.active .podium-name { font-weight:600; }
 .podium-list li.active .podium-start { opacity:.9; }
 .podium-go:focus:not(:focus-visible) { outline:none; }
+/* Hover (hover-capable devices only; idle, enabled controls only). Declared before :active so a press still wins. */
+@media (hover:hover) {
+  #podium-transport button:not(:disabled):hover, .podium-go:not(:disabled):not(.holding):not(.pending):hover, [role=tab][aria-selected=false]:hover { background:var(--key-grey-hover); }
+}
 /* Press feedback: fully inverted face so a tap is unmistakable. Hold-mode ▶ and Rec show their sweep instead. */
 #podium-transport button:not(#podium-rec):not(#podium-stop):active, .podium-go:not(.hold-mode):active { background:var(--paper-white); color:var(--stage-black); border-color:var(--paper-white); }
 /* Cue sent, waiting for REAPER (and repeat taps are being ignored). */

@@ -6,6 +6,7 @@
 - `js/poll.js`: one combined request per tick with a 3 s timeout; apps add commands with `addCommand()`. `send()` for one-off commands.
 - `js/guard.js`: offline verdict (2 failed polls, settle time after reconnect) and a repeat-trigger cooldown.
 - `js/hold.js`: press-and-hold helper for accident protection.
+- `img/`: the suite icon (`icon.svg`, plus `icon-32.png` and `apple-touch-icon.png` as raster fallbacks). Every page links all three in its head.
 - `css/tokens.css`: design tokens from `DESIGN.md`. `css/base.css`: reset, column page layout, the suite footer (`.lcrr-footer`, `.lcrr-home`).
 
 Rules: JS stays pure where it is now (no DOM in `reaper`, `guard`, `hold`; timers and fetch injectable) and uses the UMD wrapper so tests `require` the same file. Something moves here only once it is not specific to one app. Tests: `shared/test/`.

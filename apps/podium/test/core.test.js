@@ -2,12 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert");
 const core = require("../www/lcrr/podium/js/core.js");
 
-test("formatTime renders m:ss.mmm", () => {
-  assert.strictEqual(core.formatTime(0), "0:00.000");
-  assert.strictEqual(core.formatTime(12.5), "0:12.500");
-  assert.strictEqual(core.formatTime(754.3216), "12:34.322");
-  assert.strictEqual(core.formatTime(59.9996), "1:00.000");
-  assert.strictEqual(core.formatTime(-3), "0:00.000");
+test("formatTime renders m:ss rounded to the nearest second", () => {
+  assert.strictEqual(core.formatTime(0), "0:00");
+  assert.strictEqual(core.formatTime(12.5), "0:13");
+  assert.strictEqual(core.formatTime(12.4), "0:12");
+  assert.strictEqual(core.formatTime(754.3216), "12:34");
+  assert.strictEqual(core.formatTime(59.6), "1:00");
+  assert.strictEqual(core.formatTime(3599.7), "1:00:00");
+  assert.strictEqual(core.formatTime(-3), "0:00");
 });
 
 const R = (id, start, end) => ({ name: "r" + id, id, start, end, color: 0 });
