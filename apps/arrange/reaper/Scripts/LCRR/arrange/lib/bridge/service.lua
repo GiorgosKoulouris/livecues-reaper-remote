@@ -20,11 +20,10 @@
 -- `token_unknown` and `token_stale`. Wording is the page's: a reply is codes
 -- and fields, as a core's result is.
 --
--- **The page never causes a dialog on the host.** The cores never open one.
--- Their run log (`Logger:write`) also prints to REAPER's console, which would
--- open that window on the host, so the cores here get an `api` whose
--- ShowConsoleMsg does nothing. The log *file* beside the project is still
--- written: for Dropped Material it is the only record.
+-- **The page never causes a dialog on the host.** The cores never open one,
+-- and their run log (`Logger:write`) writes only to the file beside the
+-- project, never to REAPER's console. For Dropped Material that file is the
+-- only record.
 --
 -- **Apply only after Check** (`.scratch/arrange/spec.md`). A Check that would
 -- proceed returns a `token`. Apply carries the token and the Headroom answer
@@ -57,11 +56,6 @@ service.VERSION = 1
 
 local HEADROOM_ANSWERS = { apply = true, zero = true, cancel = true }
 
---- `api`, with the console silenced. Everything else is REAPER's own.
-local function quiet(api)
-  return setmetatable({ ShowConsoleMsg = function() end }, { __index = api })
-end
-
 local function copy_of(given)
   local out = {}
   for key, value in pairs(given) do
@@ -84,10 +78,11 @@ end
 
 local function apply_view(result)
   local plan, anchor_plan = result.plan, result.anchor_plan
-  local regions_parked = 0
+  local regions_parked, parked_names = 0, {}
   for _, park in ipairs(plan.parks) do
     if park.kind == "region" then
       regions_parked = regions_parked + 1
+      parked_names[#parked_names + 1] = park.name
     end
   end
   return {
@@ -107,7 +102,8 @@ local function apply_view(result)
     places = plain_list(plan.places),
     headroom = plain_list(plan.headroom),
     pads = plain_list(plan.pads),
-    parked = { regions = regions_parked, other = #plan.parks - regions_parked, delta = plan.park_delta or 0 },
+    parked = { regions = regions_parked, names = parked_names, other = #plan.parks - regions_parked,
+      delta = plan.park_delta or 0 },
     dropped = { items = plain_list(plan.drops), envelope_points = plain_list(plan.envelope_drops) },
   }
 end
@@ -395,7 +391,7 @@ local function handlers(self)
     local current = prepared.arrangements[checked.name]
     if not current or tokens.fingerprint(current) ~= checked.fingerprint then
       self.tokens.drop(token)
-      return refusal("token_stale", { reason = "arrangement_changed" })
+      return refusal("token_stale", { reason = "arrangement_changed", name = checked.name })
     end
 
     local result = apply.run(prepared, { name = checked.name, headroom = answer })
@@ -427,7 +423,6 @@ end
 --   random  function(n) -> integer in 1..n, for check tokens
 function service.new(given)
   local self = { given = copy_of(given) }
-  self.given.api = quiet(given.api)
   self.tokens = tokens.new(given.random)
   self.handlers = handlers(self)
 

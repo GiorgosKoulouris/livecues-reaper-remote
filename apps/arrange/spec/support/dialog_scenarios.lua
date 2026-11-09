@@ -180,6 +180,7 @@ return {
     headroom_no = phased({ GetUserInputs = { { true, "Headroom" } }, ShowMessageBox = { 7, 1 } }),
     headroom_yes = phased({ GetUserInputs = { { true, "Headroom" } }, ShowMessageBox = { 6, 1 } }),
     reordered = phased(name("Reordered")),
+    fails_midway = merge(phased(name("Reordered")), { applier_fails = { plan = "boom at 12.000s" } }),
     subset = phased(name("Subset")),
     drifted = phased(name("Reordered"), BARS_DRIFTED),
     phase_two_refused = phased({ GetUserInputs = { { true, "Shrink" } }, ShowMessageBox = { 6, 1 } }),

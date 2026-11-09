@@ -1,9 +1,4 @@
 project.snapshot() #1
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Find Duplicate Region Names
-Regions read via GetRegionOrMarker (issue #11).
-This project has no regions.
->>
 file /proj/Empty.arrange.log (a) <<
 [2026-11-07 12:00:00] Find Duplicate Region Names
 Regions read via GetRegionOrMarker (issue #11).

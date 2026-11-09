@@ -5,7 +5,8 @@
 -- the wording lives here and nowhere else -- the bridge (spec step 4) sends the
 -- same results as JSON and words them in the page.
 
-local validate = require("lib.validate")
+local effects = require("lib.text.effects")
+local refusals = require("lib.text.refusals")
 
 local text = {}
 
@@ -42,40 +43,35 @@ end
 -- One sentence (or paragraph) per finding code.
 local FINDINGS = {
   project_unsaved = function(entry)
-    return entry.message
+    return refusals.error(entry)
   end,
 
   sidecar_invalid = function(entry)
-    return ("The Arrangement sidecar exists but could not be read: %s")
-      :format(entry.error or "unknown error")
+    return refusals.error(entry)
   end,
 
-  sidecar_missing = function()
-    return "This project has no Arrangement sidecar yet. Capture an Arrangement, or import one."
+  sidecar_missing = function(entry)
+    return refusals.error(entry)
   end,
 
   tempo_env_beats = function(entry)
-    return entry.message
+    return refusals.error(entry)
   end,
 
   region_names = function(entry)
-    return "Every region needs a unique, non-empty name before an Arrangement can key on it:\n"
-      .. validate.format_problems(entry.problems)
+    return refusals.error(entry)
   end,
 
   arrangement_unknown = function(entry)
-    return ("%q is not a known Arrangement. Available: %s")
-      :format(entry.name, table.concat(entry.available, ", "))
+    return refusals.error(entry)
   end,
 
   arrangement_empty = function(entry)
-    return ("Arrangement %q has no regions in it. Applying it would park every region, which is "
-      .. "never what an Arrangement is for. Add the regions it should play, in order."):format(entry.name)
+    return refusals.error(entry)
   end,
 
   arrangement_missing_regions = function(entry)
-    return ("This Arrangement names regions the project does not have:\n  %s")
-      :format(table.concat(entry.missing, "\n  "))
+    return refusals.error(entry)
   end,
 
   parked = function(entry)
@@ -100,7 +96,7 @@ local FINDINGS = {
   end,
 
   plan_refused = function(entry)
-    return entry.error
+    return refusals.error(entry)
   end,
 
   headroom = function(entry)
@@ -217,43 +213,54 @@ function text.heading(name)
   return ("%s -- %q"):format(text.TITLE, name)
 end
 
---- The dialog shown once the check has run.
+--- The dialog shown once the check has run: the verdict, each refusal with its
+--- fix, and one line per lasting effect. Everything else is in the report.
 function text.summary(result)
-  local refusals, permanent = 0, 0
+  local refused, has_no_change, not_planned = {}, false, false
   for _, entry in ipairs(result.findings) do
     if entry.severity == "refusal" then
-      refusals = refusals + 1
-    elseif entry.severity == "permanent" then
-      permanent = permanent + 1
+      refused[#refused + 1] = text.finding(entry)
+    elseif entry.code == "no_change" then
+      has_no_change = true
+    elseif entry.code == "not_planned" then
+      not_planned = true
     end
   end
 
-  if refusals > 0 then
-    return ("Applying %q WOULD REFUSE -- %d problem(s) found%s.\n\nThe full report is in the "
-      .. "console and in the log beside the project. Nothing has been changed."):format(
-      result.arrangement, refusals,
-      permanent > 0 and (", plus %d permanent effect(s) to be aware of"):format(permanent) or "")
+  if #refused > 0 then
+    local parts = { ("%q can't be applied yet."):format(result.arrangement) }
+    for _, message in ipairs(refused) do
+      parts[#parts + 1] = message
+    end
+    if not_planned then
+      parts[#parts + 1] = "Fix these and run Check again to see what else it would do."
+    end
+    return table.concat(parts, "\n\n")
   end
 
-  if permanent > 0 then
-    return ("Applying %q would proceed, with %d permanent effect(s) worth reading first "
-      .. "(parking, Padding, cuts or discarded material).\n\nThe full report is in the console "
-      .. "and in the log beside the project. Nothing has been changed."):format(
-      result.arrangement, permanent)
+  local lines = effects.lines(effects.from_findings(result.findings), false, result.padding_exact)
+
+  -- A Headroom too small to act is why an Arrangement can "already match"
+  -- while the user expects a change, so that line is kept.
+  if has_no_change then
+    local message = ("%q already matches the timeline. Nothing to apply."):format(result.arrangement)
+    return #lines > 0 and (message .. "\n\n" .. table.concat(lines, "\n")) or message
   end
 
-  return ("Applying %q would proceed, with nothing permanent beyond the Repack itself.\n\n"
-    .. "The report lists what this check cannot see -- read it before trusting a first run. "
-    .. "Nothing has been changed."):format(result.arrangement)
+  local parts = { ("Ready to apply %q."):format(result.arrangement) }
+  if #lines > 0 then
+    local bullets = {}
+    for index, line in ipairs(lines) do
+      bullets[index] = "- " .. line
+    end
+    parts[#parts + 1] = "This will also:\n" .. table.concat(bullets, "\n")
+  end
+  return table.concat(parts, "\n\n")
 end
 
 -- Why a check could not start, worded.
-local ERRORS = {
-  no_regions = "This project has no regions, so there is no Arrangement to check.",
-}
-
 function text.error(err)
-  return ERRORS[err.code] or err.code
+  return refusals.error(err) or err.code
 end
 
 return text

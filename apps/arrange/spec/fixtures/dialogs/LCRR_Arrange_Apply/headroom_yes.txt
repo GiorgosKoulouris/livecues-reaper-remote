@@ -1,17 +1,15 @@
 project.snapshot() #1
 GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Headroom"
 ShowMessageBox("Apply Arrangement", 3) -> 6 <<
-This Arrangement adjusts the Headroom of 1 region(s):
+Apply Headroom to 1 region?
 
-  Bravo: +4.000s
+  Bravo: +4.0 s
 
-Headroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot.
+Each Apply moves these region ends again.
 
-Each end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.
-
-Yes    -- repack, and apply the Headroom above.
-No     -- repack only, treating every Headroom as zero.
-Cancel -- do nothing. Nothing has been written yet.
+Yes - apply with Headroom
+No - apply without Headroom
+Cancel - do nothing
 >>
 Undo_BeginBlock()
 apply.anchors {
@@ -53,39 +51,6 @@ apply.anchors {
   },
 }
 project.snapshot() #2
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Apply Arrangement -- "Headroom"
-  regions read via GetRegionOrMarker
-  tempo anchor (region "Alpha"): 0.000 = 120 bpm 4/4 (already present, rewritten)
-  tempo anchor (region "Bravo"): 12.000 = 120 bpm 4/4
-  tempo anchor (region "Charlie"): 32.000 = 90 bpm 4/4 (already present, rewritten)
-  tempo anchor (region "Delta"): 48.000 = 90 bpm 3/4 (already present, rewritten)
-  HEADROOM "Bravo": end 22.000 -> 26.000 (+4.000s, +2 bar(s); asked +4.000s)
-  PADDED "Bravo": end 21.000 -> 22.000 (+1.000s of silence inside the region)
-  PADDED "Delta": end 53.000 -> 54.000 (+1.000s of silence inside the region)
-  Bravo: 12.000 -> 8.000 (-4.000)
-  Delta: 48.000 -> 22.000 (-26.000)
-  tempo (region "Bravo"): 12.000 -> 8.000 (-4.000)
-  tempo (region "Delta"): 48.000 -> 22.000 (-26.000)
-  tempo (parked, belonged to no region): 32.000 -> 330.000 (+298.000)
-  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 0.000 = 0.500000
-  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 8.000 = 0.000000
-  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 8.000 = 1.000000
-  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 22.000 = 1.000000
-  automation anchor (track 1 Gtr, "Mute", region "Delta"): 22.000 = 0.000000
-  automation anchor (track 1 Gtr, "Mute", region "Delta"): 28.000 = 0.000000
-  cut (track 1 Gtr): 12.000 (0.005s fade both edges)
-  DROPPED (track 1 Gtr): 11.000..12.000 (1.000s)
-  DROPPED (track 3 Perc): 9.000..10.000 (1.000s)
-  DROPPED envelope point (track 1 Gtr, "Mute"): 9.500
-  item (track 1): 12.000 -> 8.000 (-4.000)
-  item (track 3): 49.000 -> 23.000 (-26.000)
-  PARKED by +298.000s (negate to reverse):
-    region "Charlie": 32.000 -> 330.000
-    envelope point (track 1 Gtr, "Mute", region "Charlie"): 33.000 -> 331.000
-    marker "verse": 34.000 -> 332.000
-    item (track 2): 30.000 -> 328.000
->>
 file /proj/Bars.arrange.log (a) <<
 [2026-11-07 12:00:00] Apply Arrangement -- "Headroom"
   regions read via GetRegionOrMarker
@@ -372,22 +337,14 @@ apply.plan {
 }
 Undo_EndBlock("Apply Arrangement", -1)
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-Applied "Headroom": 2 region(s), 0 marker(s), 3 tempo marker(s), 0 envelope point(s) and 2 item(s) moved, 1 cut(s) made.
+Applied "Headroom".
 
-1 Tempo Anchor(s) were written at region starts (3 of 4 region(s) already had one with the right values), so each region carries its own bar grid regardless of what a Repack puts in front of it.
+- Moved 1 left-out region after the end of the Arrangement: Charlie
+- Added silence to 2 regions (2.0 s)
+- Changed the end of 1 region with Headroom: Bravo +4.0 s
+- Discarded 2 items and 1 automation point that were in no region
+- Cut 1 item at region edges
 
-1 region(s) had their end moved by HEADROOM:
-  Bravo: +4.000s (+2 bar(s))
-
-This is relative, not absolute -- applying this Arrangement again would move them again.
-
-2 region(s) were PADDED to the next bar line, adding 2.000s of silence inside their bounds -- permanently, and this does not happen again on a later Repack:
-  Bravo (+1.000s)
-  Delta (+1.000s)
-
-6 automation anchor(s) were written at region bounds, so each region keeps its own automation values instead of inheriting its new neighbour's. They are listed in the run log.
-
-1 region(s) this Arrangement omits, and 3 other piece(s) of material, were PARKED 298.000s later -- beyond the Packed Block, with their internal timing intact. Nothing was deleted; the run log gives the offset, and negating it reverses the parking.
-
-2 piece(s) of material and 1 envelope point(s) touching no region were DISCARDED. They are listed in the run log beside the project; Undo restores them.
+Undo in REAPER takes it back.
+Next: run Verify.
 >>

@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Verify Arrangement", 0) -> 1 <<
-This project has no regions, so there is nothing to verify.
+This project has no regions. Add some in REAPER, then try again.
 >>

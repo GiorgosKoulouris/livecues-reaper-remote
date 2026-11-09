@@ -193,7 +193,7 @@ what it will gain or lose, with three answers:
 An Arrangement whose Headroom is all zero shows no dialog at all and behaves
 exactly as it always has.
 
-One undo point for the whole run. The plan goes to the console and appends to
+One undo point for the whole run. The detail of the plan is appended to
 `<YourProject>.arrange.log` beside the project. **For Dropped Material that log is
 the only record**, because the project afterwards cannot show what was
 discarded — and for Headroom it is the only record of *why* a region is a

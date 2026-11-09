@@ -5,14 +5,21 @@
 -- they are wording; the core decides *when* they are written (before the
 -- applier runs, so a run that fails halfway still has its record).
 
-local validate = require("lib.validate")
+local effects = require("lib.text.effects")
+local refusals = require("lib.text.refusals")
 
 local text = {}
 
 text.TITLE = "Apply Arrangement"
 
-text.IMPORT_QUESTION = "This project has no Arrangement sidecar yet. Import one from another file?"
-text.IMPORT_PICKER_TITLE = "Import Arrangement sidecar"
+text.IMPORT_QUESTION = "This project has no Arrangements yet. Import an Arrangement file?"
+text.IMPORT_PICKER_TITLE = "Import an Arrangement file"
+
+--- What the script shows when an error is raised during the run: plain
+--- instructions. The raw error is in the run log (`failure_line`).
+function text.failure()
+  return refusals.failure()
+end
 
 -- track_index is 0-based, as REAPER's own enumeration is, while its UI
 -- counts from 1 -- printing the raw index sends the reader one track off
@@ -169,192 +176,52 @@ end
 -- @param requests table lib/report.lua's `headroom_requests` (non-empty)
 function text.headroom_prompt(requests)
   local lines = {}
-  for _, request in ipairs(requests) do
-    lines[#lines + 1] = ("  %s: %+.3fs"):format(request.name, request.seconds)
+  for index = 1, math.min(#requests, refusals.LIMIT) do
+    lines[index] = ("  %s: %+.1f s"):format(requests[index].name, requests[index].seconds)
+  end
+  -- Nothing is logged yet at this point, so the rest is on the page, not in the log.
+  if #requests > refusals.LIMIT then
+    lines[#lines + 1] = ("  and %d more (see %s)"):format(#requests - refusals.LIMIT, refusals.EDIT_TAB)
   end
 
   return table.concat({
-    ("This Arrangement adjusts the Headroom of %d region(s):"):format(#lines),
+    ("Apply Headroom to %d %s?"):format(#requests, #requests == 1 and "region" or "regions"),
     "",
     table.concat(lines, "\n"),
     "",
-    "Headroom is RELATIVE: it moves each region's end from where it is now, so applying this "
-      .. "Arrangement a second time moves those ends a second time. Every other part of a "
-      .. "Repack can be run repeatedly without changing the result; this cannot.",
+    "Each Apply moves these region ends again.",
     "",
-    "Each end is rounded to the nearest bar line, so a request under half a bar resolves to no "
-      .. "change. The run log records what each one actually resolved to.",
-    "",
-    "Yes    -- repack, and apply the Headroom above.",
-    "No     -- repack only, treating every Headroom as zero.",
-    "Cancel -- do nothing. Nothing has been written yet.",
+    "Yes - apply with Headroom",
+    "No - apply without Headroom",
+    "Cancel - do nothing",
   }, "\n")
 end
 
---- What a finished run tells the user.
---
--- Categories that permanently change the project beyond repositioning --
--- Padding, anchors, drops -- are called out separately rather than folded
--- into the counts, because each adds or removes something the project
--- afterwards cannot be read back to explain.
+--- What a finished run tells the user: done, the lasting effects, Undo, what
+--- to do next. Everything else is in the run log.
 -- @param result table lib/core/apply.lua's `run` result with status "ok"
 function text.summary(result)
-  local name, plan, anchor_plan = result.name, result.plan, result.anchor_plan
+  local name = result.name
   if result.noop then
     return ("Arrangement %q already matches the timeline. Nothing to do."):format(name)
   end
 
-  local summary = ("Applied %q: %d region(s), %d marker(s), %d tempo marker(s), %d envelope point(s) "
-    .. "and %d item(s) moved, %d cut(s) made.")
-    :format(name, #plan.places, #plan.marker_moves, #plan.tempo_moves, #plan.envelope_moves,
-      #plan.item_moves, #plan.splits)
-
-  if anchor_plan.changing > 0 then
-    summary = summary .. ("\n\n%d Tempo Anchor(s) were written at region starts (%d of %d region(s) "
-      .. "already had one with the right values), so each region carries its own bar grid "
-      .. "regardless of what a Repack puts in front of it."):format(
-      anchor_plan.changing, #anchor_plan.anchors - anchor_plan.changing, #anchor_plan.anchors)
-  end
-
-  -- Headroom first among the permanent effects, because it is the only one the
-  -- user asked for by name -- and the only one a second run would do again.
-  if #plan.headroom > 0 then
-    local lines = {}
-    for _, entry in ipairs(plan.headroom) do
-      lines[#lines + 1] = ("%s: %+.3fs (%+d bar(s))%s"):format(
-        entry.name, entry.resolved, entry.bars,
-        entry.resolved == 0 and " -- no change, the request was under half a bar" or "")
+  local parts = { ("Applied %q."):format(name) }
+  local lines = effects.lines(effects.from_plan(result.plan), true)
+  if #lines > 0 then
+    local bullets = {}
+    for index, line in ipairs(lines) do
+      bullets[index] = "- " .. line
     end
-    summary = summary .. ("\n\n%d region(s) had their end moved by HEADROOM:\n  %s\n\nThis is "
-      .. "relative, not absolute -- applying this Arrangement again would move them again.")
-      :format(#plan.headroom, table.concat(lines, "\n  "))
+    parts[#parts + 1] = table.concat(bullets, "\n")
   end
-
-  -- Padding is the one category that puts *silence inside a region's bounds*,
-  -- permanently (ADR-0004). The user has not seen it happen before, so it is
-  -- reported with the exact amount rather than as a count.
-  if #plan.pads > 0 then
-    local added, names = 0, {}
-    for _, pad in ipairs(plan.pads) do
-      added = added + pad.added
-      names[#names + 1] = ("%s (+%.3fs)"):format(pad.name, pad.added)
-    end
-    summary = summary .. ("\n\n%d region(s) were PADDED to the next bar line, adding %.3fs of "
-      .. "silence inside their bounds -- permanently, and this does not happen again on a later "
-      .. "Repack:\n  %s"):format(#plan.pads, added, table.concat(names, "\n  "))
-  end
-
-  if #plan.envelope_anchors > 0 then
-    summary = summary .. ("\n\n%d automation anchor(s) were written at region bounds, so each "
-      .. "region keeps its own automation values instead of inheriting its new neighbour's. "
-      .. "They are listed in the run log."):format(#plan.envelope_anchors)
-  end
-
-  -- Parking moves material the Arrangement did not ask for, so it is reported
-  -- even though it destroys nothing: an omitted region vanishing from where it
-  -- used to sit looks like a deletion until the offset explains it.
-  if #plan.parks > 0 then
-    local regions_parked = 0
-    for _, park in ipairs(plan.parks) do
-      if park.kind == "region" then
-        regions_parked = regions_parked + 1
-      end
-    end
-    summary = summary .. ("\n\n%d region(s) this Arrangement omits, and %d other piece(s) of "
-      .. "material, were PARKED %.3fs later -- beyond the Packed Block, with their internal "
-      .. "timing intact. Nothing was deleted; the run log gives the offset, and negating it "
-      .. "reverses the parking."):format(regions_parked, #plan.parks - regions_parked, plan.park_delta)
-  end
-
-  -- Drops are called out separately, and last, because they are the only
-  -- destructive part of a run -- the log beside the .RPP lists each one.
-  local discarded = #plan.drops + #plan.envelope_drops
-  if discarded > 0 then
-    summary = summary .. ("\n\n%d piece(s) of material and %d envelope point(s) touching no region "
-      .. "were DISCARDED. They are listed in the run log beside the project; Undo restores them."):format(
-      #plan.drops, #plan.envelope_drops)
-  end
-
-  return summary
+  parts[#parts + 1] = "Undo in REAPER takes it back.\nNext: run Verify."
+  return table.concat(parts, "\n\n")
 end
 
--- Why a run stopped, worded. Each takes the refusal's fields.
-local ERRORS = {
-  project_unsaved = function(err)
-    return err.message
-  end,
-  tempo_env_beats = function(err)
-    return err.message
-  end,
-  no_regions = function()
-    return "This project has no regions, so there is no Arrangement to apply."
-  end,
-  region_names = function(err)
-    return table.concat({
-      "Cannot apply an Arrangement until every region has a unique, non-empty name:",
-      "",
-      validate.format_problems(err.problems),
-      "",
-      "Run 'Find duplicate or unnamed regions' for the full list.",
-    }, "\n")
-  end,
-  sidecar_invalid = function(err)
-    return ("The Arrangement sidecar exists but could not be read:\n\n%s"):format(err.error)
-  end,
-  -- Never shown by the dialog front end, which offers the import instead. Any
-  -- other front end names the host action to run.
-  sidecar_missing = function()
-    return "This project has no Arrangement sidecar yet. Capture an Arrangement, or run "
-      .. "'Apply Arrangement' in REAPER to import one."
-  end,
-  import_unreadable = function(err)
-    return ("Could not read %s: %s"):format(err.path, err.error or "unknown error")
-  end,
-  import_invalid = function(err)
-    return ("%s is not a valid Arrangement sidecar:\n\n%s"):format(err.path, err.error)
-  end,
-  save_failed = function(err)
-    return err.error
-  end,
-  no_arrangements = function()
-    return "The Arrangement sidecar has no Arrangements to apply."
-  end,
-  arrangement_unknown = function(err)
-    return ("%q is not a known Arrangement. Available: %s")
-      :format(err.name, table.concat(err.available, ", "))
-  end,
-  arrangement_missing_regions = function(err)
-    return ("Arrangement %q names regions this project does not have:\n\n  %s")
-      :format(err.name, table.concat(err.missing, "\n  "))
-  end,
-  plan_refused = function(err)
-    return err.error
-  end,
-  plan_out_of_scope = function(err)
-    return ("Arrangement %q needs more than this action can do yet:\n\n%s"):format(err.name, err.error)
-  end,
-  anchors_moved_items = function(err)
-    return table.concat({
-      "Writing the Tempo Anchors moved media items, so this run has been stopped before "
-        .. "it planned anything against the moved timeline.",
-      "",
-      "Beat-attached material follows a tempo-map edit, and these items followed one:",
-      "",
-      validate.format_problems(err.moved),
-    }, "\n")
-  end,
-}
-
---- A refusal, worded. One that arrives after phase 1 wrote its anchors says
---- so, and that Undo removes them.
+--- A refusal, worded.
 function text.error(err)
-  local format_one = ERRORS[err.code]
-  local message = format_one and format_one(err) or err.code
-  if err.anchors_written then
-    message = ("%s\n\n%d Tempo Anchor(s) were written before this was detected, and nothing "
-      .. "else was. They are one undo step -- Undo removes them."):format(message, err.anchors_written)
-  end
-  return message
+  return refusals.error(err) or err.code
 end
 
 return text

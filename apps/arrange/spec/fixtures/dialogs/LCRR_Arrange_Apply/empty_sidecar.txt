@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-The Arrangement sidecar has no Arrangements to apply.
+This project has no Arrangements yet. Capture one first.
 >>

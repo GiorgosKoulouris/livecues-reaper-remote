@@ -69,15 +69,13 @@ describe("log body", function()
 end)
 
 describe("log:write", function()
-  it("sends the body to the REAPER console", function()
+  it("never opens the REAPER console", function()
     local api = fake_reaper.new()
     local logger = logger_for(nil, api)
     logger:line("planned 3 moves")
     logger:write()
 
-    local console = api.calls_to("ShowConsoleMsg")
-    assert.are.equal(1, #console)
-    assert.is_truthy(console[1].args[1]:find("planned 3 moves", 1, true))
+    assert.are.same({}, api.calls_to("ShowConsoleMsg"))
   end)
 
   it("appends the body to the log file beside the project", function()
@@ -120,7 +118,7 @@ describe("log:write", function()
   end)
 
   -- A read-only folder must not take down a run whose edits already succeeded.
-  it("still reaches the console when the log file cannot be opened", function()
+  it("does not fail when the log file cannot be opened", function()
     local api = fake_reaper.new()
     local logger = log.new({
       project_path = [[D:\P\Song.RPP]],
@@ -131,6 +129,6 @@ describe("log:write", function()
     logger:line("planned 3 moves")
 
     assert.has_no.errors(function() logger:write() end)
-    assert.are.equal(1, #api.calls_to("ShowConsoleMsg"))
+    assert.are.same({}, api.calls_to("ShowConsoleMsg"))
   end)
 end)

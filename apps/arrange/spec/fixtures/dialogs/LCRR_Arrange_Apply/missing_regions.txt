@@ -1,7 +1,9 @@
 project.snapshot() #1
 GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Ghost"
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-Arrangement "Ghost" names regions this project does not have:
+"Ghost" uses regions this project doesn't have:
 
   Zulu
+
+Restore them in REAPER, or remove them from "Ghost" on the Arrange page's Edit tab.
 >>

@@ -48,15 +48,6 @@ return {
   },
 }
 >>
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Capture Region Order -- captured "Live"
-Regions read via GetRegionOrMarker (issue #11).
-   1. Alpha
-   2. Bravo
-   3. Charlie
-   4. Delta
-Written to /proj/Bars.arrangements.lua
->>
 file /proj/Bars.arrange.log (a) <<
 [2026-11-07 12:00:00] Capture Region Order -- captured "Live"
 Regions read via GetRegionOrMarker (issue #11).
@@ -68,16 +59,5 @@ Written to /proj/Bars.arrangements.lua
 
 >>
 ShowMessageBox("Capture Region Order", 0) -> 1 <<
-Captured "Live" with 4 regions.
-
-/proj/Bars.arrangements.lua
-
-Next, on the Arrange page's Edit tab (or in a text editor):
-
-  1. Duplicate the ["Live"] = { ... } block and give the copy a different name.
-  2. Reorder the Region Names inside the copy, or delete some to make a subset.
-  3. Set `headroom` on any entry to add or remove seconds at that region's end. It is rounded to the nearest bar, and it is relative -- applying twice moves twice.
-  4. Run 'Check Arrangement' on the new name, then 'Apply Arrangement', then 'Verify Arrangement'.
-
-Editing the copy leaves "Live" intact as a record of the current order.
+Captured "Live" with 4 regions. Next: duplicate it on the Arrange page's Edit tab, reorder the copy, then run "LCRR Arrange: Check Arrangement".
 >>

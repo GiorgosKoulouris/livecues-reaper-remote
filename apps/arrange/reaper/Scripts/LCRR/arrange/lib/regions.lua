@@ -107,20 +107,6 @@ local function has_timesig(marker)
   return (marker.timesig_num or 0) > 0 and (marker.timesig_denom or 0) > 0
 end
 
--- How a refused item's track is named back to the user, who is about to go
--- and find it. `track_index` is 0-based, matching REAPER's own enumeration,
--- but its UI numbers tracks from 1 -- printing the raw index sends the reader
--- one track off, which happened for real against the live project. The name
--- is what actually makes a track findable in a 32-track session; it is
--- advisory only, since REAPER neither requires nor guarantees one.
-local function describe_track(entry)
-  local number = ("track %d"):format(entry.track_index + 1)
-  if entry.track_name and entry.track_name ~= "" then
-    return ("%s %q"):format(number, entry.track_name)
-  end
-  return number
-end
-
 local function by_start_time(a, b)
   return a.start_time < b.start_time
 end
@@ -505,9 +491,13 @@ local function pad_regions(ordered, in_arrangement, tempo)
   for index = 1, #ordered - 1 do
     local this, next_region = ordered[index], ordered[index + 1]
     if bounds[this.name].end_time - next_region.start_time > BOUNDARY_TOLERANCE then
-      return nil, nil, ("Region %q ends at %.3f, past the start of region %q at %.3f. "):format(
-        this.name, bounds[this.name].end_time, next_region.name, next_region.start_time)
-        .. "Repack cannot overlap regions -- separate them and run again."
+      return nil, nil, {
+        reason = "region_overlap",
+        region = this.name,
+        next_region = next_region.name,
+        ends = bounds[this.name].end_time,
+        next_starts = next_region.start_time,
+      }
     end
   end
 
@@ -765,9 +755,8 @@ local function resolve_headroom(snapshot, arrangement, bounds, by_name, tempo)
       if new_end < bound.end_time - BOUNDARY_TOLERANCE then
         local floor = shrink_floor(snapshot, bound, tempo)
         if new_end < floor - BOUNDARY_TOLERANCE then
-          refusals[#refusals + 1] = ("  %q: asked for %+.3fs, but its end cannot come back past "
-            .. "%.3f -- the largest shrink it can take is %.3fs")
-            :format(name, wanted, floor, bound.end_time - floor)
+          refusals[#refusals + 1] = { kind = "shrink_too_far", name = name, requested = wanted,
+            most = bound.end_time - floor }
         end
       end
 
@@ -778,9 +767,7 @@ local function resolve_headroom(snapshot, arrangement, bounds, by_name, tempo)
 
       local bars = bars_moved(tempo, bound.end_time, bound.end_time + moved)
       if not bars then
-        refusals[#refusals + 1] = ("  %q: a Headroom of %+.3fs is more than %d bars from where "
-          .. "the region ends, which is almost certainly a typo")
-          :format(name, wanted, MAX_HEADROOM_BARS)
+        refusals[#refusals + 1] = { kind = "too_large", name = name, requested = wanted }
         bars = 0
       end
 
@@ -801,12 +788,7 @@ local function resolve_headroom(snapshot, arrangement, bounds, by_name, tempo)
   end
 
   if #refusals > 0 then
-    return nil, nil, table.concat({
-      "Repack cannot apply the Headroom this Arrangement asks for:",
-      table.concat(refusals, "\n"),
-      "A shrink may only ever remove silence -- it never cuts into a region's contents, and "
-        .. "never leaves a region shorter than one bar.",
-    }, "\n")
+    return nil, nil, { reason = "headroom", problems = refusals }
   end
 
   return extra, entries
@@ -818,7 +800,7 @@ end
 -- @param snapshot table { regions, markers, items, tempo_markers, envelope_points }
 -- @param arrangement table ordered list of Region Names
 -- @param tempo table oracle with next_bar_at_or_after(time) -> time
--- @return table|nil plan, string|nil error
+-- @return table|nil plan, table|nil refusal { reason, ... } (the front ends word it)
 function regions.plan_pack(snapshot, arrangement, tempo, automation)
   local by_name = {}
   for _, region in ipairs(snapshot.regions) do
@@ -828,7 +810,7 @@ function regions.plan_pack(snapshot, arrangement, tempo, automation)
   local in_arrangement = {}
   for _, name in ipairs(arrangement) do
     if not by_name[name] then
-      return nil, ("Arrangement names region %q, which this project does not have."):format(name)
+      return nil, { reason = "region_missing", name = name }
     end
     in_arrangement[name] = true
   end
@@ -1406,21 +1388,12 @@ function regions.plan_pack(snapshot, arrangement, tempo, automation)
     end
   end
 
-  if #straddling > 0 or #unsafe > 0 then
-    local lines = {}
-    for _, s in ipairs(straddling) do
-      lines[#lines + 1] = ("  %s, %.3fs: still crosses a boundary of region %q after cutting -- "
-        .. "this is a bug in the planner, not something to fix in the project")
-        :format(describe_track(s), s.position, s.region_name)
-    end
-    for _, u in ipairs(unsafe) do
-      lines[#lines + 1] = ("  %s, %.3fs: timebase is not confirmed safe to reposition (region %q)")
-        :format(describe_track(u), u.position, u.region_name)
-    end
-    return nil, table.concat({
-      "Repack cannot move every item this Arrangement's regions carry:",
-      table.concat(lines, "\n"),
-    }, "\n")
+  -- A straddling piece is a planner bug, not something to fix in the project;
+  -- it is told apart from an unsafe timebase so the screen can say which.
+  if #unsafe > 0 then
+    return nil, { reason = "items_unsafe", items = unsafe }
+  elseif #straddling > 0 then
+    return nil, { reason = "planner_bug", items = straddling }
   end
 
   for _, item in ipairs(loose_items) do

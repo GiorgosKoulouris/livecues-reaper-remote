@@ -116,17 +116,17 @@ function edit.run(given, request)
   end
 
   local project_path = env.project_path()
-  local saved, saved_err = validate.project_saved(project_path)
+  local saved = validate.project_saved(project_path)
   if not saved then
-    return env_lib.refused({ code = "project_unsaved", message = saved_err })
+    return env_lib.refused({ code = "project_unsaved" })
   end
   if request.project_path ~= project_path then
     return env_lib.refused({ code = "other_project" })
   end
 
-  local path, path_err = sidecar.path_for(project_path)
+  local path = sidecar.path_for(project_path)
   if not path then
-    return env_lib.refused({ code = "project_unsaved", message = path_err })
+    return env_lib.refused({ code = "project_unsaved" })
   end
 
   local source = env.read(path)

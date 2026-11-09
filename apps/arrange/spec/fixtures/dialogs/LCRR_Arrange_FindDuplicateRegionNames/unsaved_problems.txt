@@ -1,12 +1,4 @@
 project.snapshot() #1
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Find Duplicate Region Names
-Regions read via EnumProjectMarkers3 (issue #11).
-2 problem(s) across 3 regions:
-  "A" is used by 2 regions (Region Numbers 1, 2)
-  1 region(s) have no name (Region Numbers 3)
-Rename them so every region has a unique, non-empty name.
->>
 ShowMessageBox("Find Duplicate Region Names", 0) -> 1 <<
 2 problem(s) found across 3 regions:
 

@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Verify Arrangement", 0) -> 1 <<
-This project has no Arrangements to verify against. Capture one first.
+This project has no Arrangements yet. Capture one first.
 >>

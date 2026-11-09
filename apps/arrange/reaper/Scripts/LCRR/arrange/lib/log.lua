@@ -1,8 +1,9 @@
 -- Run logging.
 --
--- Per CLAUDE.md, plan output goes to ShowConsoleMsg *and* appends to a log
--- beside the .RPP. Aborts and precondition failures do not come through here --
--- those use ShowMessageBox, because they must be seen.
+-- A run's detail is appended to a log beside the .RPP and never shown: the
+-- console is not opened (the screens are short, the run log holds the detail).
+-- Aborts and precondition failures do not come through here -- those use
+-- ShowMessageBox, because they must be seen.
 --
 -- Because a plan is a value (ADR-0001), logging what a script did is free, so
 -- every script does it. The log is the audit trail that makes running without a
@@ -59,7 +60,7 @@ function Logger:text()
   return table.concat(self.lines, "\n") .. "\n"
 end
 
---- Emit the body to the console and append it to the log file.
+--- Append the body to the log file.
 -- Does nothing at all when nothing was logged, so an empty plan leaves no
 -- trace, matching the undo convention.
 -- @return boolean whether the log file was written
@@ -69,7 +70,6 @@ function Logger:write()
   end
 
   local body = self:text()
-  self.api.ShowConsoleMsg(body)
 
   local path = log.path_for(self.project_path)
   if not path then
@@ -77,7 +77,7 @@ function Logger:write()
   end
 
   -- A log that cannot be written must not fail a run whose edits already
-  -- succeeded -- the console copy has already gone out.
+  -- succeeded.
   local handle = self.open(path, "a")
   if not handle then
     return false

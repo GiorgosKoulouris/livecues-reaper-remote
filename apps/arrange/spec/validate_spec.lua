@@ -12,15 +12,11 @@ describe("validate.project_saved", function()
 
   -- An unsaved project has nowhere to put a sidecar or a log (ADR-0003).
   it("rejects an unsaved project", function()
-    local ok, err = validate.project_saved("")
-    assert.is_false(ok)
-    assert.is_truthy(err)
+    assert.is_false(validate.project_saved(""))
   end)
 
   it("rejects a nil path", function()
-    local ok, err = validate.project_saved(nil)
-    assert.is_false(ok)
-    assert.is_truthy(err)
+    assert.is_false(validate.project_saved(nil))
   end)
 end)
 
@@ -259,11 +255,7 @@ describe("validate.tempo_env_is_time_based", function()
   -- 1 = Beats, 0 = Time. Read off a real project paired with its Project
   -- Settings dialog; secondary sources state this mapping backwards.
   it("refuses a project whose tempo envelope is on a Beats timebase", function()
-    local ok, err = validate.tempo_env_is_time_based("  TIMELOCKMODE 0\n  TEMPOENVLOCKMODE 1\n")
-
-    assert.is_false(ok)
-    assert.is_truthy(err:find("Beats timebase", 1, true))
-    assert.is_truthy(err:find("Timebase for tempo/time signature env", 1, true))
+    assert.is_false(validate.tempo_env_is_time_based("  TIMELOCKMODE 0\n  TEMPOENVLOCKMODE 1\n"))
   end)
 
   it("accepts a project whose tempo envelope is on a Time timebase", function()

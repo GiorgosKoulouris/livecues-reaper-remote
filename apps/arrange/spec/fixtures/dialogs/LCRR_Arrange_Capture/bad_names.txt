@@ -1,9 +1,9 @@
 project.snapshot() #1
 ShowMessageBox("Capture Region Order", 0) -> 1 <<
-Cannot capture an Arrangement until every region has a unique, non-empty name:
+Every region needs its own name:
 
   "A" is used by 2 regions (Region Numbers 1, 2)
   1 region(s) have no name (Region Numbers 3)
 
-Run 'Find duplicate or unnamed regions' for the full list.
+Rename these in REAPER, then try again.
 >>

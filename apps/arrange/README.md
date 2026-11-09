@@ -70,7 +70,7 @@ REAPER's `Scripts` folder by hand.
 > to itself. Moving either breaks every action with a `module 'lib.project' not
 > found` error.
 
-**The web page.** `lcrr-arrange.html` (the Arrange button on the home page) runs the same actions from a browser. It talks to a background script, `LCRR_Arrange_Bridge.lua`, which `install.ps1` starts with REAPER through one marked line in `Scripts\__startup.lua` (restart REAPER after the first install, or run the action once by hand). The page says "Bridge not running" until it is. Nothing the page does opens a dialog or the console window on the host; the run log beside the project is written as usual. While an Apply runs, REAPER's web interface does not answer, so the page shows "Applying…". See [docs/bridge.md](docs/bridge.md).
+**The web page.** `lcrr-arrange.html` (the Arrange button on the home page) runs the same actions from a browser. It talks to a background script, `LCRR_Arrange_Bridge.lua`, which `install.ps1` starts with REAPER through one marked line in `Scripts\__startup.lua` (restart REAPER after the first install, or run the action once by hand). The page says "Arrange not running" until it is. Nothing the page does opens a dialog or the console window on the host, and neither do Check, Apply, Capture or Verify run from the Action list: they show a short message box and write the detail to the run log beside the project. Only Show bar lines and Show track timebase use the console, because their output is a list. While an Apply runs, REAPER's web interface does not answer, so the page shows "Applying…". See [docs/bridge.md](docs/bridge.md).
 
 **2. Register the actions in REAPER.**
 

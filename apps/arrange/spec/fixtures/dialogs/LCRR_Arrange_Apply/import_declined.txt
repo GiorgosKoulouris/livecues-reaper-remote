@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Apply Arrangement", 4) -> 7 <<
-This project has no Arrangement sidecar yet. Import one from another file?
+This project has no Arrangements yet. Import an Arrangement file?
 >>

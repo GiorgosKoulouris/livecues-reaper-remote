@@ -1,21 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Verify Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Packed"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Verify Arrangement -- "Packed"
-Verify Arrangement -- "Packed"
-regions read via EnumProjectMarkers3
-
-PASS -- the timeline matches this Arrangement:
-  - the named regions are in Arrangement order
-  - the Packed Block is contiguous, from the start of the timeline
-  - every packed region start lands on a bar line
-  - every omitted region sits beyond the Packed Block
-
-WHAT THIS CHECK CANNOT SEE
-  - Whether a Headroom was applied once or twice. Headroom describes a change to a region's end rather than a target length, so nothing in the finished timeline records how many times it was applied. Apply's confirmation prompt is the only guard against that.
-
-Nothing has been changed -- this action only reads.
->>
 file /proj/Packed.arrange.log (a) <<
 [2026-11-07 12:00:00] Verify Arrangement -- "Packed"
 Verify Arrangement -- "Packed"
@@ -34,9 +18,5 @@ Nothing has been changed -- this action only reads.
 
 >>
 ShowMessageBox("Verify Arrangement", 0) -> 1 <<
-PASS -- the timeline matches "Packed".
-
-The named regions are in order and contiguous from the start of the timeline, every packed region start is on a bar line, and every omitted region sits beyond the Packed Block.
-
-Nothing has been changed.
+The timeline matches "Packed".
 >>

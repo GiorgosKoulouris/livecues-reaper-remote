@@ -1,18 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Verify Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Swapped"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Verify Arrangement -- "Swapped"
-Verify Arrangement -- "Swapped"
-regions read via EnumProjectMarkers3
-
-FAIL -- 1 problem(s):
-  [order_mismatch] Region "A" starts at 0.000, before "B" at 8.000, but the Arrangement puts it after.
-
-WHAT THIS CHECK CANNOT SEE
-  - Whether a Headroom was applied once or twice. Headroom describes a change to a region's end rather than a target length, so nothing in the finished timeline records how many times it was applied. Apply's confirmation prompt is the only guard against that.
-
-Nothing has been changed -- this action only reads.
->>
 file /proj/Packed.arrange.log (a) <<
 [2026-11-07 12:00:00] Verify Arrangement -- "Swapped"
 Verify Arrangement -- "Swapped"
@@ -28,7 +15,9 @@ Nothing has been changed -- this action only reads.
 
 >>
 ShowMessageBox("Verify Arrangement", 0) -> 1 <<
-FAIL -- the timeline does not match "Swapped". 1 problem(s) found; each one is listed in the console and in the log beside the project.
+The timeline doesn't match "Swapped".
 
-Nothing has been changed.
+- "A" is before "B"
+
+Apply "Swapped" again to fix this.
 >>

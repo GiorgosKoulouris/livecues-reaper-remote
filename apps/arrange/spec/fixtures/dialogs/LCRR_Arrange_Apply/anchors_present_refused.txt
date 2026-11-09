@@ -1,20 +1,16 @@
 project.snapshot() #1
 GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Shrink"
 ShowMessageBox("Apply Arrangement", 3) -> 6 <<
-This Arrangement adjusts the Headroom of 1 region(s):
+Apply Headroom to 1 region?
 
-  B: -8.000s
+  B: -8.0 s
 
-Headroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot.
+Each Apply moves these region ends again.
 
-Each end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.
-
-Yes    -- repack, and apply the Headroom above.
-No     -- repack only, treating every Headroom as zero.
-Cancel -- do nothing. Nothing has been written yet.
+Yes - apply with Headroom
+No - apply without Headroom
+Cancel - do nothing
 >>
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-Repack cannot apply the Headroom this Arrangement asks for:
-  "B": asked for -8.000s, but its end cannot come back past 10.000 -- the largest shrink it can take is 6.000s
-A shrink may only ever remove silence -- it never cuts into a region's contents, and never leaves a region shorter than one bar.
+"B" can't shrink by 8.0 s. The most it can lose without cutting into its content is 6.0 s. Lower its Headroom on the Arrange page's Edit tab, then try again.
 >>

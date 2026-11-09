@@ -2,6 +2,8 @@
 -- run-log entries for New, Duplicate, Rename and Delete, and a plain sentence
 -- for each refusal. Pure: no `reaper.*`.
 
+local refusals = require("lib.text.refusals")
+
 local text = {}
 
 text.TITLE = "Edit Arrangements"
@@ -45,11 +47,8 @@ function text.log_lines(result)
   return lines
 end
 
-local ERRORS = {
-  project_unsaved = "This project has never been saved, so there is nowhere to keep Arrangements.",
-  other_project = "A different project is active now. Reload before editing.",
-  sidecar_changed = "The Arrangement file changed since it was read. Reload and redo the edit.",
-  sidecar_invalid = "The Arrangement file could not be read, so it will not be changed.",
+-- Plain field checks keep their short text.
+local FIELD_CHECKS = {
   name_empty = "An Arrangement needs a name.",
   name_taken = "An Arrangement with that name already exists.",
   arrangement_not_found = "There is no Arrangement with that name.",
@@ -58,14 +57,11 @@ local ERRORS = {
   region_not_in_arrangement = "That region is not in the Arrangement.",
   slot_invalid = "That position is outside the Arrangement.",
   headroom_invalid = "Headroom must be a finite number of seconds.",
-  operation_unknown = "Unknown edit.",
-  would_be_invalid = "That edit would produce a file that cannot be read, so nothing was written.",
-  save_failed = "The Arrangement file could not be written.",
 }
 
 --- A refusal, worded.
 function text.error(err)
-  return ERRORS[err.code] or err.code
+  return FIELD_CHECKS[err.code] or refusals.error(err) or err.code
 end
 
 return text

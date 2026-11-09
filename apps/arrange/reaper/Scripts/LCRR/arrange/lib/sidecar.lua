@@ -110,7 +110,7 @@ end
 
 local function validate(arrangements)
   if type(arrangements) ~= "table" then
-    return nil, ("sidecar must return a table, got %s"):format(type(arrangements))
+    return nil, ("it must return a table, got %s"):format(type(arrangements))
   end
 
   local normalised = {}
@@ -154,19 +154,19 @@ end
 -- @return table|nil arrangements keyed by name, or nil plus an error message
 function sidecar.parse(source)
   if type(source) ~= "string" then
-    return nil, ("sidecar source must be a string, got %s"):format(type(source))
+    return nil, ("its contents must be a string, got %s"):format(type(source))
   end
 
   -- Mode "t" refuses precompiled chunks; the empty environment means a stray
   -- `os.time()` is a caught error rather than a call into the host.
   local chunk, load_err = load(source, "@arrangements", "t", {})
   if not chunk then
-    return nil, ("sidecar is not valid Lua: %s"):format(load_err)
+    return nil, ("it is not valid Lua (%s)"):format(load_err)
   end
 
   local ok, result = pcall(chunk)
   if not ok then
-    return nil, ("sidecar failed to run: %s"):format(result)
+    return nil, ("it failed to run (%s)"):format(result)
   end
 
   return validate(result)
@@ -317,7 +317,7 @@ function sidecar.save(project_path, arrangements, open)
 
   local handle, open_err = (open or io.open)(path, "w")
   if not handle then
-    return nil, ("could not write %s: %s"):format(path, open_err or "unknown error")
+    return nil, open_err or ("could not write " .. path)
   end
 
   handle:write(sidecar.serialize(arrangements))

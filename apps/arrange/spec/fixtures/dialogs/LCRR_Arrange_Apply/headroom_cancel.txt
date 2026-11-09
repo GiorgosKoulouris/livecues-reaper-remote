@@ -1,15 +1,13 @@
 project.snapshot() #1
 GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Headroom"
 ShowMessageBox("Apply Arrangement", 3) -> 2 <<
-This Arrangement adjusts the Headroom of 1 region(s):
+Apply Headroom to 1 region?
 
-  Bravo: +4.000s
+  Bravo: +4.0 s
 
-Headroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot.
+Each Apply moves these region ends again.
 
-Each end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.
-
-Yes    -- repack, and apply the Headroom above.
-No     -- repack only, treating every Headroom as zero.
-Cancel -- do nothing. Nothing has been written yet.
+Yes - apply with Headroom
+No - apply without Headroom
+Cancel - do nothing
 >>

@@ -42,11 +42,9 @@ apply.anchors {
 project.snapshot() #2
 Undo_EndBlock("Apply Arrangement", -1)
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-Writing the Tempo Anchors moved media items, so this run has been stopped before it planned anything against the moved timeline.
+Apply stopped because these items moved with the tempo:
 
-Beat-attached material follows a tempo-map edit, and these items followed one:
+  track 1 at 11.0 s
 
-  track 1 "Gtr": beat-attached item at 11.000 followed the tempo-map edit to 11.500
-
-1 Tempo Anchor(s) were written before this was detected, and nothing else was. They are one undo step -- Undo removes them.
+Press Ctrl+Z in REAPER, set those tracks' timebase to Time, then try again.
 >>

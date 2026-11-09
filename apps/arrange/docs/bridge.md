@@ -46,7 +46,7 @@ and ignores the same raw value until the page writes a different one.
 
 `project` is the active project when the bridge answered (`""` and `""` when it has never been saved), and the page shows it. `status` is a core's: `ok`, `refused` (with `error: { code, ... }`), `confirm` or `cancelled`. Replies are codes and fields; the wording is the page's. REAPER escapes `\t`, `\n` and `\\` in the stored value, and the page unescapes them before reading the JSON.
 
-Problems with the request itself are refusals: `bad_request`, `request_truncated` (with `declared` and `received`), `unknown_command`, `missing_field` (with `field`), `internal` (with `message`: a bug, or REAPER refusing a call).
+Problems with the request itself are refusals: `bad_request`, `request_truncated` (with `declared` and `received`), `unknown_command`, `missing_field` (with `field`), `internal` (with `message`: a bug, or REAPER refusing a call; the page does not show the message, only the plain "Apply stopped partway" text, and the run log has the detail).
 
 ## Commands
 
@@ -61,7 +61,7 @@ Problems with the request itself are refusals: `bad_request`, `request_truncated
 | `capture` | `name`, `replace=1`, `rewrite=1` | Capture | `name`, `replaced`, `regions`, `path`. Without `replace=1` an existing name answers `confirm` (`confirm: { code: "replace", name }`) and writes nothing. Without `rewrite=1`, a sidecar that is not canonical (differs from what `serialize` would write for it: comments, hand formatting, bare strings) answers `confirm: { code: "rewrite" }` and writes nothing. One question is asked per reply, `replace` first; the page repeats the request with every Yes so far |
 | `verify` | `name` | Verify | `verdict` (`pass`, `fail`), `findings`, `blind_spots`, `region_reader` |
 | `check` | `name` | Check | as Verify, plus `padding_exact`, and **`token` when the verdict is `will proceed`** |
-| `apply` | `token`, `headroom` | Apply | `name`, `noop`, `counts`, `anchors`, `places`, `headroom`, `pads`, `parked`, `dropped` |
+| `apply` | `token`, `headroom` | Apply | `name`, `noop`, `counts`, `anchors`, `places`, `headroom`, `pads`, `parked` (`regions`, `names`, `other`, `delta`), `dropped` |
 
 ### Edits
 
@@ -115,7 +115,17 @@ Apply re-reads the sidecar and compares. Edits to other Arrangements don't
 matter; a rename does (the old name is gone). It refuses with:
 
 - `token_unknown`: never issued, already used (a double tap), forgotten (the last 16 are kept), or issued before the bridge restarted.
-- `token_stale`, with `reason: "other_project"` (another project tab is active) or `"project_changed"` (the project's state-change count differs) or `"arrangement_changed"` (the checked Arrangement's entries or Headroom differ, or it no longer exists, e.g. edited on the page or in a text editor). Check again.
+- `token_stale`, with `reason: "other_project"` (another project tab is active) or `"project_changed"` (the project's state-change count differs) or `"arrangement_changed"` (with `name`; the checked Arrangement's entries or Headroom differ, or it no longer exists, e.g. edited on the page or in a text editor). Check again.
+
+## Refusals carry codes and fields, never prose
+
+A refusal or Check finding never carries a sentence; `lib/text` and `words.js` word it. Beyond the fields above:
+
+- `project_unsaved` and `tempo_env_beats` have no fields.
+- `plan_refused` (an Apply refusal, or a Check finding with the same fields) has a `reason`: `region_overlap` (`region`, `next_region`, `ends`, `next_starts`), `region_missing` (`name`), `headroom` (`problems`: a list of `{ kind: "shrink_too_far", name, requested, most }` or `{ kind: "too_large", name, requested }`), `items_unsafe` (`items`: `{ track_index, track_name, position, region_name }`, track 0-based) or `planner_bug` (`items`; a bug, not the project's fault).
+- `plan_out_of_scope` (`name`, `needs`) cannot be reached today: no plan category is blocked (`validate.PLAN_CATEGORIES` is empty). It is worded in case one is added.
+- `anchors_written` (a count) rides along on any refusal that came after the Tempo Anchors were written.
+- The `arrangement_missing_regions` finding carries `name` as well as `missing`.
 
 A Check of an Arrangement with no entries refuses with the finding `arrangement_empty` and issues no token.
 
@@ -123,10 +133,9 @@ A token is spent by any final answer from Apply: success, refusal, `cancelled`. 
 
 ## No dialog, no console on the host
 
-The cores never open a dialog. The run log writes to REAPER's console as well as
-to the file beside the project, which would open the console window on the host,
-so the bridge hands the cores an `api` whose `ShowConsoleMsg` does nothing. The
-log file is written as usual: for Dropped Material it is the only record.
+The cores never open a dialog, and the run log writes only to the file beside
+the project, never to REAPER's console (so nothing the bridge runs can open the
+console window on the host). For Dropped Material that file is the only record.
 
 ## Starting it
 

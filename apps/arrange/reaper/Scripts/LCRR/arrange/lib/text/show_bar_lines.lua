@@ -12,13 +12,8 @@ function text.render(result)
     out[#out + 1] = value .. "\n"
   end
 
-  line(("regions read via %s"):format(result.region_reader))
-  line(("TimeMap2_timeToBeats(0, 0.0) reports measure index %s -- so REAPER "
-    .. "numbers measures from this (research/reaper-scripting.md §4.5)"):format(
-    tostring(result.origin_measure)))
   line(("tempo at 0.0: %g bpm, %d/%d"):format(result.origin.bpm, result.origin.num,
     result.origin.denom))
-  line(("pad threshold: %g s (lib/regions.lua's BOUNDARY_TOLERANCE)"):format(result.pad_threshold))
   line("")
 
   for _, row in ipairs(result.regions) do
@@ -35,7 +30,6 @@ function text.render(result)
   line("")
   line(("%d of %d region(s) would be padded, adding %.6fs of silence in total."):format(
     result.padded, #result.regions, result.total_pad))
-  line("Nothing has been changed -- this action only reads.")
 
   return table.concat(out)
 end
@@ -43,7 +37,7 @@ end
 --- The dialog shown after the report.
 function text.summary(result)
   return ("%d of %d region(s) would be padded, adding %.3fs of silence.\n\n"
-    .. "The per-region detail is in the console. Nothing has been changed."):format(
+    .. "The per-region detail is in the console."):format(
     result.padded, #result.regions, result.total_pad)
 end
 

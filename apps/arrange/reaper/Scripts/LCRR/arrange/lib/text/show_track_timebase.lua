@@ -17,7 +17,7 @@ local TIMEBASE = {
 
 --- The report, for the console.
 function text.render(result)
-  local lines = { ("%s -- Lua %s, %d tracks\n"):format(text.TITLE, result.lua_version, #result.tracks) }
+  local lines = { ("%s -- %d tracks\n"):format(text.TITLE, #result.tracks) }
 
   for _, track in ipairs(result.tracks) do
     lines[#lines + 1] = ("%3d  %-24s %3d  %s\n")

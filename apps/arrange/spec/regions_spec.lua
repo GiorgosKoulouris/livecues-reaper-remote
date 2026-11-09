@@ -1156,8 +1156,7 @@ describe("regions.plan_pack padding", function()
       { "A", "B" }, grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("A", 1, true))
-    assert.is_truthy(err:find("B", 1, true))
+    assert.are.same({ reason = "region_overlap", region = "A", next_region = "B", ends = 6, next_starts = 5.5 }, err)
   end)
 
   it("refuses when regions already overlap before any padding", function()
@@ -1256,7 +1255,7 @@ describe("regions.plan_pack placement", function()
       snapshot({ regions = { region("A", 0, 6, 1) } }), { "A", "Ghost" }, grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("Ghost", 1, true))
+    assert.are.same({ reason = "region_missing", name = "Ghost" }, err)
   end)
 
   -- Repacking an already-packed project must be a no-op, not a rewrite.
@@ -1764,7 +1763,7 @@ describe("regions.plan_pack item moves", function()
       }), { "A" }, grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("timebase", 1, true))
+    assert.are.equal("items_unsafe", err.reason)
   end)
 
   it("moves a fully-inside item whose timebase is confirmed safe", function()
@@ -1788,8 +1787,8 @@ describe("regions.plan_pack item moves", function()
         items = { item(12, 2, 5, false, "KickDrummer") },
       }), { "A" }, grid)
 
-    assert.is_truthy(err:find('track 6 "KickDrummer"', 1, true))
-    assert.is_falsy(err:find("track 5", 1, true))
+    assert.are.equal(5, err.items[1].track_index)
+    assert.are.equal("KickDrummer", err.items[1].track_name)
   end)
 
   it("names a refused item's track by number alone when it has no name", function()
@@ -1799,7 +1798,7 @@ describe("regions.plan_pack item moves", function()
         items = { item(12, 2, 5, false, "") },
       }), { "A" }, grid)
 
-    assert.is_truthy(err:find("track 6, ", 1, true))
+    assert.are.equal(5, err.items[1].track_index)
   end)
 
   it("reports every unsafe item together, not just the first", function()
@@ -1810,8 +1809,7 @@ describe("regions.plan_pack item moves", function()
       }), { "A" }, grid)
 
     assert.is_nil(plan)
-    local _, occurrences = err:gsub("timebase", "")
-    assert.are.equal(2, occurrences)
+    assert.are.equal(2, #err.items)
   end)
 
   -- Cutting a straddler does not make it safe to reposition: the piece that
@@ -1824,7 +1822,7 @@ describe("regions.plan_pack item moves", function()
       }), { "A" }, grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("timebase", 1, true))
+    assert.are.equal("items_unsafe", err.reason)
   end)
 
   -- Mirrors how a marker inside an omitted region is parked, not dropped
@@ -2016,10 +2014,12 @@ describe("regions.plan_pack Headroom", function()
         snapshot(overrides), arrangement({ "Intro" }, { Intro = -6 }), grid)
 
       assert.is_nil(plan)
-      assert.is_truthy(err:find("Intro", 1, true))
       -- The content ends at 5, so the end may come back no further than the bar
       -- line at 6 -- a shrink of 2 seconds.
-      assert.is_truthy(err:find("2.000s", 1, true))
+      assert.are.equal("headroom", err.reason)
+      assert.are.equal("Intro", err.problems[1].name)
+      assert.are.equal("shrink_too_far", err.problems[1].kind)
+      assert.are.equal(2, err.problems[1].most)
     end)
 
     it(("allows a shrink that stops at the bar line after %s"):format(label), function()
@@ -2046,7 +2046,7 @@ describe("regions.plan_pack Headroom", function()
       arrangement({ "Intro" }, { Intro = -2 }), grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("0.000s", 1, true))
+    assert.are.equal(0, err.problems[1].most)
   end)
 
   -- Shrinking is not a way to remove a region. Dropping it from the Arrangement
@@ -2057,8 +2057,8 @@ describe("regions.plan_pack Headroom", function()
       arrangement({ "Break" }, { Break = -8 }), grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("Break", 1, true))
-    assert.is_truthy(err:find("6.000s", 1, true))
+    assert.are.equal("Break", err.problems[1].name)
+    assert.are.equal(6, err.problems[1].most)
   end)
 
   it("shrinks an empty region down to exactly one bar", function()
@@ -2079,8 +2079,8 @@ describe("regions.plan_pack Headroom", function()
       arrangement({ "Intro", "Maze" }, { Intro = -6, Maze = -6 }), grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("Intro", 1, true))
-    assert.is_truthy(err:find("Maze", 1, true))
+    assert.are.equal("Intro", err.problems[1].name)
+    assert.are.equal("Maze", err.problems[2].name)
   end)
 
   -- A Headroom is added on top of Padding, not instead of it: `0` has to mean
@@ -2106,7 +2106,7 @@ describe("regions.plan_pack Headroom", function()
       arrangement({ "Intro" }, { Intro = 1e9 }), grid)
 
     assert.is_nil(plan)
-    assert.is_truthy(err:find("typo", 1, true))
+    assert.are.equal("too_large", err.problems[1].kind)
   end)
 
   -- An Automation Anchor at a region end sits on the bound the region will

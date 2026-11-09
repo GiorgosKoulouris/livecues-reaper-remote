@@ -66,10 +66,10 @@
     return "ready";
   }
 
-  var CHIP = { connecting: "Connecting…", ready: "Bridge running", offline: "REAPER unreachable", "bridge-down": "Bridge not running" };
+  var CHIP = { connecting: "Connecting…", ready: "Connected", offline: "REAPER unreachable", "bridge-down": "Arrange not running" };
   var BANNER = {
-    offline: "REAPER is unreachable. This page keeps retrying.",
-    "bridge-down": "The Arrange bridge is not running. In REAPER, open Actions › Show action list and run “LCRR Arrange: Bridge” once. If scripts/install.ps1 has been run, restarting REAPER starts it."
+    offline: "Can’t reach REAPER. This page keeps retrying.",
+    "bridge-down": "Arrange isn’t running in REAPER. Open the Actions list and run “LCRR Arrange: Bridge”."
   };
 
   function applyPhase() {
@@ -208,7 +208,7 @@
     var note = "";
     if (v.sidecar === "unsaved") note = words.error({ code: "sidecar_unsaved" });
     else if (v.sidecar === "missing") note = words.error({ code: "sidecar_missing" });
-    else if (v.sidecar === "invalid") note = "The Arrangement sidecar exists but could not be read. Fix it in a text editor on the host.";
+    else if (v.sidecar === "invalid") note = "The Arrangement file exists but could not be read. Fix it in a text editor on the host.";
     else if (!v.arrangements.length) note = words.error({ code: "no_arrangements" });
     els.sidecar.textContent = note;
     els.sidecar.hidden = !note;
@@ -239,37 +239,21 @@
   function fresh(title) { var c = card(title); c.classList.remove("is-problem"); return c; }
   function showRefusal(title, err) { showProblem(title, words.error(err)); }
 
-  function addFindings(parent, findings) {
-    var current = null, group = null;
-    findings.forEach(function (entry) {
-      var sev = entry.severity || "refusal";
-      if (sev !== current) {
-        current = sev;
-        group = h("section", "arrange-group");
-        if (entry.severity) group.appendChild(h("h3", "arrange-group-title", words.severityHeading(sev)));
-        group.setAttribute("data-severity", sev);
-        parent.appendChild(group);
-      }
-      var p = h("p", "arrange-finding");
-      p.appendChild(h("span", "arrange-code", entry.code));
-      p.appendChild(document.createTextNode(words.finding(entry)));
-      group.appendChild(p);
-    });
-  }
-  function addBlindSpots(parent, codes, heading) {
-    parent.appendChild(h("h3", "arrange-group-title", heading));
+  function bullets(parent, list) {
+    if (!list.length) return;
     var ul = h("ul", "arrange-list");
-    codes.forEach(function (c) { ul.appendChild(h("li", "", words.blindSpot(c))); });
+    list.forEach(function (t) { ul.appendChild(h("li", "", t)); });
     parent.appendChild(ul);
   }
 
   function showCheck(reply) {
     var c = fresh("Check: " + reply.name);
-    var proceeds = reply.verdict === "will proceed";
-    c.appendChild(h("p", "arrange-verdict " + (proceeds ? "is-ok" : "is-bad"), words.checkVerdict(reply)));
-    addFindings(c, reply.findings);
-    c.appendChild(h("p", "arrange-text", words.paddingNote(reply.padding_exact)));
-    addBlindSpots(c, reply.blind_spots, "What this check cannot see");
+    var summary = words.checkSummary(reply);
+    c.appendChild(h("p", "arrange-verdict " + (summary.problems.length ? "is-bad" : "is-ok"), summary.headline));
+    paragraphs(c, summary.problems);
+    if (summary.notPlanned) paragraphs(c, [summary.notPlanned]);
+    if (summary.effectsHeading) paragraphs(c, [summary.effectsHeading]);
+    bullets(c, summary.effects);
     if (reply.token) {
       ui.token = reply.token;
       var row = h("div", "arrange-apply-row");
@@ -278,7 +262,7 @@
       apply.id = "arrange-apply";
       apply.addEventListener("click", function () { doApply(null); });
       row.appendChild(apply);
-      row.appendChild(h("span", "arrange-hint", "Changes the project. Undo in REAPER takes it back; the run log is written beside the project."));
+      row.appendChild(h("span", "arrange-hint", "Undo in REAPER takes it back."));
       c.appendChild(row);
     } else {
       ui.token = null;
@@ -288,14 +272,18 @@
 
   function showVerify(reply) {
     var c = fresh("Verify: " + reply.name);
-    c.appendChild(h("p", "arrange-verdict " + (reply.verdict === "pass" ? "is-ok" : "is-bad"), words.verifyVerdict(reply)));
-    addFindings(c, reply.findings);
-    addBlindSpots(c, reply.blind_spots, "What this check cannot see");
+    var summary = words.verifySummary(reply);
+    c.appendChild(h("p", "arrange-verdict " + (summary.pass ? "is-ok" : "is-bad"), summary.headline));
+    bullets(c, summary.lines);
+    if (summary.fix) paragraphs(c, [summary.fix]);
   }
 
   function showApplied(reply, answer) {
     var c = fresh("Applied");
-    paragraphs(c, words.applySummary(reply));
+    var summary = words.applySummary(reply);
+    paragraphs(c, [summary.headline]);
+    bullets(c, summary.effects);
+    if (summary.tail) paragraphs(c, [summary.tail]);
     var offer = E.clearHeadroomOffer(answer, reply);
     if (!offer) return;
     var box = h("div", "arrange-offer");
@@ -406,7 +394,7 @@
       } else if (reply.status === "confirm") {
         var code = reply.confirm.code;
         var isRewrite = code === "rewrite";
-        var q = fresh(isRewrite ? "Rewrite the sidecar?" : "Replace " + reply.confirm.name + "?");
+        var q = fresh(isRewrite ? "Rewrite the Arrangement file?" : "Replace " + reply.confirm.name + "?");
         paragraphs(q, [isRewrite ? words.rewriteQuestion() : words.replaceQuestion(reply.confirm.name)]);
         var row = h("div", "arrange-apply-row");
         var yes = h("button", "arrange-answer arrange-primary", isRewrite ? "Rewrite" : "Replace");
@@ -477,7 +465,6 @@
       c.appendChild(table(["Region", "Start", "End", "Start on a bar line", "Padding"], reply.regions.map(function (r) {
         return [r.name, r.start_time.toFixed(3), r.end_time.toFixed(3), r.on_bar ? "yes" : "a Tempo Anchor will make it so", r.pads ? "+" + r.pad.toFixed(3) + "s" : "none"];
       })));
-      paragraphs(c, ["Nothing has been changed."]);
     });
   }
 

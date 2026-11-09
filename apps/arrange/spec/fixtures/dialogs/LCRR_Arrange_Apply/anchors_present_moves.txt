@@ -1,16 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Swapped"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Apply Arrangement -- "Swapped"
-  regions read via EnumProjectMarkers3
-  tempo anchor (region "A"): 0.000 = 120 bpm 4/4 (already present, rewritten)
-  tempo anchor (region "B"): 8.000 = 120 bpm 4/4 (already present, rewritten)
-  B: 8.000 -> 0.000 (-8.000)
-  A: 0.000 -> 8.000 (+8.000)
-  tempo (region "A"): 0.000 -> 8.000 (+8.000)
-  tempo (region "B"): 8.000 -> 0.000 (-8.000)
-  item (track 1): 2.000 -> 10.000 (+8.000)
->>
 file /proj/Packed.arrange.log (a) <<
 [2026-11-07 12:00:00] Apply Arrangement -- "Swapped"
   regions read via EnumProjectMarkers3
@@ -95,5 +84,8 @@ apply.plan {
 }
 Undo_EndBlock("Apply Arrangement", -1)
 ShowMessageBox("Apply Arrangement", 0) -> 1 <<
-Applied "Swapped": 2 region(s), 0 marker(s), 2 tempo marker(s), 0 envelope point(s) and 1 item(s) moved, 0 cut(s) made.
+Applied "Swapped".
+
+Undo in REAPER takes it back.
+Next: run Verify.
 >>

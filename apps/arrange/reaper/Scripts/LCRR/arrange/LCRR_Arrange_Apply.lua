@@ -133,4 +133,10 @@ local function main()
   return reaper.ShowMessageBox(text.summary(result), TITLE, 0)
 end
 
-main()
+-- An error raised during the run is already in the run log (lib/core/apply.lua
+-- appends it before re-raising), so the screen gets the plain instruction and
+-- not REAPER's own script-error box with the raw message.
+local ok = pcall(main)
+if not ok then
+  reaper.ShowMessageBox(text.failure(), TITLE, 0)
+end

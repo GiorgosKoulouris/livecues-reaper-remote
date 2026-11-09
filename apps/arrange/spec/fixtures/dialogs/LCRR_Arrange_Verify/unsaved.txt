@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Verify Arrangement", 0) -> 1 <<
-This project has never been saved, so it has no Arrangement sidecar to verify against.
+This project hasn't been saved. Save it in REAPER, then try again.
 >>

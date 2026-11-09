@@ -23,137 +23,197 @@
     });
   }
 
+  var EDIT_TAB = "the Edit tab";
+  var NEEDS_UPDATING = "Arrange needs updating. Run the LCRR installer again, then restart REAPER.";
+  var UNSAVED = "This project hasn't been saved. Save it in REAPER, then try again.";
+  var TOO_LONG = "That name is too long. Use a shorter one.";
+
+  function sec(n) { return f(n, 1) + " s"; }
+  function where(i) { return "track " + (i.track_index + 1) + " at " + sec(i.position !== undefined ? i.position : i.from); }
+  function plainList(names) { return names.map(function (n) { return "  " + n; }).join("\n"); }
+
+  // The reasons a plan can be refused, each with its fix.
+  var PLAN_REASONS = {
+    region_overlap: function (e) { return q(e.region) + " ends after " + q(e.next_region) + " starts. Separate them in REAPER so there is a gap, then try again."; },
+    region_missing: function (e) { return q(e.name) + " is in the Arrangement but not in the project. Restore it in REAPER, or remove it from the Arrangement on " + EDIT_TAB + "."; },
+    headroom: function (e) {
+      return lines(e.problems, function (p) {
+        return p.kind === "shrink_too_far"
+          ? q(p.name) + " can't shrink by " + sec(Math.abs(p.requested)) + ". The most it can lose without cutting into its content is " + sec(p.most) + ". Lower its Headroom on " + EDIT_TAB + ", then try again."
+          : "The Headroom on " + q(p.name) + " is too large. Check the value on " + EDIT_TAB + ".";
+      });
+    },
+    items_unsafe: function (e) {
+      return "Apply can't move some items because their track's timebase isn't Time:\n\n" + plainList(e.items.map(where)) + "\n\nSet those tracks' timebase to Time, then try again.";
+    },
+    planner_bug: function () { return "Apply stopped before changing anything because the plan didn't add up. If it happens again, send the run log beside the project."; }
+  };
+
   // Why something stopped: a refusal's `error`. Bridge codes first, then the cores'.
   var ERRORS = {
-    bad_request: function () { return "The bridge could not read the request. Reload the page; if it keeps happening, the page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
-    request_truncated: function () { return "REAPER cut the request short, so nothing was done. Try a shorter name."; },
-    unknown_command: function (e) { return "The bridge does not know the command " + q(e.command) + ". The page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
-    missing_field: function (e) { return "The request left out " + q(e.field) + "."; },
-    internal: function (e) { return "The bridge failed: " + (e.message || "unknown error") + "\n\nThe run stopped partway: whatever it changed before the failure is one REAPER undo step, and Ctrl+Z in REAPER reverts it. Check the run log beside the project, which says whether the run failed, before trying again."; },
-    token_unknown: function () { return "This Check has expired, or was already used. Check again, then apply."; },
+    bad_request: function () { return NEEDS_UPDATING; },
+    request_truncated: function () { return TOO_LONG; },
+    request_too_long: function () { return TOO_LONG; },
+    unknown_command: function () { return NEEDS_UPDATING; },
+    missing_field: function () { return NEEDS_UPDATING; },
+    operation_unknown: function () { return NEEDS_UPDATING; },
+    internal: function () { return "Apply stopped partway. Press Ctrl+Z in REAPER to undo what it did, then try again. If it happens again, send the run log beside the project."; },
+    token_unknown: function () { return "This Check has expired. Run Check again, then Apply."; },
     token_stale: function (e) {
-      if (e.reason === "other_project") return "A different project is open in REAPER now. Nothing was applied. Check again on the project you want.";
-      if (e.reason === "arrangement_changed") return "This Arrangement was edited since this Check, so what you read is not what would run. Nothing was applied. Check again, then apply.";
-      return "The project changed in REAPER since this Check. Nothing was applied. Check again, then apply.";
+      if (e.reason === "other_project") return "A different project is open in REAPER. Open the right one and run Check again. Nothing was changed.";
+      if (e.reason === "arrangement_changed") return q(e.name) + " was edited since this Check. Run Check again, then Apply. Nothing was changed.";
+      return "The project changed since this Check. Run Check again, then Apply. Nothing was changed.";
     },
-    project_unsaved: function (e) { return e.message; },
-    tempo_env_beats: function (e) { return e.message; },
-    no_regions: function () { return "This project has no regions."; },
-    region_names: function (e) { return "Every region needs a unique, non-empty name:\n\n" + problems(e.problems) + "\n\nFind them with Duplicate and unnamed regions under Diagnostics."; },
-    sidecar_invalid: function (e) { return "The Arrangement sidecar exists but could not be read, so it will not be changed. Fix the file in a text editor:\n\n" + e.error; },
-    sidecar_missing: function () { return "This project has no Arrangement sidecar yet. Capture an Arrangement here, or run LCRR Arrange: Apply Arrangement in REAPER to import one."; },
-    sidecar_unsaved: function () { return "This project has never been saved, so it has no Arrangement sidecar. Save it in REAPER first."; },
+    project_unsaved: function () { return UNSAVED; },
+    sidecar_unsaved: function () { return UNSAVED; },
+    tempo_env_beats: function () { return "The project's tempo timebase is set to Beats. In Project Settings, set \"Timebase for tempo/time signature env\" to Time, save the project, and try again."; },
+    no_regions: function () { return "This project has no regions. Add some in REAPER, then try again."; },
+    no_tracks: function () { return "This project has no tracks."; },
+    region_names: function (e) { return "Every region needs its own name:\n\n" + problems(e.problems) + "\n\nRename these in REAPER, then try again."; },
+    sidecar_invalid: function (e) { return "The Arrangement file can't be read: " + (e.error || "unknown error") + ". Fix it in a text editor, then try again."; },
+    sidecar_missing: function () { return "This project has no Arrangements yet. Capture one, or run \"LCRR Arrange: Apply Arrangement\" in REAPER to import a file."; },
     no_arrangements: function () { return "This project has no Arrangements yet. Capture one first."; },
-    arrangement_unknown: function (e) { return q(e.name) + " is not a known Arrangement. Available: " + (e.available || []).join(", "); },
-    arrangement_missing_regions: function (e) { return "Arrangement " + q(e.name) + " names regions this project does not have:\n\n  " + e.missing.join("\n  "); },
-    plan_refused: function (e) { return e.error; },
-    plan_out_of_scope: function (e) { return "Arrangement " + q(e.name) + " needs more than this can do yet:\n\n" + e.error; },
-    anchors_moved_items: function (e) {
-      return "Writing the Tempo Anchors moved media items, so this run was stopped before it planned anything against the moved timeline.\n\nBeat-attached material follows a tempo-map edit, and these items followed one:\n\n" + problems(e.moved);
+    arrangement_unknown: function (e) { return q(e.name) + " isn't an Arrangement in this project. Choose one of: " + (e.available || []).join(", ") + "."; },
+    arrangement_empty: function (e) { return q(e.name) + " has no regions. Add some on " + EDIT_TAB + "."; },
+    arrangement_missing_regions: function (e) {
+      return q(e.name) + " uses regions this project doesn't have:\n\n" + plainList(e.missing) + "\n\nRestore them in REAPER, or remove them from " + q(e.name) + " on " + EDIT_TAB + ".";
     },
+    plan_refused: function (e) { var one = PLAN_REASONS[e.reason]; return one ? one(e) : NEEDS_UPDATING; },
+    // Not reachable today: no plan category is blocked. Worded in case one is added.
+    plan_out_of_scope: function (e) { return "Arrange can't apply " + q(e.name) + " yet. " + NEEDS_UPDATING; },
+    anchors_moved_items: function (e) {
+      return "Apply stopped because these items moved with the tempo:\n\n" + plainList(e.moved.map(where)) + "\n\nPress Ctrl+Z in REAPER, set those tracks' timebase to Time, then try again.";
+    },
+    import_unreadable: function (e) { return "That file can't be imported: " + (e.error || "unknown error") + ". Choose a different Arrangement file."; },
+    import_invalid: function (e) { return "That file can't be imported: " + (e.error || "unknown error") + ". Choose a different Arrangement file."; },
     name_empty: function () { return "An Arrangement needs a name."; },
     name_taken: function () { return "An Arrangement with that name already exists. Pick another name."; },
-    other_project: function () { return "A different project is active in REAPER now. Nothing was changed. Reload the page's view of the project before editing."; },
-    sidecar_changed: function () { return "The Arrangement file changed since this page read it (in a text editor, or by a Capture). Nothing was changed. The page has reloaded it: redo the edit."; },
-    operation_unknown: function () { return "The bridge does not know that edit. The page and the bridge are different versions: run scripts/install.ps1 and restart REAPER."; },
+    other_project: function () { return "A different project is open in REAPER. Press Refresh, then redo the edit. Nothing was changed."; },
+    sidecar_changed: function () { return "The Arrangement file changed elsewhere and has been reloaded. Redo the edit. Nothing was changed."; },
     arrangement_not_found: function () { return "There is no Arrangement with that name."; },
     region_empty: function () { return "A region needs a name."; },
     region_repeated: function () { return "That region is already in the Arrangement."; },
     region_not_in_arrangement: function () { return "That region is not in the Arrangement."; },
     slot_invalid: function () { return "That position is outside the Arrangement."; },
     headroom_invalid: function () { return "Headroom must be a number of seconds."; },
-    would_be_invalid: function () { return "That edit would produce a file that cannot be read, so nothing was written."; },
-    save_failed: function (e) { return e.error; },
-    no_tracks: function () { return "This project has no tracks."; }
+    would_be_invalid: function () { return "That edit can't be saved. Reload the page and try again. Nothing was changed."; },
+    save_failed: function (e) { return "The Arrangement file couldn't be saved: " + (e.error || "unknown error") + ". Check that the project folder can be written to, then try again."; }
   };
 
   function error(err) {
     var one = ERRORS[err.code];
     var message = one ? one(err) : err.code;
-    if (err.anchors_written) {
-      message += "\n\n" + err.anchors_written + " Tempo Anchor(s) were written before this was detected, and nothing else was. They are one undo step: Undo in REAPER removes them.";
+    // A refusal after the Tempo Anchors were written changed the project. Moved items already say how to undo it.
+    if (err.anchors_written && err.code !== "anchors_moved_items") {
+      message += "\n\nPress Ctrl+Z in REAPER to remove the changes made so far.";
     }
     return message;
   }
 
   // Why a call never got a proper answer. `code` is the client's.
   function failure(code) {
-    if (code === "request_too_long") return "That request is too long to send. Use a shorter name.";
-    if (code === "no_reply") return "REAPER took the request but the bridge did not answer in time. If this was Apply, it may still be running or may have finished: check REAPER and the run log beside the project before doing anything else.";
-    return "REAPER did not take the request. Check the connection and try again.";
+    if (code === "request_too_long") return TOO_LONG;
+    if (code === "no_reply") return "REAPER didn't answer in time. Apply may still be running. Look at the project in REAPER before trying again.";
+    return "Can't reach REAPER. Check the connection and try again.";
   }
 
-  var SEVERITY_HEADING = {
-    refusal: "Would refuse",
-    permanent: "Would happen, and running again will not undo it",
-    informational: "For information"
-  };
-  function severityHeading(s) { return SEVERITY_HEADING[s] || s; }
+  function plural(n, one, many) { return n === 1 ? one : many; }
+  function names(list) { return list.join(", "); }
 
-  var BLIND_SPOTS = {
-    padding_grid: "Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.",
-    anchor_drift: "Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.",
-    padding_overlap: "Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.",
-    headroom_count: "Whether a Headroom was applied once or twice. Headroom describes a change to a region's end rather than a target length, so nothing in the finished timeline records how many times it was applied. Apply's confirmation is the only guard against that."
-  };
-  function blindSpot(code) { return BLIND_SPOTS[code] || code; }
+  // The lasting effects, one line each, for a Check (what will happen) and an Apply (what happened). Only these appear on
+  // screen: Tempo Anchors, automation anchors and move counts are in the run log. Keep in step with lib/text/effects.lua;
+  // the page does not cap its lists.
+  // what: { parked: [names], pads: {count, added}, headroom: [{name, resolved}], dropped: {items, points}, cuts, unsafe: [items] }
+  function effectLines(what, past, exact) {
+    var out = [];
+    if (what.parked && what.parked.length) {
+      out.push((past ? "Moved " : "Move ") + what.parked.length + " left-out " + plural(what.parked.length, "region", "regions") + " after the end of the Arrangement: " + names(what.parked));
+    }
+    if (what.pads && what.pads.count > 0) {
+      var c = what.pads.count, total = f(what.pads.added, 1) + " s";
+      out.push(past
+        ? "Added silence to " + c + " " + plural(c, "region", "regions") + " (" + total + ")"
+        : "Add silence to " + c + " " + plural(c, "region", "regions") + " so they end on a bar line (" + (exact === false ? "about " : "") + total + " in total)");
+    }
+    var changed = [], tooSmall = [];
+    (what.headroom || []).forEach(function (h) {
+      if (h.resolved === 0) tooSmall.push(h.name); else changed.push(h.name + " " + signed(h.resolved, 1) + " s");
+    });
+    if (changed.length) out.push((past ? "Changed" : "Change") + " the end of " + changed.length + " " + plural(changed.length, "region", "regions") + " with Headroom: " + names(changed));
+    if (tooSmall.length) out.push("Headroom on " + names(tooSmall) + " " + (past ? "was" : "is") + " too small to change anything (under half a bar).");
+    var d = what.dropped || { items: 0, points: 0 };
+    if (d.items + d.points > 0) {
+      var parts = [];
+      if (d.items) parts.push(d.items + " " + plural(d.items, "item", "items"));
+      if (d.points) parts.push(d.points + " automation " + plural(d.points, "point", "points"));
+      out.push((past ? "Discarded " : "Discard ") + parts.join(" and ") + " that " + (past ? "were" : "are") + " in no region");
+    }
+    if (what.cuts > 0) out.push("Cut " + what.cuts + " " + plural(what.cuts, "item", "items") + " at region edges");
+    if (what.unsafe && what.unsafe.length) {
+      out.push("Apply will stop if any of these are inside a moved region: " + names(what.unsafe.map(where)) + ". Set those tracks' timebase to Time to avoid this.");
+    }
+    return out;
+  }
 
+  function effectsOfFindings(findings) {
+    var what = {};
+    findings.forEach(function (e) {
+      if (e.code === "parked") what.parked = e.regions;
+      else if (e.code === "padded") what.pads = { count: e.pads.length, added: e.added };
+      else if (e.code === "headroom") what.headroom = e.headroom;
+      else if (e.code === "dropped") what.dropped = { items: e.items.length, points: e.envelope_points.length };
+      else if (e.code === "cut") what.cuts = e.splits.length;
+      else if (e.code === "unsafe_timebase") what.unsafe = e.items;
+    });
+    return what;
+  }
+
+  // What the page shows for a Check: a headline, each refusal with its fix, and one line per effect.
+  // { headline, ready, problems: [text], notPlanned, effectsHeading, effects: [text] }
+  function checkSummary(reply) {
+    var refused = reply.findings.filter(function (e) { return e.severity === "refusal"; });
+    var has = function (code) { return reply.findings.some(function (e) { return e.code === code; }); };
+    var lines = effectLines(effectsOfFindings(reply.findings), false, reply.padding_exact);
+    if (refused.length) {
+      return { headline: q(reply.name) + " can't be applied yet.", ready: false, problems: refused.map(finding), effects: [],
+        notPlanned: has("not_planned") ? "Fix these and run Check again to see what else it would do." : null };
+    }
+    if (has("no_change")) {
+      return { headline: q(reply.name) + " already matches the timeline. Nothing to apply.", ready: false, problems: [], effects: lines, notPlanned: null };
+    }
+    return { headline: "Ready to apply " + q(reply.name) + ".", ready: true, problems: [], effects: lines,
+      effectsHeading: lines.length ? "This will also:" : null, notPlanned: null };
+  }
+
+  // What the page shows for a Verify: { headline, pass, lines, fix }.
+  function verifySummary(reply) {
+    if (reply.verdict === "pass") return { headline: "The timeline matches " + q(reply.name) + ".", pass: true, lines: [], fix: null };
+    var missing = reply.findings.some(function (e) { return e.code === "region_absent"; });
+    return {
+      headline: "The timeline doesn't match " + q(reply.name) + ".", pass: false, lines: reply.findings.map(finding),
+      fix: missing ? "Restore the missing regions in REAPER, or remove them from " + q(reply.name) + " on " + EDIT_TAB + ", then Apply again." : "Apply " + q(reply.name) + " again to fix this."
+    };
+  }
+
+  // One finding as a plain line: refusals, and Verify's problems.
   var FINDINGS = {
-    project_unsaved: function (e) { return e.message; },
-    sidecar_invalid: function (e) { return "The Arrangement sidecar exists but could not be read: " + (e.error || "unknown error"); },
+    project_unsaved: function (e) { return ERRORS.project_unsaved(e); },
+    sidecar_invalid: function (e) { return ERRORS.sidecar_invalid(e); },
     sidecar_missing: function () { return ERRORS.sidecar_missing(); },
-    tempo_env_beats: function (e) { return e.message; },
-    region_names: function (e) { return "Every region needs a unique, non-empty name before an Arrangement can key on it:\n" + problems(e.problems); },
-    arrangement_unknown: function (e) { return q(e.name) + " is not a known Arrangement. Available: " + (e.available || []).join(", "); },
-    arrangement_empty: function (e) { return "Arrangement " + q(e.name) + " has no regions in it. Applying it would park every region, which is never what an Arrangement is for. Add the regions it should play, in order."; },
-    arrangement_missing_regions: function (e) { return "This Arrangement names regions the project does not have:\n  " + e.missing.join("\n  "); },
-    parked: function (e) {
-      return e.regions.length + " region(s) this Arrangement omits will be moved beyond the Packed Block as Parked Material. Nothing is deleted, and the run log records the offset that reverses it:\n  " + e.regions.join("\n  ");
-    },
-    unsafe_timebase: function (e) {
-      return e.items.length + " item(s) sit on a timebase this suite cannot confirm safe to reposition. A run refuses if any of them is inside a region it moves:\n" +
-        lines(e.items, function (i) { return "    " + named(i.track_index, i.track_name) + " at " + f(i.position, 3) + " (" + f(i.length, 3) + "s)"; });
-    },
-    not_planned: function () {
-      return "The problems above stopped this check before it could plan the Repack, so it has NOT reported Padding, Dropped Material, Straddling Item cuts, or whether the pack itself would refuse. Fix them and check again.";
-    },
-    plan_refused: function (e) { return e.error; },
-    headroom: function (e) {
-      return e.headroom.length + " region(s) will have their end moved by HEADROOM. This is relative, not absolute: applying this Arrangement again moves them again, and you will be asked to confirm before it does:\n" +
-        lines(e.headroom, function (r) {
-          return "    " + r.name + ": asked " + signed(r.requested, 3) + "s, resolves to " + signed(r.resolved, 3) + "s (" + (r.bars < 0 ? "-" : "+") + Math.abs(r.bars) + " bar(s)), end " + f(r.from_end, 3) + " -> " + f(r.to_end, 3) +
-            (r.resolved === 0 ? " -- NO CHANGE, the request is under half a bar" : "");
-        });
-    },
-    padded: function (e) {
-      return e.pads.length + " region(s) will be PADDED to the next bar line, adding " + f(e.added, 3) + "s of silence inside their bounds -- permanently, and this does not happen again on a later Repack:\n" +
-        lines(e.pads, function (p) { return "    " + p.name + ": end " + f(p.from_end, 3) + " -> " + f(p.to_end, 3) + " (+" + f(p.added, 3) + "s)"; });
-    },
-    dropped: function (e) {
-      var rows = e.items.map(function (d) {
-        return "    " + named(d.track_index, d.track_name) + ": " + f(d.position, 3) + ".." + f(d.position + d.length, 3) + " (" + f(d.length, 3) + "s)";
-      }).concat(e.envelope_points.map(function (d) {
-        return "    envelope point, " + named(d.track_index, d.track_name) + ", " + q(d.envelope_name) + ": " + f(d.position, 3);
-      }));
-      return e.items.length + " piece(s) of material and " + e.envelope_points.length + " envelope point(s) touch no region and will be DISCARDED. Undo restores them; the run log is the only other record:\n" + rows.join("\n");
-    },
-    cut: function (e) {
-      return e.splits.length + " Straddling Item cut(s) will be made, at region bounds this run moves:\n" +
-        lines(e.splits, function (s) { return "    " + named(s.track_index, s.track_name) + " at " + f(s.position, 3); });
-    },
-    no_change: function () { return "This Arrangement already matches the timeline. Applying it would change nothing."; },
-    moves: function (e) {
-      var c = e.counts;
-      return c.regions + " region(s), " + c.markers + " marker(s), " + c.tempo_markers + " tempo marker(s), " + c.envelope_points + " envelope point(s) and " + c.items + " item(s) will move.";
-    },
+    tempo_env_beats: function (e) { return ERRORS.tempo_env_beats(e); },
+    region_names: function (e) { return ERRORS.region_names(e); },
+    arrangement_unknown: function (e) { return ERRORS.arrangement_unknown(e); },
+    arrangement_empty: function (e) { return ERRORS.arrangement_empty(e); },
+    arrangement_missing_regions: function (e) { return ERRORS.arrangement_missing_regions(e); },
+    plan_refused: function (e) { return ERRORS.plan_refused(e); },
     // Verify
-    region_absent: function (e) { return "Arrangement names region " + q(e.region_name) + ", which this project does not have."; },
-    order_mismatch: function (e) { return "Region " + q(e.region_name) + " starts at " + f(e.at, 3) + ", before " + q(e.after) + " at " + f(e.after_at, 3) + ", but the Arrangement puts it after."; },
-    block_start: function (e) { return "The Packed Block starts at " + f(e.at, 3) + " rather than at the beginning of the timeline."; },
-    gap: function (e) { return "Region " + q(e.region_name) + " starts " + f(e.size, 3) + "s after " + q(e.after) + " ends -- the Packed Block is not contiguous."; },
-    overlap: function (e) { return "Region " + q(e.region_name) + " starts " + f(e.size, 3) + "s before " + q(e.after) + " ends."; },
-    off_bar_line: function (e) { return "Region " + q(e.region_name) + " starts at " + f(e.at, 3) + "; the nearest bar line at or after it is " + f(e.expected, 3) + "."; },
-    not_parked: function (e) { return "Region " + q(e.region_name) + " is not in the Arrangement but starts at " + f(e.at, 3) + ", inside the Packed Block which ends at " + f(e.packed_end, 3) + "."; }
+    region_absent: function (e) { return q(e.region_name) + " is in the Arrangement but not in the project"; },
+    order_mismatch: function (e) { return q(e.region_name) + " is before " + q(e.after); },
+    block_start: function () { return "The first region doesn't start at the beginning of the timeline"; },
+    gap: function (e) { return "There is a gap after " + q(e.after); },
+    overlap: function (e) { return q(e.region_name) + " overlaps " + q(e.after); },
+    off_bar_line: function (e) { return q(e.region_name) + " isn't on a bar line"; },
+    not_parked: function (e) { return q(e.region_name) + " isn't in the Arrangement but is still among its regions"; }
   };
 
   function finding(entry) {
@@ -161,65 +221,24 @@
     return one ? one(entry) : entry.code;
   }
 
-  // Padding's accuracy, stated once for a Check.
-  function paddingNote(exact) {
-    return exact
-      ? "Padding and Headroom above are EXACT: every Tempo Anchor this project needs is already present, so the current bar grid is the one a run would plan against."
-      : "Padding and Headroom above are ESTIMATES: this project still needs Tempo Anchors, and they are what put region starts on bar lines. Both are measured against bar lines, so both move with the grid. Check again after applying to see exact figures.";
-  }
-
-  // One line above a Check's findings.
-  function checkVerdict(reply) {
-    var refusals = 0, permanent = 0;
-    reply.findings.forEach(function (e) { if (e.severity === "refusal") refusals++; else if (e.severity === "permanent") permanent++; });
-    if (refusals > 0) return "Applying " + q(reply.name) + " WOULD REFUSE: " + refusals + " problem(s)" + (permanent ? ", plus " + permanent + " permanent effect(s) to be aware of" : "") + ". Nothing has been changed.";
-    if (permanent > 0) return "Applying " + q(reply.name) + " would proceed, with " + permanent + " permanent effect(s) worth reading first. Nothing has been changed.";
-    return "Applying " + q(reply.name) + " would proceed, with nothing permanent beyond the Repack itself. Nothing has been changed.";
-  }
-
-  function verifyVerdict(reply) {
-    return reply.verdict === "pass"
-      ? "PASS: the timeline matches " + q(reply.name) + ". The named regions are in order and contiguous from the start of the timeline, every packed region start is on a bar line, and every omitted region sits beyond the Packed Block."
-      : "FAIL: the timeline does not match " + q(reply.name) + ". " + reply.findings.length + " problem(s) found.";
-  }
-
   // The Headroom question, before anything is written.
   function headroomQuestion(requests) {
-    return "This Arrangement adjusts the Headroom of " + requests.length + " region(s):\n\n" +
-      lines(requests, function (r) { return "  " + r.name + ": " + signed(r.seconds, 3) + "s"; }) +
-      "\n\nHeadroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot." +
-      "\n\nEach end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.";
+    return "Apply Headroom to " + requests.length + " " + plural(requests.length, "region", "regions") + "?\n\n" +
+      lines(requests, function (r) { return "  " + r.name + ": " + signed(r.seconds, 1) + " s"; }) +
+      "\n\nEach Apply moves these region ends again.";
   }
 
-  // What a finished Apply tells the user: a list of paragraphs.
+  // What a finished Apply tells the user: { headline, effects: [text], tail }.
   function applySummary(r) {
-    if (r.noop) return ["Arrangement " + q(r.name) + " already matches the timeline. Nothing to do."];
-    var c = r.counts, out = [];
-    out.push("Applied " + q(r.name) + ": " + c.regions + " region(s), " + c.markers + " marker(s), " + c.tempo_markers + " tempo marker(s), " + c.envelope_points + " envelope point(s) and " + c.items + " item(s) moved, " + c.cuts + " cut(s) made.");
-    if (r.anchors.changing > 0) {
-      out.push(r.anchors.changing + " Tempo Anchor(s) were written at region starts (" + (r.anchors.total - r.anchors.changing) + " of " + r.anchors.total + " region(s) already had one with the right values), so each region carries its own bar grid regardless of what a Repack puts in front of it.");
-    }
-    if (r.headroom.length) {
-      out.push(r.headroom.length + " region(s) had their end moved by HEADROOM:\n  " + r.headroom.map(function (h) {
-        return h.name + ": " + signed(h.resolved, 3) + "s (" + (h.bars < 0 ? "-" : "+") + Math.abs(h.bars) + " bar(s))" + (h.resolved === 0 ? " -- no change, the request was under half a bar" : "");
-      }).join("\n  ") + "\n\nThis is relative, not absolute: applying this Arrangement again would move them again.");
-    }
-    if (r.pads.length) {
-      var added = r.pads.reduce(function (sum, p) { return sum + p.added; }, 0);
-      out.push(r.pads.length + " region(s) were PADDED to the next bar line, adding " + f(added, 3) + "s of silence inside their bounds -- permanently, and this does not happen again on a later Repack:\n  " +
-        r.pads.map(function (p) { return p.name + " (+" + f(p.added, 3) + "s)"; }).join("\n  "));
-    }
-    if (c.envelope_anchors > 0) {
-      out.push(c.envelope_anchors + " automation anchor(s) were written at region bounds, so each region keeps its own automation values instead of inheriting its new neighbour's. They are listed in the run log.");
-    }
-    if (r.parked.regions + r.parked.other > 0) {
-      out.push(r.parked.regions + " region(s) this Arrangement omits, and " + r.parked.other + " other piece(s) of material, were PARKED " + f(r.parked.delta, 3) + "s later -- beyond the Packed Block, with their internal timing intact. Nothing was deleted; the run log gives the offset, and negating it reverses the parking.");
-    }
-    var discarded = r.dropped.items.length + r.dropped.envelope_points.length;
-    if (discarded > 0) {
-      out.push(r.dropped.items.length + " piece(s) of material and " + r.dropped.envelope_points.length + " envelope point(s) touching no region were DISCARDED. They are listed in the run log beside the project; Undo in REAPER restores them.");
-    }
-    return out;
+    if (r.noop) return { headline: "Arrangement " + q(r.name) + " already matches the timeline. Nothing to do.", effects: [], tail: null };
+    var what = {
+      parked: r.parked.names || [],
+      pads: { count: r.pads.length, added: r.pads.reduce(function (sum, p) { return sum + p.added; }, 0) },
+      headroom: r.headroom,
+      dropped: { items: r.dropped.items.length, points: r.dropped.envelope_points.length },
+      cuts: r.counts.cuts
+    };
+    return { headline: "Applied " + q(r.name) + ".", effects: effectLines(what, true), tail: "Undo in REAPER takes it back.\nNext: run Verify." };
   }
 
   var TIMEBASE = { "-1": "project default", "0": "time", "1": "beats (position, length, rate)?", "2": "beats (position only)" };
@@ -231,7 +250,7 @@
   }
 
   function rewriteQuestion() {
-    return "The Arrangement sidecar has comments or formatting that saving does not keep. Saving rewrites the whole file. Continue?";
+    return "The Arrangement file has comments or formatting that saving does not keep. Saving rewrites the whole file. Continue?";
   }
 
   // The editor's own sentences.
@@ -240,7 +259,7 @@
   }
 
   function deleteQuestion(name, count) {
-    return "Delete the Arrangement " + q(name) + " and its " + count + " region" + (count === 1 ? "" : "s") + "? This cannot be undone from the page. The run log keeps the list of regions, so it could be rebuilt.";
+    return "Delete " + q(name) + " and its " + count + " region" + (count === 1 ? "" : "s") + "? This can\u2019t be undone from the page.";
   }
 
   // Undo (issue 08). `entry` is an inverse from editor.inverseOf.
@@ -284,22 +303,16 @@
   function noSidecarEditNote(sidecar, parseError) {
     if (sidecar === "invalid") return error({ code: "sidecar_invalid", error: parseError || "unknown error" });
     if (sidecar === "unsaved") return error({ code: "sidecar_unsaved" });
-    if (sidecar === "missing") return "This project has no Arrangement sidecar yet. New creates one, or Capture on the Run tab saves the current region order.";
+    if (sidecar === "missing") return "This project has no Arrangements yet. New creates one, or Capture on the Run tab saves the current region order.";
     return "";
   }
 
   function captureSummary(r) {
-    return (r.replaced ? "Replaced " : "Captured ") + q(r.name) + " with " + r.regions.length + " regions.\n\n" +
-      "Next, on the Edit tab:\n" +
-      "  1. Duplicate " + q(r.name) + " and give the copy a different name.\n" +
-      "  2. Reorder the regions in the copy, or remove some to make a subset.\n" +
-      "  3. Set Headroom on any region to add or remove seconds at its end. It is rounded to the nearest bar, and it is relative: applying twice moves twice.\n" +
-      "  4. Come back here: Check the new name, then Apply, then Verify.\n\n" +
-      "Editing the copy leaves " + q(r.name) + " intact as a record of the current order. The file is " + r.path + "; a text editor works too.";
+    return (r.replaced ? "Replaced " : "Captured ") + q(r.name) + " with " + r.regions.length + " region" + (r.regions.length === 1 ? "" : "s") +
+      ". Next: duplicate it on the Edit tab, reorder the copy, then Check.";
   }
 
-  return { error: error, failure: failure, finding: finding, severityHeading: severityHeading, blindSpot: blindSpot,
-    paddingNote: paddingNote, checkVerdict: checkVerdict, verifyVerdict: verifyVerdict, headroomQuestion: headroomQuestion,
+  return { error: error, failure: failure, finding: finding, checkSummary: checkSummary, verifySummary: verifySummary, headroomQuestion: headroomQuestion,
     applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion,
     undoLabel: undoLabel, undoTitle: undoTitle, dragLabel: dragLabel, headroomInputLabel: headroomInputLabel, undone: undone, undoPartial: undoPartial, undoRefused: undoRefused, undoStale: undoStale,
     headroomLabel: headroomLabel, deleteQuestion: deleteQuestion, emptyArrangementNote: emptyArrangementNote,

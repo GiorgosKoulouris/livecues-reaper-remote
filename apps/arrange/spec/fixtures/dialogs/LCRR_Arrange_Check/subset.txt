@@ -1,37 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Check Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Subset"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Check Arrangement -- "Subset"
-Check Arrangement -- "Subset"
-regions read via GetRegionOrMarker
-
-VERDICT: applying this Arrangement would proceed.
-
-WOULD HAPPEN, AND RUNNING AGAIN WILL NOT UNDO IT
-  [parked] 1 region(s) this Arrangement omits will be moved beyond the Packed Block as Parked Material. Nothing is deleted, and the run log records the offset that reverses it:
-  Charlie
-  [padded] 2 region(s) will be PADDED to the next bar line, adding 2.000s of silence inside their bounds -- permanently, and this does not happen again on a later Repack:
-    Bravo: end 21.000 -> 22.000 (+1.000s)
-    Delta: end 53.000 -> 54.000 (+1.000s)
-  [dropped] 2 piece(s) of material and 1 envelope point(s) touch no region and will be DISCARDED. Undo restores them; the run log is the only other record:
-    track 1 Gtr: 11.000..12.000 (1.000s)
-    track 3 Perc: 9.000..10.000 (1.000s)
-    envelope point, track 1 Gtr, "Mute": 9.500
-  [cut] 1 Straddling Item cut(s) will be made, at region bounds this run moves:
-    track 1 Gtr at 12.000
-
-FOR INFORMATION
-  [moves] 2 region(s), 0 marker(s), 2 tempo marker(s), 0 envelope point(s) and 2 item(s) will move.
-
-Padding and Headroom above are ESTIMATES: this project still needs Tempo Anchors, and they are what put region starts on bar lines. Both are measured against bar lines, so both move with the grid. Run this again after applying to see exact figures.
-
-WHAT THIS CHECK CANNOT SEE
-  - Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.
-  - Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.
-  - Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.
-
-Nothing has been changed -- this action only reads.
->>
 file /proj/Bars.arrange.log (a) <<
 [2026-11-07 12:00:00] Check Arrangement -- "Subset"
 Check Arrangement -- "Subset"
@@ -66,7 +34,11 @@ Nothing has been changed -- this action only reads.
 
 >>
 ShowMessageBox("Check Arrangement", 0) -> 1 <<
-Applying "Subset" would proceed, with 4 permanent effect(s) worth reading first (parking, Padding, cuts or discarded material).
+Ready to apply "Subset".
 
-The full report is in the console and in the log beside the project. Nothing has been changed.
+This will also:
+- Move 1 left-out region after the end of the Arrangement: Charlie
+- Add silence to 2 regions so they end on a bar line (about 2.0 s in total)
+- Discard 2 items and 1 automation point that are in no region
+- Cut 1 item at region edges
 >>

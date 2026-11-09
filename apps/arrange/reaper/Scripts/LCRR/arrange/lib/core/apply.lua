@@ -43,24 +43,24 @@ end
 --- Read the project, and refuse on anything wrong with it before an
 --- Arrangement is even chosen.
 -- @return table { status = "ok", available, sidecar_missing, ... } or a
---   refusal with code project_unsaved { message }, tempo_env_beats { message },
+--   refusal with code project_unsaved, tempo_env_beats,
 --   no_regions, region_names { problems }, sidecar_invalid { error } or
 --   no_arrangements
 function apply.prepare(given)
   local env = env_lib.new(given)
   local snapshot = env.snapshot()
 
-  local saved, saved_err = validate.project_saved(snapshot.project_path)
+  local saved = validate.project_saved(snapshot.project_path)
   if not saved then
-    return env_lib.refused({ code = "project_unsaved", message = saved_err })
+    return env_lib.refused({ code = "project_unsaved" })
   end
 
   -- Checked before anything else about the Arrangement, because it is a
   -- property of the project rather than of the plan, and getting it wrong
   -- aborts a run halfway through (lib/validate.lua's own comment).
-  local tempo_ok, tempo_err = validate.tempo_env_is_time_based(env.read(snapshot.project_path))
+  local tempo_ok = validate.tempo_env_is_time_based(env.read(snapshot.project_path))
   if not tempo_ok then
-    return env_lib.refused({ code = "tempo_env_beats", message = tempo_err })
+    return env_lib.refused({ code = "tempo_env_beats" })
   end
 
   if #snapshot.regions == 0 then
@@ -135,8 +135,8 @@ end
 --   { status = "confirm", confirm = { code = "headroom", name, headroom } }
 --   { status = "cancelled" }
 --   a refusal with code sidecar_missing, arrangement_unknown { name, available },
---   arrangement_missing_regions { name, missing }, plan_refused { error },
---   plan_out_of_scope { name, error } or anchors_moved_items { moved }; the
+--   arrangement_missing_regions { name, missing }, plan_refused { reason, ... },
+--   plan_out_of_scope { name, needs } or anchors_moved_items { moved }; the
 --   last three carry anchors_written when phase 1 had already run
 function apply.run(prepared, request)
   local env, snapshot = prepared.env, prepared.snapshot
@@ -282,11 +282,12 @@ function apply.run(prepared, request)
   local function plan_phase_two(current)
     local packed, err = regions.plan_pack(current, arrangement, oracle, automation)
     if not packed then
-      return nil, { code = "plan_refused", error = err }
+      err.code = "plan_refused"
+      return nil, err
     end
-    local scoped_ok, scope_err = validate.plan_is_region_move_only(packed)
+    local scoped_ok, needs = validate.plan_is_region_move_only(packed)
     if not scoped_ok then
-      return nil, { code = "plan_out_of_scope", name = name, error = scope_err }
+      return nil, { code = "plan_out_of_scope", name = name, needs = needs }
     end
     return packed
   end

@@ -25,15 +25,15 @@ capture.DEFAULT_NAME = "Captured"
 
 --- Read the project and its sidecar.
 -- @return table { status = "ok", ... } or a refusal with code
---   project_unsaved { message }, no_regions, region_names { problems } or
+--   project_unsaved, no_regions, region_names { problems } or
 --   sidecar_invalid { error }
 function capture.prepare(given)
   local env = env_lib.new(given)
   local snapshot = env.snapshot()
 
-  local saved, saved_err = validate.project_saved(snapshot.project_path)
+  local saved = validate.project_saved(snapshot.project_path)
   if not saved then
-    return env_lib.refused({ code = "project_unsaved", message = saved_err })
+    return env_lib.refused({ code = "project_unsaved" })
   end
 
   if #snapshot.regions == 0 then

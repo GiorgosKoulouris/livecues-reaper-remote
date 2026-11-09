@@ -125,10 +125,9 @@ function report.check(input)
   -- Ordered cheapest-to-fix first, and *none of these short-circuit*: the point
   -- of a precheck is to save a round trip, so a project with three problems
   -- should be told about three problems rather than sent away to fix one.
-  local saved, saved_err = validate.project_saved(snapshot.project_path)
+  local saved = validate.project_saved(snapshot.project_path)
   if not saved then
-    -- `message` is lib/validate.lua's own explanation, carried whole.
-    add("refusal", "project_unsaved", { message = saved_err })
+    add("refusal", "project_unsaved")
   end
 
   local arrangements = input.arrangements
@@ -140,9 +139,9 @@ function report.check(input)
     end
   end
 
-  local tempo_ok, tempo_err = validate.tempo_env_is_time_based(input.rpp_text)
+  local tempo_ok = validate.tempo_env_is_time_based(input.rpp_text)
   if not tempo_ok then
-    add("refusal", "tempo_env_beats", { message = tempo_err })
+    add("refusal", "tempo_env_beats")
   end
 
   local names_ok, name_problems = validate.region_names(snapshot.regions)
@@ -176,7 +175,7 @@ function report.check(input)
       -- Deliberately distinct from the omission below. A misspelled Region Name
       -- is an error the user wants caught; an absent one is an instruction
       -- (LCRR_Arrange_Apply makes the same distinction).
-      add("refusal", "arrangement_missing_regions", { missing = missing })
+      add("refusal", "arrangement_missing_regions", { name = input.name, missing = missing })
     end
 
     -- `validate.arrangement_is_exhaustive` survives #7 for callers that want to
@@ -234,7 +233,8 @@ function report.check(input)
       -- restated as separate checks on purpose: the planner is the authority on
       -- both, and a copy of its rules here would drift from the rules Apply
       -- actually enforces.
-      add("refusal", "plan_refused", { error = plan_err })
+      plan_err.code = nil
+      add("refusal", "plan_refused", plan_err)
     else
       -- Every category below names its members, not just its count. A count
       -- tells the user something will happen; only the list tells them which

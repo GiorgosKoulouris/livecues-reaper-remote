@@ -19,13 +19,9 @@ local validate = {}
 --- Is the project saved to disk?
 -- Arrangements and logs both live beside the .RPP, so an unsaved project has
 -- nowhere to put them.
--- @return boolean ok, string|nil error message
+-- @return boolean ok
 function validate.project_saved(project_path)
-  if type(project_path) ~= "string" or project_path == "" then
-    return false, "This project has never been saved. Save it first -- Arrangements "
-      .. "and the run log are stored beside the .RPP file."
-  end
-  return true
+  return type(project_path) == "string" and project_path ~= ""
 end
 
 --- Is the tempo/time-signature envelope on a *time* timebase?
@@ -52,7 +48,7 @@ end
 -- change to this setting reads stale -- which refuses a run that would have
 -- worked, never the reverse, and the message says so.
 -- @param rpp_text string contents of the project's .RPP, or nil if unreadable
--- @return boolean ok, string|nil error message
+-- @return boolean ok
 function validate.tempo_env_is_time_based(rpp_text)
   if type(rpp_text) ~= "string" then
     return true -- unreadable: not grounds to block a run this check only advises on
@@ -61,14 +57,7 @@ function validate.tempo_env_is_time_based(rpp_text)
   if mode == nil or tonumber(mode) == 0 then
     return true
   end
-  return false, "This project's tempo/time-signature envelope is on a Beats timebase, and a "
-    .. "Repack cannot move tempo markers reliably while it is.\n\n"
-    .. "Every tempo marker holds its bar position and REAPER works out its time from the "
-    .. "markers before it, so moving one marker silently moves all the later ones -- a real "
-    .. "run drifted by 1.121s and stopped partway through.\n\n"
-    .. "Fix: Project Settings -> \"Timebase for tempo/time signature env\" -> Time. "
-    .. "Save the project, then run this again.\n\n"
-    .. "(This is read from the saved .RPP. If you just changed it, save first.)"
+  return false
 end
 
 -- REAPER's ruler renders a whitespace-only name identically to an empty one,
@@ -225,13 +214,13 @@ local PLAN_CATEGORIES = {}
 -- guard existed in the first place and why any new category added to a plan
 -- needs the same scrutiny before being trusted to this check alone.
 -- @param plan table a plan from lib/regions.lua's plan_pack
--- @return boolean ok, string|nil error message
+-- @return boolean ok, table|nil blocking list of { count, label, needs }
 function validate.plan_is_region_move_only(plan)
   local blocking = {}
   for _, category in ipairs(PLAN_CATEGORIES) do
     local count = #plan[category.field]
     if count > 0 then
-      blocking[#blocking + 1] = ("  %d %s (needs %s)"):format(count, category.label, category.needs)
+      blocking[#blocking + 1] = { count = count, label = category.label, needs = category.needs }
     end
   end
 
@@ -239,11 +228,7 @@ function validate.plan_is_region_move_only(plan)
     return true
   end
 
-  return false, table.concat({
-    "This Arrangement needs work this action cannot do yet:",
-    "",
-    table.concat(blocking, "\n"),
-  }, "\n")
+  return false, blocking
 end
 
 --- Did every media item stay where it was while phase 1 wrote its Tempo

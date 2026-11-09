@@ -1,27 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Check Arrangement", 1, "Arrangement name (Empty):,extrawidth=200", "") -> true, "Empty"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Check Arrangement -- "Empty"
-Check Arrangement -- "Empty"
-regions read via GetRegionOrMarker
-
-VERDICT: applying this Arrangement WOULD REFUSE. Details below.
-
-WOULD REFUSE
-  [arrangement_empty] Arrangement "Empty" has no regions in it. Applying it would park every region, which is never what an Arrangement is for. Add the regions it should play, in order.
-
-FOR INFORMATION
-  [not_planned] The problems above stopped this check before it could plan the Repack, so it has NOT reported Padding, Dropped Material, Straddling Item cuts, or whether the pack itself would refuse. Fix them and run this again.
-
-Padding and Headroom above are ESTIMATES: this project still needs Tempo Anchors, and they are what put region starts on bar lines. Both are measured against bar lines, so both move with the grid. Run this again after applying to see exact figures.
-
-WHAT THIS CHECK CANNOT SEE
-  - Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.
-  - Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.
-  - Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.
-
-Nothing has been changed -- this action only reads.
->>
 file /proj/Bars.arrange.log (a) <<
 [2026-11-07 12:00:00] Check Arrangement -- "Empty"
 Check Arrangement -- "Empty"
@@ -30,7 +8,7 @@ regions read via GetRegionOrMarker
 VERDICT: applying this Arrangement WOULD REFUSE. Details below.
 
 WOULD REFUSE
-  [arrangement_empty] Arrangement "Empty" has no regions in it. Applying it would park every region, which is never what an Arrangement is for. Add the regions it should play, in order.
+  [arrangement_empty] "Empty" has no regions. Add some on the Arrange page's Edit tab.
 
 FOR INFORMATION
   [not_planned] The problems above stopped this check before it could plan the Repack, so it has NOT reported Padding, Dropped Material, Straddling Item cuts, or whether the pack itself would refuse. Fix them and run this again.
@@ -46,7 +24,9 @@ Nothing has been changed -- this action only reads.
 
 >>
 ShowMessageBox("Check Arrangement", 0) -> 1 <<
-Applying "Empty" WOULD REFUSE -- 1 problem(s) found.
+"Empty" can't be applied yet.
 
-The full report is in the console and in the log beside the project. Nothing has been changed.
+"Empty" has no regions. Add some on the Arrange page's Edit tab.
+
+Fix these and run Check again to see what else it would do.
 >>

@@ -1,0 +1,439 @@
+project.snapshot() #1
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Reordered"
+Undo_BeginBlock()
+apply.anchors {
+  [1] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Alpha",
+    time = 0,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [2] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = false,
+    region_name = "Bravo",
+    time = 12,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [3] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Charlie",
+    time = 32,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [4] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Delta",
+    time = 48,
+    timesig_denom = 4,
+    timesig_num = 3,
+  },
+}
+project.snapshot() #2
+file /proj/Bars.arrange.log (a) <<
+[2026-11-07 12:00:00] Apply Arrangement -- "Reordered"
+  regions read via GetRegionOrMarker
+  tempo anchor (region "Alpha"): 0.000 = 120 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Bravo"): 12.000 = 120 bpm 4/4
+  tempo anchor (region "Charlie"): 32.000 = 90 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Delta"): 48.000 = 90 bpm 3/4 (already present, rewritten)
+  PADDED "Bravo": end 21.000 -> 22.000 (+1.000s of silence inside the region)
+  PADDED "Delta": end 53.000 -> 54.000 (+1.000s of silence inside the region)
+  Charlie: 32.000 -> 0.000 (-32.000)
+  Alpha: 0.000 -> 8.000 (+8.000)
+  Delta: 48.000 -> 16.000 (-32.000)
+  Bravo: 12.000 -> 22.000 (+10.000)
+  marker "Alpha": 0.000 -> 8.000 (+8.000)
+  marker "verse": 34.000 -> 2.000 (-32.000)
+  tempo (region "Alpha"): 0.000 -> 8.000 (+8.000)
+  tempo (region "Bravo"): 12.000 -> 22.000 (+10.000)
+  tempo (region "Charlie"): 32.000 -> 0.000 (-32.000)
+  tempo (region "Delta"): 48.000 -> 16.000 (-32.000)
+  envelope (track 1 Gtr, "Mute", region "Alpha"): 1.000 -> 9.000 (+8.000)
+  envelope (track 1 Gtr, "Mute", region "Alpha"): 3.000 -> 11.000 (+8.000)
+  envelope (track 1 Gtr, "Mute", region "Charlie"): 33.000 -> 1.000 (-32.000)
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 0.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 8.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 8.000 = 0.500000
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 16.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 16.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 22.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 22.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 32.000 = 1.000000
+  cut (track 1 Gtr): 12.000 (0.005s fade both edges)
+  cut (track 2 Keys): 32.000 (0.005s fade both edges)
+  cut (track 2 Keys): 40.000 (0.005s fade both edges)
+  DROPPED (track 1 Gtr): 11.000..12.000 (1.000s)
+  DROPPED (track 2 Keys): 30.000..32.000 (2.000s)
+  DROPPED (track 2 Keys): 40.000..42.000 (2.000s)
+  DROPPED (track 3 Perc): 9.000..10.000 (1.000s)
+  DROPPED envelope point (track 1 Gtr, "Mute"): 9.500
+  item (track 1): 2.000 -> 10.000 (+8.000)
+  item (track 1): 12.000 -> 22.000 (+10.000)
+  item (track 2): 32.000 -> 0.000 (-32.000)
+  item (track 3): 49.000 -> 17.000 (-32.000)
+
+>>
+apply.plan {
+  changing_envelope_anchors = 8,
+  cut_fade = 0.005,
+  drops = {
+    [1] = {
+      length = 1,
+      position = 11,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+    [2] = {
+      length = 2,
+      position = 30,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [3] = {
+      length = 2,
+      position = 40,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [4] = {
+      length = 1,
+      position = 9,
+      track_index = 2,
+      track_name = "Perc",
+    },
+  },
+  envelope_anchors = {
+    [1] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 32,
+      redundant = false,
+      region_name = "Charlie",
+      shape = 1,
+      to = 0,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [2] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 40,
+      redundant = false,
+      region_name = "Charlie",
+      shape = 1,
+      to = 8,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [3] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 0,
+      redundant = false,
+      region_name = "Alpha",
+      shape = 1,
+      to = 8,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0.5,
+    },
+    [4] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 8,
+      redundant = false,
+      region_name = "Alpha",
+      shape = 1,
+      to = 16,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [5] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 48,
+      redundant = false,
+      region_name = "Delta",
+      shape = 1,
+      to = 16,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [6] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 54,
+      redundant = false,
+      region_name = "Delta",
+      shape = 1,
+      to = 22,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [7] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 12,
+      redundant = false,
+      region_name = "Bravo",
+      shape = 1,
+      to = 22,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [8] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 22,
+      redundant = false,
+      region_name = "Bravo",
+      shape = 1,
+      to = 32,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+  },
+  envelope_drops = {
+    [1] = {
+      envelope_name = "Mute",
+      position = 9.5,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+  },
+  envelope_moves = {
+    [1] = {
+      delta = 8,
+      envelope_name = "Mute",
+      from = 1,
+      region_name = "Alpha",
+      selected = false,
+      shape = 1,
+      tension = 0,
+      to = 9,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [2] = {
+      delta = 8,
+      envelope_name = "Mute",
+      from = 3,
+      region_name = "Alpha",
+      selected = false,
+      shape = 1,
+      tension = 0,
+      to = 11,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [3] = {
+      delta = -32,
+      envelope_name = "Mute",
+      from = 33,
+      region_name = "Charlie",
+      selected = false,
+      shape = 1,
+      tension = 0,
+      to = 1,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+  },
+  headroom = {},
+  is_empty = false,
+  item_moves = {
+    [1] = {
+      delta = 8,
+      from = 2,
+      length = 2,
+      to = 10,
+      track_index = 0,
+    },
+    [2] = {
+      delta = 10,
+      from = 12,
+      length = 2,
+      to = 22,
+      track_index = 0,
+    },
+    [3] = {
+      delta = -32,
+      from = 32,
+      length = 8,
+      to = 0,
+      track_index = 1,
+    },
+    [4] = {
+      delta = -32,
+      from = 49,
+      length = 2,
+      to = 17,
+      track_index = 2,
+    },
+  },
+  marker_moves = {
+    [1] = {
+      delta = 8,
+      from = 0,
+      name = "Alpha",
+      number = 5,
+      to = 8,
+    },
+    [2] = {
+      delta = -32,
+      from = 34,
+      name = "verse",
+      number = 6,
+      to = 2,
+    },
+  },
+  packed_end = 32,
+  pads = {
+    [1] = {
+      added = 1,
+      from_end = 21,
+      name = "Bravo",
+      number = 2,
+      to_end = 22,
+    },
+    [2] = {
+      added = 1,
+      from_end = 53,
+      name = "Delta",
+      number = 4,
+      to_end = 54,
+    },
+  },
+  park_delta = 0,
+  parks = {},
+  places = {
+    [1] = {
+      delta = -32,
+      from_end = 40,
+      from_start = 32,
+      length = 8,
+      name = "Charlie",
+      number = 3,
+      to_start = 0,
+    },
+    [2] = {
+      delta = 8,
+      from_end = 8,
+      from_start = 0,
+      length = 8,
+      name = "Alpha",
+      number = 1,
+      to_start = 8,
+    },
+    [3] = {
+      delta = -32,
+      from_end = 54,
+      from_start = 48,
+      length = 6,
+      name = "Delta",
+      number = 4,
+      to_start = 16,
+    },
+    [4] = {
+      delta = 10,
+      from_end = 22,
+      from_start = 12,
+      length = 10,
+      name = "Bravo",
+      number = 2,
+      to_start = 22,
+    },
+  },
+  splits = {
+    [1] = {
+      position = 12,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+    [2] = {
+      position = 32,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [3] = {
+      position = 40,
+      track_index = 1,
+      track_name = "Keys",
+    },
+  },
+  tempo_moves = {
+    [1] = {
+      bpm = 120,
+      delta = 8,
+      from = 0,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Alpha",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 8,
+    },
+    [2] = {
+      bpm = 120,
+      delta = 10,
+      from = 12,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Bravo",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 22,
+    },
+    [3] = {
+      bpm = 90,
+      delta = -32,
+      from = 32,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Charlie",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 0,
+    },
+    [4] = {
+      bpm = 90,
+      delta = -32,
+      from = 48,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Delta",
+      timesig_denom = 4,
+      timesig_num = 3,
+      to = 16,
+    },
+  },
+}
+Undo_EndBlock("Apply Arrangement", -1)
+file /proj/Bars.arrange.log (a) <<
+  RUN FAILED: boom at 12.000s -- every step after the failing one was not done, and what came before it was. All of it is one REAPER undo step.
+
+>>
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Apply stopped partway. Press Ctrl+Z in REAPER to undo what it did, then try again. If it happens again, send the run log beside the project.
+>>

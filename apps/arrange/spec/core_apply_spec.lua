@@ -61,7 +61,7 @@ describe("lib/core/apply.lua prepare", function()
 
   it("carries what a refusal's wording needs", function()
     local prepared = apply.prepare((bars({ snapshots = { projects.UNSAVED_BARS } })))
-    assert.is_string(prepared.error.message)
+    assert.is_nil(prepared.error.message)
 
     prepared = apply.prepare((bars({ snapshots = { projects.DUPES }, files = projects.packed_files() })))
     assert.are.equal("duplicate", prepared.error.problems[1].code)
@@ -202,7 +202,6 @@ describe("lib/core/apply.lua run", function()
       assert.are.same({
         "undo begin",
         "apply.anchors",
-        "console",
         "write /proj/Bars.arrange.log",
         "apply.plan",
         "undo end Apply Arrangement",
@@ -232,7 +231,7 @@ describe("lib/core/apply.lua run", function()
       local given, world = bars()
       local result = apply.run(apply.prepare(given), { name = "Reordered" })
 
-      local applied = world.events[5]
+      local applied = world.events[4]
       assert.are.equal("plan", applied.apply)
       assert.are.equal(result.plan, applied.value)
     end)
@@ -263,7 +262,7 @@ describe("lib/core/apply.lua run", function()
       local result = apply.run(apply.prepare(given), { name = "Shrink", headroom = "apply" })
 
       assert.are.equal("plan_refused", result.error.code)
-      assert.is_string(result.error.error)
+      assert.are.equal("headroom", result.error.reason)
       assert.are.equal(1, result.error.anchors_written)
     end)
   end)
@@ -285,7 +284,6 @@ describe("lib/core/apply.lua run", function()
       assert.is_false(result.noop)
       assert.are.equal(1, world.snapshots_taken)
       assert.are.same({
-        "console",
         "write /proj/Packed.arrange.log",
         "undo begin",
         "apply.plan",
@@ -302,9 +300,9 @@ describe("lib/core/apply.lua run", function()
       assert.is_false(ok)
       assert.are.equal("boom at 12.000s", err)
       assert.are.same({
-        "console", "write /proj/Packed.arrange.log",
+        "write /proj/Packed.arrange.log",
         "undo begin", "apply.plan", "undo end Apply Arrangement",
-        "console", "write /proj/Packed.arrange.log",
+        "write /proj/Packed.arrange.log",
       }, world.labels())
       local log = world.files["/proj/Packed.arrange.log"]
       local plan_at = log:find("Apply Arrangement", 1, true)

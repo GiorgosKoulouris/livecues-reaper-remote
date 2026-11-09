@@ -1,4 +1,4 @@
 project.snapshot() #1
 ShowMessageBox("Capture Region Order", 0) -> 1 <<
-This project has never been saved. Save it first -- Arrangements and the run log are stored beside the .RPP file.
+This project hasn't been saved. Save it in REAPER, then try again.
 >>

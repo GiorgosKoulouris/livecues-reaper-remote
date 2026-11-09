@@ -169,6 +169,7 @@ end
 --   automation automation oracle (default: 0.5 everywhere)
 --   files      map path -> content, the file system before the run
 --   unwritable set of paths whose open-for-write fails
+--   applier_fails map applier name -> message: that applier call raises it
 --   answers    { ShowMessageBox = {...}, GetUserInputs = { {ok, text}, ... },
 --                GetUserFileNameForRead = { {ok, path}, ... } }
 --   tracks     list of { name, mode } for the timebase diagnostic
@@ -266,6 +267,10 @@ function harness.run(script, scenario)
       return function(api, value)
         assert(api == reaper, "applier called with something other than the reaper API")
         record(("apply.%s %s"):format(name, dump(value)))
+        local failure = (scenario.applier_fails or {})[name]
+        if failure then
+          error(failure, 0)
+        end
       end
     end,
   })

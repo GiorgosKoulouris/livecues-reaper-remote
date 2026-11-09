@@ -1,5 +1,5 @@
 ShowConsoleMsg <<
-Show Track Timebase -- Lua Lua 5.4, 6 tracks
+Show Track Timebase -- 6 tracks
   1  Gtr                        0  time
   2  Keys                      -1  project default
   3  Perc                       2  beats (position only)

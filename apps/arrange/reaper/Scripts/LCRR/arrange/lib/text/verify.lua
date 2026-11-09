@@ -3,6 +3,8 @@
 --
 -- Pure: no `reaper.*`.
 
+local refusals = require("lib.text.refusals")
+
 local text = {}
 
 text.TITLE = "Verify Arrangement"
@@ -101,43 +103,73 @@ function text.heading(name)
   return ("%s -- %q"):format(text.TITLE, name)
 end
 
---- The dialog shown once the timeline has been verified.
-function text.summary(result)
-  if result.verdict == "pass" then
-    return ("PASS -- the timeline matches %q.\n\nThe named regions are in order and contiguous "
-      .. "from the start of the timeline, every packed region start is on a bar line, and every "
-      .. "omitted region sits beyond the Packed Block.\n\nNothing has been changed."):format(
-      result.name)
-  end
-
-  return ("FAIL -- the timeline does not match %q. %d problem(s) found; each one is listed in "
-    .. "the console and in the log beside the project.\n\nNothing has been changed."):format(
-    result.name, #result.findings)
-end
-
--- Why a verify did not run, worded.
-local ERRORS = {
-  no_regions = function()
-    return "This project has no regions, so there is nothing to verify."
+-- One plain line per problem, for the dialog. FINDINGS above keeps the times
+-- and numbers for the console and the run log.
+local LINES = {
+  region_absent = function(entry)
+    return ("%q is in the Arrangement but not in the project"):format(entry.region_name)
   end,
-  sidecar_invalid = function(err)
-    return ("The Arrangement sidecar exists but could not be read:\n\n%s"):format(err.error)
+  order_mismatch = function(entry)
+    return ("%q is before %q"):format(entry.region_name, entry.after)
   end,
-  sidecar_unsaved = function()
-    return "This project has never been saved, so it has no Arrangement sidecar to verify against."
+  block_start = function()
+    return "The first region doesn't start at the beginning of the timeline"
   end,
-  no_arrangements = function()
-    return "This project has no Arrangements to verify against. Capture one first."
+  gap = function(entry)
+    return ("There is a gap after %q"):format(entry.after)
   end,
-  arrangement_unknown = function(err)
-    return ("%q is not a known Arrangement. Available: %s")
-      :format(err.name, table.concat(err.available, ", "))
+  overlap = function(entry)
+    return ("%q overlaps %q"):format(entry.region_name, entry.after)
+  end,
+  off_bar_line = function(entry)
+    return ("%q isn't on a bar line"):format(entry.region_name)
+  end,
+  not_parked = function(entry)
+    return ("%q isn't in the Arrangement but is still among its regions"):format(entry.region_name)
   end,
 }
 
+--- One problem as a plain line.
+function text.line(entry)
+  local one = LINES[entry.code]
+  return one and one(entry) or entry.code
+end
+
+--- The dialog shown once the timeline has been verified: the result, one line
+--- per problem, and the fix.
+function text.summary(result)
+  if result.verdict == "pass" then
+    return ("The timeline matches %q."):format(result.name)
+  end
+
+  local lines, missing = {}, false
+  for _, entry in ipairs(result.findings) do
+    lines[#lines + 1] = text.line(entry)
+    missing = missing or entry.code == "region_absent"
+  end
+
+  local fix = missing
+    and ("Restore the missing regions in REAPER, or remove them from %q on %s, then Apply again.")
+      :format(result.name, refusals.EDIT_TAB)
+    or ("Apply %q again to fix this."):format(result.name)
+
+  local shown = {}
+  for index = 1, math.min(#lines, refusals.LIMIT) do
+    shown[index] = "- " .. lines[index]
+  end
+  if #lines > refusals.LIMIT then
+    shown[#shown + 1] = ("and %d more (see the run log)"):format(#lines - refusals.LIMIT)
+  end
+
+  return table.concat({
+    ("The timeline doesn't match %q."):format(result.name),
+    table.concat(shown, "\n"),
+    fix,
+  }, "\n\n")
+end
+
 function text.error(err)
-  local format_one = ERRORS[err.code]
-  return format_one and format_one(err) or err.code
+  return refusals.error(err) or err.code
 end
 
 return text

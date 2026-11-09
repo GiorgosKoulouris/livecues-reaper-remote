@@ -1,26 +1,5 @@
 project.snapshot() #1
 GetUserInputs("Check Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Shrink"
-ShowConsoleMsg <<
-[2026-11-07 12:00:00] Check Arrangement -- "Shrink"
-Check Arrangement -- "Shrink"
-regions read via EnumProjectMarkers3
-
-VERDICT: applying this Arrangement WOULD REFUSE. Details below.
-
-WOULD REFUSE
-  [plan_refused] Repack cannot apply the Headroom this Arrangement asks for:
-  "B": asked for -8.000s, but its end cannot come back past 10.000 -- the largest shrink it can take is 6.000s
-A shrink may only ever remove silence -- it never cuts into a region's contents, and never leaves a region shorter than one bar.
-
-Padding and Headroom above are EXACT: every Tempo Anchor this project needs is already present, so the current bar grid is the one a run would plan against.
-
-WHAT THIS CHECK CANNOT SEE
-  - Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.
-  - Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.
-  - Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.
-
-Nothing has been changed -- this action only reads.
->>
 file /proj/Packed.arrange.log (a) <<
 [2026-11-07 12:00:00] Check Arrangement -- "Shrink"
 Check Arrangement -- "Shrink"
@@ -29,9 +8,7 @@ regions read via EnumProjectMarkers3
 VERDICT: applying this Arrangement WOULD REFUSE. Details below.
 
 WOULD REFUSE
-  [plan_refused] Repack cannot apply the Headroom this Arrangement asks for:
-  "B": asked for -8.000s, but its end cannot come back past 10.000 -- the largest shrink it can take is 6.000s
-A shrink may only ever remove silence -- it never cuts into a region's contents, and never leaves a region shorter than one bar.
+  [plan_refused] "B" can't shrink by 8.0 s. The most it can lose without cutting into its content is 6.0 s. Lower its Headroom on the Arrange page's Edit tab, then try again.
 
 Padding and Headroom above are EXACT: every Tempo Anchor this project needs is already present, so the current bar grid is the one a run would plan against.
 
@@ -44,7 +21,7 @@ Nothing has been changed -- this action only reads.
 
 >>
 ShowMessageBox("Check Arrangement", 0) -> 1 <<
-Applying "Shrink" WOULD REFUSE -- 1 problem(s) found.
+"Shrink" can't be applied yet.
 
-The full report is in the console and in the log beside the project. Nothing has been changed.
+"B" can't shrink by 8.0 s. The most it can lose without cutting into its content is 6.0 s. Lower its Headroom on the Arrange page's Edit tab, then try again.
 >>

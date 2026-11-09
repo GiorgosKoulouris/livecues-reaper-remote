@@ -273,7 +273,7 @@ not a worse Repack, it is a silent one.
 
 - A dialog summarising what happened, with Headroom, Padding, anchors, parking
   and discards called out separately from the counts.
-- The full plan to the console, and appended to `<Project>.arrange.log`. Headroom is
+- The full plan appended to `<Project>.arrange.log`. The console is not opened. Headroom is
   logged with the **resolved** seconds and bars beside the request, so the line
   matches the timeline — and it is the only record of why a region is a
   different length than it was recorded at.
