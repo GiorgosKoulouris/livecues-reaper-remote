@@ -1,10 +1,11 @@
 # LiveCues ReaperRemote (LCRR): suite context
 
-A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher) and **Podium** (`lcrr-podium.html`, the stage transport and cue list). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
+A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher), **Podium** (`lcrr-podium.html`, the stage transport and cue list) and **Arrange** (region Repack ReaScript actions; its page comes later). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
 
 ## Terms
 
 - **Slice**: a `www/` folder (`shared/www`, `apps/<app>/www`) holding part of `reaper_www_root` at its deployed paths. The slices are laid over each other at install, release and `npm run serve`.
+- **Reaper slice**: an `apps/<app>/reaper/` folder holding part of REAPER's resource path (only `Scripts/LCRR/<app>/`), laid in by `install.ps1` (suite ADR-0001 amendment).
 - **Entry page**: a top-level `lcrr*.html` file; the only kind REAPER offers as "Default interface".
 - **Shared library**: `lcrr/shared/` (`LCRR.shared.reaper`, `.poll`, `.guard`, `.hold`, plus `tokens.css`, `base.css` and the suite footer).
 
@@ -22,10 +23,13 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 - Seek+play in one request: `SET/POS/<seconds>;1007`. Stop `1016`. Record `1013`.
 - `TRANSPORT\t<playstate>\t<pos_s>...`; playstate is a bitfield (1 play, 2 pause, 4 record).
 - A hung web server never fails a `fetch`, so requests need a timeout (3 s, in the shared poller) for offline states to appear. Offline = 2 consecutive failed polls (`LCRR.shared.guard`).
+- ExtState (verified Nov 2026, REAPER on Windows, Chrome on localhost, plus a phone): `SET/EXTSTATE/<section>/<key>/<encodeURIComponent(value)>` reaches Lua's `GetExtState` byte-exact. `GET/EXTSTATE/<section>/<key>` replies `EXTSTATE\t<section>\t<key>\t<value>`, with `\t`, `\n` and `\\` escaped in the value. A key that was never set replies with an empty value (HTTP 200). Replies of 4 MB work.
+- **Request URLs are silently truncated at ~1026 chars** of path (`/_/` included, measured on the encoded URL), still with HTTP 200.
+- REAPER handles web requests on its **main thread**: while a script blocks it, every request waits (a 3 s Lua block made a `SET` take 3064 ms). Round trips through a defer script take about 94 ms.
 
 ## Still unverified (suite)
 
 - ReaPack: the generated `index.xml` (one `webinterface` package whose `file` attributes keep the `lcrr/...` subfolders), install and update. Generate it with `npm run release -- --base-url ...`; no index is committed yet because no repo URL exists.
-- `scripts/install.ps1` after the restructure (slices, folder symlinks with `-Link`, uninstall removing links without touching their targets): written in the devcontainer, which has no PowerShell.
+- `scripts/install.ps1` after the restructure (slices, folder symlinks with `-Link`, uninstall removing links without touching their targets): written in the devcontainer, which has no PowerShell. The same goes for its reaper-slice part (`-Resource`, `Scripts\LCRR\`), added 2026-11-07.
 - Behaviour with several project tabs open.
 - The home page and the suite footer in a real browser and on a phone: checked only by unit tests, a node sandbox run and asset-resolution checks against `npm run serve`.

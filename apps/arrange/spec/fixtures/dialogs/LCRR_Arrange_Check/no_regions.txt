@@ -1,0 +1,4 @@
+project.snapshot() #1
+ShowMessageBox("Check Arrangement", 0) -> 1 <<
+This project has no regions, so there is no Arrangement to check.
+>>

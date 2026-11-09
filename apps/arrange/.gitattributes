@@ -1,0 +1,2 @@
+# Fixtures are golden records (docs/adr/0005): keep their bytes, line endings included (after.rpp is CRLF).
+spec/fixtures/** -text

@@ -5,7 +5,7 @@
   "description": "LiveCues ReaperRemote (LCRR): remote-control pages for REAPER's web interface",
   "author": "Giorgos Koulouris",
   "scripts": {
-    "test": "node --test \"test/*.test.js\" \"shared/test/*.test.js\" \"apps/*/test/*.test.js\"",
+    "test": "node --test \"test/*.test.js\" \"shared/test/*.test.js\" \"apps/*/test/*.test.js\" && node scripts/lua.js test",
     "check": "node scripts/check.js",
     "serve": "node scripts/serve.js",
     "release": "node scripts/build-release.js"

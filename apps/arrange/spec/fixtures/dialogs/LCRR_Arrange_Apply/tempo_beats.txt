@@ -1,0 +1,10 @@
+project.snapshot() #1
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+This project's tempo/time-signature envelope is on a Beats timebase, and a Repack cannot move tempo markers reliably while it is.
+
+Every tempo marker holds its bar position and REAPER works out its time from the markers before it, so moving one marker silently moves all the later ones -- a real run drifted by 1.121s and stopped partway through.
+
+Fix: Project Settings -> "Timebase for tempo/time signature env" -> Time. Save the project, then run this again.
+
+(This is read from the saved .RPP. If you just changed it, save first.)
+>>

@@ -1,0 +1,14 @@
+project.snapshot() #1
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Find Duplicate Region Names
+Regions read via GetRegionOrMarker (issue #11).
+All 4 region names are unique and non-empty.
+This project is ready for Arrangements.
+>>
+file /proj/Bars.arrange.log (a) <<
+[2026-11-07 12:00:00] Find Duplicate Region Names
+Regions read via GetRegionOrMarker (issue #11).
+All 4 region names are unique and non-empty.
+This project is ready for Arrangements.
+
+>>

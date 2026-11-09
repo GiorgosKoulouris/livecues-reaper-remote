@@ -1,0 +1,460 @@
+project.snapshot() #1
+ShowMessageBox("Apply Arrangement", 4) -> 6 <<
+This project has no Arrangement sidecar yet. Import one from another file?
+>>
+GetUserFileNameForRead("", "Import Arrangement sidecar", "") -> true, "/elsewhere/good.lua"
+file /proj/Bars.arrangements.lua (w) <<
+-- REAPER Arrangements. Each entry is an ordered list of Region Names.
+-- `headroom` adjusts a region's end, in seconds; 0 leaves it alone, and the
+-- new end is always rounded to the nearest bar line. Shrinking may only ever
+-- remove silence -- a run refuses rather than cutting into a region's content.
+-- Edit freely; this file is read in a sandbox and validated on load.
+return {
+  ["Ghost"] = {
+    { "Alpha", headroom = 0 },
+    { "Zulu", headroom = 0 },
+  },
+  ["Headroom"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 4 },
+    { "Delta", headroom = 0 },
+  },
+  ["Identity"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 0 },
+    { "Charlie", headroom = 0 },
+    { "Delta", headroom = 0 },
+  },
+  ["Reordered"] = {
+    { "Charlie", headroom = 0 },
+    { "Alpha", headroom = 0 },
+    { "Delta", headroom = 0 },
+    { "Bravo", headroom = 0 },
+  },
+  ["Shrink"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = -20 },
+    { "Delta", headroom = 0 },
+  },
+  ["Subset"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 0 },
+    { "Delta", headroom = 0 },
+  },
+}
+>>
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Identity"
+Undo_BeginBlock()
+apply.anchors {
+  [1] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Alpha",
+    time = 0,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [2] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = false,
+    region_name = "Bravo",
+    time = 12,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [3] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Charlie",
+    time = 32,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [4] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Delta",
+    time = 48,
+    timesig_denom = 4,
+    timesig_num = 3,
+  },
+}
+project.snapshot() #2
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Apply Arrangement -- "Identity"
+  regions read via GetRegionOrMarker
+  tempo anchor (region "Alpha"): 0.000 = 120 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Bravo"): 12.000 = 120 bpm 4/4
+  tempo anchor (region "Charlie"): 32.000 = 90 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Delta"): 48.000 = 90 bpm 3/4 (already present, rewritten)
+  PADDED "Bravo": end 21.000 -> 22.000 (+1.000s of silence inside the region)
+  PADDED "Delta": end 53.000 -> 54.000 (+1.000s of silence inside the region)
+  Bravo: 12.000 -> 8.000 (-4.000)
+  Charlie: 32.000 -> 18.000 (-14.000)
+  Delta: 48.000 -> 26.000 (-22.000)
+  marker "verse": 34.000 -> 20.000 (-14.000)
+  tempo (region "Bravo"): 12.000 -> 8.000 (-4.000)
+  tempo (region "Charlie"): 32.000 -> 18.000 (-14.000)
+  tempo (region "Delta"): 48.000 -> 26.000 (-22.000)
+  envelope (track 1 Gtr, "Mute", region "Charlie"): 33.000 -> 19.000 (-14.000)
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 0.000 = 0.500000
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 8.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 8.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 18.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 18.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 26.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 26.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 32.000 = 0.000000
+  cut (track 1 Gtr): 12.000 (0.005s fade both edges)
+  cut (track 2 Keys): 32.000 (0.005s fade both edges)
+  cut (track 2 Keys): 40.000 (0.005s fade both edges)
+  DROPPED (track 1 Gtr): 11.000..12.000 (1.000s)
+  DROPPED (track 2 Keys): 30.000..32.000 (2.000s)
+  DROPPED (track 2 Keys): 40.000..42.000 (2.000s)
+  DROPPED (track 3 Perc): 9.000..10.000 (1.000s)
+  DROPPED envelope point (track 1 Gtr, "Mute"): 9.500
+  item (track 1): 12.000 -> 8.000 (-4.000)
+  item (track 2): 32.000 -> 18.000 (-14.000)
+  item (track 3): 49.000 -> 27.000 (-22.000)
+>>
+file /proj/Bars.arrange.log (a) <<
+[2026-11-07 12:00:00] Apply Arrangement -- "Identity"
+  regions read via GetRegionOrMarker
+  tempo anchor (region "Alpha"): 0.000 = 120 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Bravo"): 12.000 = 120 bpm 4/4
+  tempo anchor (region "Charlie"): 32.000 = 90 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "Delta"): 48.000 = 90 bpm 3/4 (already present, rewritten)
+  PADDED "Bravo": end 21.000 -> 22.000 (+1.000s of silence inside the region)
+  PADDED "Delta": end 53.000 -> 54.000 (+1.000s of silence inside the region)
+  Bravo: 12.000 -> 8.000 (-4.000)
+  Charlie: 32.000 -> 18.000 (-14.000)
+  Delta: 48.000 -> 26.000 (-22.000)
+  marker "verse": 34.000 -> 20.000 (-14.000)
+  tempo (region "Bravo"): 12.000 -> 8.000 (-4.000)
+  tempo (region "Charlie"): 32.000 -> 18.000 (-14.000)
+  tempo (region "Delta"): 48.000 -> 26.000 (-22.000)
+  envelope (track 1 Gtr, "Mute", region "Charlie"): 33.000 -> 19.000 (-14.000)
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 0.000 = 0.500000
+  automation anchor (track 1 Gtr, "Mute", region "Alpha"): 8.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 8.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Bravo"): 18.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 18.000 = 1.000000
+  automation anchor (track 1 Gtr, "Mute", region "Charlie"): 26.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 26.000 = 0.000000
+  automation anchor (track 1 Gtr, "Mute", region "Delta"): 32.000 = 0.000000
+  cut (track 1 Gtr): 12.000 (0.005s fade both edges)
+  cut (track 2 Keys): 32.000 (0.005s fade both edges)
+  cut (track 2 Keys): 40.000 (0.005s fade both edges)
+  DROPPED (track 1 Gtr): 11.000..12.000 (1.000s)
+  DROPPED (track 2 Keys): 30.000..32.000 (2.000s)
+  DROPPED (track 2 Keys): 40.000..42.000 (2.000s)
+  DROPPED (track 3 Perc): 9.000..10.000 (1.000s)
+  DROPPED envelope point (track 1 Gtr, "Mute"): 9.500
+  item (track 1): 12.000 -> 8.000 (-4.000)
+  item (track 2): 32.000 -> 18.000 (-14.000)
+  item (track 3): 49.000 -> 27.000 (-22.000)
+
+>>
+apply.plan {
+  changing_envelope_anchors = 8,
+  cut_fade = 0.005,
+  drops = {
+    [1] = {
+      length = 1,
+      position = 11,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+    [2] = {
+      length = 2,
+      position = 30,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [3] = {
+      length = 2,
+      position = 40,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [4] = {
+      length = 1,
+      position = 9,
+      track_index = 2,
+      track_name = "Perc",
+    },
+  },
+  envelope_anchors = {
+    [1] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 0,
+      redundant = false,
+      region_name = "Alpha",
+      shape = 1,
+      to = 0,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0.5,
+    },
+    [2] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 8,
+      redundant = false,
+      region_name = "Alpha",
+      shape = 1,
+      to = 8,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [3] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 12,
+      redundant = false,
+      region_name = "Bravo",
+      shape = 1,
+      to = 8,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [4] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 22,
+      redundant = false,
+      region_name = "Bravo",
+      shape = 1,
+      to = 18,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [5] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 32,
+      redundant = false,
+      region_name = "Charlie",
+      shape = 1,
+      to = 18,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 1,
+    },
+    [6] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 40,
+      redundant = false,
+      region_name = "Charlie",
+      shape = 1,
+      to = 26,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [7] = {
+      edge = "start",
+      envelope_name = "Mute",
+      from = 48,
+      redundant = false,
+      region_name = "Delta",
+      shape = 1,
+      to = 26,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+    [8] = {
+      edge = "end",
+      envelope_name = "Mute",
+      from = 54,
+      redundant = false,
+      region_name = "Delta",
+      shape = 1,
+      to = 32,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+  },
+  envelope_drops = {
+    [1] = {
+      envelope_name = "Mute",
+      position = 9.5,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+  },
+  envelope_moves = {
+    [1] = {
+      delta = -14,
+      envelope_name = "Mute",
+      from = 33,
+      region_name = "Charlie",
+      selected = false,
+      shape = 1,
+      tension = 0,
+      to = 19,
+      track_index = 0,
+      track_name = "Gtr",
+      value = 0,
+    },
+  },
+  headroom = {},
+  is_empty = false,
+  item_moves = {
+    [1] = {
+      delta = -4,
+      from = 12,
+      length = 2,
+      to = 8,
+      track_index = 0,
+    },
+    [2] = {
+      delta = -14,
+      from = 32,
+      length = 8,
+      to = 18,
+      track_index = 1,
+    },
+    [3] = {
+      delta = -22,
+      from = 49,
+      length = 2,
+      to = 27,
+      track_index = 2,
+    },
+  },
+  marker_moves = {
+    [1] = {
+      delta = -14,
+      from = 34,
+      name = "verse",
+      number = 6,
+      to = 20,
+    },
+  },
+  packed_end = 32,
+  pads = {
+    [1] = {
+      added = 1,
+      from_end = 21,
+      name = "Bravo",
+      number = 2,
+      to_end = 22,
+    },
+    [2] = {
+      added = 1,
+      from_end = 53,
+      name = "Delta",
+      number = 4,
+      to_end = 54,
+    },
+  },
+  park_delta = 0,
+  parks = {},
+  places = {
+    [1] = {
+      delta = -4,
+      from_end = 22,
+      from_start = 12,
+      length = 10,
+      name = "Bravo",
+      number = 2,
+      to_start = 8,
+    },
+    [2] = {
+      delta = -14,
+      from_end = 40,
+      from_start = 32,
+      length = 8,
+      name = "Charlie",
+      number = 3,
+      to_start = 18,
+    },
+    [3] = {
+      delta = -22,
+      from_end = 54,
+      from_start = 48,
+      length = 6,
+      name = "Delta",
+      number = 4,
+      to_start = 26,
+    },
+  },
+  splits = {
+    [1] = {
+      position = 12,
+      track_index = 0,
+      track_name = "Gtr",
+    },
+    [2] = {
+      position = 32,
+      track_index = 1,
+      track_name = "Keys",
+    },
+    [3] = {
+      position = 40,
+      track_index = 1,
+      track_name = "Keys",
+    },
+  },
+  tempo_moves = {
+    [1] = {
+      bpm = 120,
+      delta = -4,
+      from = 12,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Bravo",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 8,
+    },
+    [2] = {
+      bpm = 90,
+      delta = -14,
+      from = 32,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Charlie",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 18,
+    },
+    [3] = {
+      bpm = 90,
+      delta = -22,
+      from = 48,
+      kind = "region",
+      lineartempo = false,
+      region_name = "Delta",
+      timesig_denom = 4,
+      timesig_num = 3,
+      to = 26,
+    },
+  },
+}
+Undo_EndBlock("Apply Arrangement", -1)
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Applied "Identity": 3 region(s), 1 marker(s), 3 tempo marker(s), 1 envelope point(s) and 3 item(s) moved, 3 cut(s) made.
+
+1 Tempo Anchor(s) were written at region starts (3 of 4 region(s) already had one with the right values), so each region carries its own bar grid regardless of what a Repack puts in front of it.
+
+2 region(s) were PADDED to the next bar line, adding 2.000s of silence inside their bounds -- permanently, and this does not happen again on a later Repack:
+  Bravo (+1.000s)
+  Delta (+1.000s)
+
+8 automation anchor(s) were written at region bounds, so each region keeps its own automation values instead of inheriting its new neighbour's. They are listed in the run log.
+
+4 piece(s) of material and 1 envelope point(s) touching no region were DISCARDED. They are listed in the run log beside the project; Undo restores them.
+>>

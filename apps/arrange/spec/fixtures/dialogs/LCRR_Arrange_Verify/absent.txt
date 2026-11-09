@@ -1,0 +1,34 @@
+project.snapshot() #1
+GetUserInputs("Verify Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Ghost"
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Verify Arrangement -- "Ghost"
+Verify Arrangement -- "Ghost"
+regions read via EnumProjectMarkers3
+
+FAIL -- 1 problem(s):
+  [region_absent] Arrangement names region "Z", which this project does not have.
+
+WHAT THIS CHECK CANNOT SEE
+  - Whether a Headroom was applied once or twice. Headroom describes a change to a region's end rather than a target length, so nothing in the finished timeline records how many times it was applied. Apply's confirmation prompt is the only guard against that.
+
+Nothing has been changed -- this action only reads.
+>>
+file /proj/Packed.arrange.log (a) <<
+[2026-11-07 12:00:00] Verify Arrangement -- "Ghost"
+Verify Arrangement -- "Ghost"
+regions read via EnumProjectMarkers3
+
+FAIL -- 1 problem(s):
+  [region_absent] Arrangement names region "Z", which this project does not have.
+
+WHAT THIS CHECK CANNOT SEE
+  - Whether a Headroom was applied once or twice. Headroom describes a change to a region's end rather than a target length, so nothing in the finished timeline records how many times it was applied. Apply's confirmation prompt is the only guard against that.
+
+Nothing has been changed -- this action only reads.
+
+>>
+ShowMessageBox("Verify Arrangement", 0) -> 1 <<
+FAIL -- the timeline does not match "Ghost". 1 problem(s) found; each one is listed in the console and in the log beside the project.
+
+Nothing has been changed.
+>>

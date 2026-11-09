@@ -26,8 +26,11 @@ From PowerShell (or `scripts\install.bat <same arguments>` from cmd), in the rep
 .\scripts\install.ps1                 # copy into %APPDATA%\REAPER\reaper_www_root (re-run to update; no admin needed)
 .\scripts\install.ps1 -Link           # symlinks instead: edits show on browser refresh (Developer Mode or admin)
 .\scripts\install.ps1 -Root D:\www -Port 9000   # custom web root / port for the printed URLs
-.\scripts\install.ps1 -Uninstall      # removes lcrr*.html and the lcrr folder
+.\scripts\install.ps1 -Resource D:\PortableReaper   # REAPER resource path for the Lua actions (default %APPDATA%\REAPER)
+.\scripts\install.ps1 -Uninstall      # removes lcrr*.html, the lcrr folder and Scripts\LCRR
 ```
+
+The Lua actions (Arrange) go to `<resource path>\Scripts\LCRR\<app>\`. Load new ones once in REAPER: Actions > Show action list > New action > Load ReaScript.
 
 If scripts are blocked, use `install.bat`, or `powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1`. If the repo lives in WSL or a container, run it via its Windows path (e.g. `\\wsl$\...`).
 
@@ -45,9 +48,10 @@ CLAUDE.md  CONTEXT-MAP.md  CONTEXT.md  DESIGN.md  PRODUCT.md   suite docs (CONTE
 docs/adr/                       suite decisions
 shared/www/lcrr/shared/         shared JS (reaper, poll, guard, hold) and CSS (tokens, base + footer); tests in shared/test/
 apps/<app>/                     CLAUDE.md, CONTEXT.md, docs/adr/, test/, and www/ (the app's slice of the web root)
+  reaper/Scripts/LCRR/<app>/    Lua actions + lib/ (arrange only; slice of REAPER's resource path; specs in spec/)
   www/lcrr-<app>.html           entry page (home: lcrr.html)
   www/lcrr/<app>/{css,js}/      its assets
-scripts/                        install.ps1, serve.js, check.js, build-release.js, release-lib.js (tests in test/)
+scripts/                        install.ps1, serve.js, check.js, lua.js, build-release.js, release-lib.js (tests in test/)
 dev/reaper-projects/            dummy REAPER projects for testing
 ```
 
@@ -55,8 +59,8 @@ Each `www/` folder holds files at the paths REAPER serves them from. Install, re
 
 ## Development (devcontainer)
 
-- The container has node, python3, curl and jq. No npm dependencies.
-- `npm test` runs every test (scripts, shared, apps); `npm run check` syntax-checks every browser script and the scripts.
+- The container has node, python3, curl, jq, lua5.4, busted and luacheck. No npm dependencies.
+- `npm test` runs every test (scripts, shared, apps, plus busted for apps with Lua); `npm run check` syntax-checks every browser script and the scripts, and runs luacheck. Both fail outside the devcontainer if busted/luacheck are missing.
 - `npm run serve` serves all slices on `http://localhost:8081/` (use VS Code port forwarding). REAPER runs on the Windows host and is not reachable from the container, so pages show their offline state there; test against REAPER with `install.ps1 -Link`.
 - Do **not** publish port 8080 in `.devcontainer/docker-compose.yml` (see Troubleshooting).
 - Work happens on the `dev` branch only.

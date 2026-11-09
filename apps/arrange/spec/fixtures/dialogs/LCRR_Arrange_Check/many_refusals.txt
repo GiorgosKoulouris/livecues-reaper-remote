@@ -1,0 +1,80 @@
+project.snapshot() #1
+GetUserInputs("Check Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Ghost"
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Check Arrangement -- "Ghost"
+Check Arrangement -- "Ghost"
+regions read via GetRegionOrMarker
+
+VERDICT: applying this Arrangement WOULD REFUSE. Details below.
+
+WOULD REFUSE
+  [tempo_env_beats] This project's tempo/time-signature envelope is on a Beats timebase, and a Repack cannot move tempo markers reliably while it is.
+
+Every tempo marker holds its bar position and REAPER works out its time from the markers before it, so moving one marker silently moves all the later ones -- a real run drifted by 1.121s and stopped partway through.
+
+Fix: Project Settings -> "Timebase for tempo/time signature env" -> Time. Save the project, then run this again.
+
+(This is read from the saved .RPP. If you just changed it, save first.)
+  [arrangement_missing_regions] This Arrangement names regions the project does not have:
+  Zulu
+
+WOULD HAPPEN, AND RUNNING AGAIN WILL NOT UNDO IT
+  [parked] 3 region(s) this Arrangement omits will be moved beyond the Packed Block as Parked Material. Nothing is deleted, and the run log records the offset that reverses it:
+  Bravo
+  Charlie
+  Delta
+
+FOR INFORMATION
+  [not_planned] The problems above stopped this check before it could plan the Repack, so it has NOT reported Padding, Dropped Material, Straddling Item cuts, or whether the pack itself would refuse. Fix them and run this again.
+
+Padding and Headroom above are ESTIMATES: this project still needs Tempo Anchors, and they are what put region starts on bar lines. Both are measured against bar lines, so both move with the grid. Run this again after applying to see exact figures.
+
+WHAT THIS CHECK CANNOT SEE
+  - Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.
+  - Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.
+  - Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.
+
+Nothing has been changed -- this action only reads.
+>>
+file /proj/Bars.arrange.log (a) <<
+[2026-11-07 12:00:00] Check Arrangement -- "Ghost"
+Check Arrangement -- "Ghost"
+regions read via GetRegionOrMarker
+
+VERDICT: applying this Arrangement WOULD REFUSE. Details below.
+
+WOULD REFUSE
+  [tempo_env_beats] This project's tempo/time-signature envelope is on a Beats timebase, and a Repack cannot move tempo markers reliably while it is.
+
+Every tempo marker holds its bar position and REAPER works out its time from the markers before it, so moving one marker silently moves all the later ones -- a real run drifted by 1.121s and stopped partway through.
+
+Fix: Project Settings -> "Timebase for tempo/time signature env" -> Time. Save the project, then run this again.
+
+(This is read from the saved .RPP. If you just changed it, save first.)
+  [arrangement_missing_regions] This Arrangement names regions the project does not have:
+  Zulu
+
+WOULD HAPPEN, AND RUNNING AGAIN WILL NOT UNDO IT
+  [parked] 3 region(s) this Arrangement omits will be moved beyond the Packed Block as Parked Material. Nothing is deleted, and the run log records the offset that reverses it:
+  Bravo
+  Charlie
+  Delta
+
+FOR INFORMATION
+  [not_planned] The problems above stopped this check before it could plan the Repack, so it has NOT reported Padding, Dropped Material, Straddling Item cuts, or whether the pack itself would refuse. Fix them and run this again.
+
+Padding and Headroom above are ESTIMATES: this project still needs Tempo Anchors, and they are what put region starts on bar lines. Both are measured against bar lines, so both move with the grid. Run this again after applying to see exact figures.
+
+WHAT THIS CHECK CANNOT SEE
+  - Padding measured against the grid the Tempo Anchors will create. Until they are written, Padding is computed against the grid as it stands now.
+  - Whether writing the Tempo Anchors moves beat-attached material. That can only be detected after the write, and the run refuses if it happens.
+  - Whether Padding would run a region into its neighbour once the anchors exist, which follows from the two above.
+
+Nothing has been changed -- this action only reads.
+
+>>
+ShowMessageBox("Check Arrangement", 0) -> 1 <<
+Applying "Ghost" WOULD REFUSE -- 2 problem(s) found, plus 1 permanent effect(s) to be aware of.
+
+The full report is in the console and in the log beside the project. Nothing has been changed.
+>>

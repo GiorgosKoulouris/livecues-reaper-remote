@@ -1,0 +1,63 @@
+project.snapshot() #1
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Headroom / Identity / Reordered / Shrink / Subset):,extrawidth=200", "") -> true, "Shrink"
+ShowMessageBox("Apply Arrangement", 3) -> 6 <<
+This Arrangement adjusts the Headroom of 1 region(s):
+
+  Bravo: -20.000s
+
+Headroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot.
+
+Each end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.
+
+Yes    -- repack, and apply the Headroom above.
+No     -- repack only, treating every Headroom as zero.
+Cancel -- do nothing. Nothing has been written yet.
+>>
+Undo_BeginBlock()
+apply.anchors {
+  [1] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Alpha",
+    time = 0,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [2] = {
+    bpm = 120,
+    lineartempo = false,
+    redundant = false,
+    region_name = "Bravo",
+    time = 12,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [3] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Charlie",
+    time = 32,
+    timesig_denom = 4,
+    timesig_num = 4,
+  },
+  [4] = {
+    bpm = 90,
+    lineartempo = false,
+    redundant = true,
+    region_name = "Delta",
+    time = 48,
+    timesig_denom = 4,
+    timesig_num = 3,
+  },
+}
+project.snapshot() #2
+Undo_EndBlock("Apply Arrangement", -1)
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Repack cannot apply the Headroom this Arrangement asks for:
+  "Bravo": asked for -20.000s, but its end cannot come back past 14.000 -- the largest shrink it can take is 8.000s
+A shrink may only ever remove silence -- it never cuts into a region's contents, and never leaves a region shorter than one bar.
+
+1 Tempo Anchor(s) were written before this was detected, and nothing else was. They are one undo step -- Undo removes them.
+>>

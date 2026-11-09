@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrange Bridge Spike</title>
+<style>
+  :root { --bg: #fff; --fg: #111; --muted: #666; --line: #ccc; --ok: #0a7a2f; --bad: #b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121212; --fg: #eee; --muted: #999; --line: #333; --ok: #5bd17f; --bad: #ff8a80; } }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 12px; }
+  button { font: inherit; padding: 8px 14px; margin: 0 8px 12px 0; }
+  pre, textarea { font: 12px/1.45 ui-monospace, monospace; border: 1px solid var(--line); padding: 8px; white-space: pre-wrap; word-break: break-all; }
+  textarea { width: 100%; box-sizing: border-box; height: 40vh; background: var(--bg); color: var(--fg); }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<h1>Arrange bridge spike</h1>
+<p>Throwaway. Run <code>LCRR_Arrange_SpikeBridge.lua</code> in REAPER first, then press Run all. See <code>.scratch/arrange/issues/01-bridge-spike.md</code>.</p>
+<button id="run">Run all</button><button id="copy" disabled>Copy report</button><span id="status"></span>
+<pre id="log"></pre>
+<textarea id="report" readonly placeholder="The report appears here when the run finishes."></textarea>
+<script>
+"use strict";
+var S = "LCRR_ARRANGE_SPIKE";
+var CHARS = "tab:\t nl:\n bs:\\ q:\" pct:% sl:/ sc:; pipe:| amp:& plus:+ sp: utf8:\u00e9\u2014\u{1F3B5} json:{\"a\":[1,2]}";
+var UNIT = "abcdefghijklmnopqrstuvwxyz0123456789";
+var lines = [];
+var seq = 0;
+
+function pattern(n) { return UNIT.repeat(Math.floor(n / UNIT.length) + 1).slice(0, n); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function q(v) { return JSON.stringify(v); }
+function short(v, n) { v = String(v); n = n || 160; return v.length > n ? v.slice(0, n) + "...(" + v.length + " chars)" : v; }
+function utf8len(s) { return new TextEncoder().encode(s).length; }
+function newId() { seq += 1; return "s" + Date.now().toString(36) + "x" + seq; }
+// REAPER's own main.js style unescape: \t, \n, \\ .
+function unescapeReaper(v) { return v.replace(/\\(t|n|\\)/g, function (m, c) { return c === "t" ? "\t" : c === "n" ? "\n" : "\\"; }); }
+
+function log(text, cls) {
+  lines.push(text);
+  var el = document.createElement("div");
+  if (cls) el.className = cls;
+  el.textContent = text;
+  document.getElementById("log").appendChild(el);
+}
+
+async function req(cmd, timeoutMs) {
+  var ctl = new AbortController();
+  var t = setTimeout(function () { ctl.abort(); }, timeoutMs || 5000);
+  var t0 = performance.now();
+  try {
+    var r = await fetch("/_/" + cmd, { cache: "no-store", signal: ctl.signal });
+    var text = await r.text();
+    return { ok: r.ok, status: r.status, text: text, ms: Math.round(performance.now() - t0) };
+  } catch (e) {
+    return { ok: false, status: 0, text: "", error: String(e && e.name || e), ms: Math.round(performance.now() - t0) };
+  } finally { clearTimeout(t); }
+}
+
+function parseExt(text, key) {
+  var prefix = "EXTSTATE\t" + S + "\t" + key + "\t";
+  var i = text.indexOf(prefix);
+  if (i < 0) return { found: false };
+  var v = text.slice(i + prefix.length).replace(/\r?\n$/, "");
+  return { found: true, value: v };
+}
+
+async function getExt(key, timeoutMs) {
+  var r = await req("GET/EXTSTATE/" + S + "/" + key, timeoutMs);
+  var p = r.ok ? parseExt(r.text, key) : { found: false };
+  p.http = r;
+  return p;
+}
+
+async function send(cmd, arg, timeoutMs) {
+  var id = newId();
+  var r = await req("SET/EXTSTATE/" + S + "/req/" + encodeURIComponent(id + "|" + cmd + "|" + arg), timeoutMs);
+  return { id: id, http: r };
+}
+
+async function awaitRes(id, timeoutMs, everyMs) {
+  var deadline = performance.now() + (timeoutMs || 5000);
+  var t0 = performance.now();
+  while (performance.now() < deadline) {
+    var g = await getExt("res", Math.max(1000, timeoutMs || 5000));
+    if (g.found && g.value.indexOf(id + "|") === 0) {
+      return { value: g.value.slice(id.length + 1), raw: g.http.text, ms: Math.round(performance.now() - t0), lastGetMs: g.http.ms };
+    }
+    await sleep(everyMs || 25);
+  }
+  return null;
+}
+
+async function call(cmd, arg, timeoutMs) {
+  var t0 = performance.now();
+  var s = await send(cmd, arg, timeoutMs);
+  if (!s.http.ok) return { setFailed: s.http };
+  var r = await awaitRes(s.id, timeoutMs);
+  if (r) r.totalMs = Math.round(performance.now() - t0);
+  return r;
+}
+
+// ---- tests ----
+
+async function tMissingKey() {
+  var r = await req("GET/EXTSTATE/" + S + "/never_set_key");
+  log("T1 missing key: http " + r.status + " " + (r.error || "") + " raw=" + q(r.text));
+}
+
+async function tHeartbeat() {
+  var a = await getExt("heartbeat");
+  await sleep(1000);
+  var b = await getExt("heartbeat");
+  var alive = b.found && b.value !== "" && (!a.found || b.value !== a.value);
+  log("T2 heartbeat: " + q(a.found ? a.value : null) + " -> " + q(b.found ? b.value : null) +
+      " => " + (alive ? "bridge ALIVE" : "bridge NOT running") + "; raw=" + q(b.http.text), alive ? "ok" : "bad");
+  return alive;
+}
+
+async function tPing() {
+  var r = await call("ping", "hello");
+  if (!r) return log("T3 ping: no reply within 5 s", "bad");
+  log("T3 ping: " + (r.value === "hello" ? "OK" : "MISMATCH " + q(r.value)) + " in " + r.totalMs + " ms; raw=" + q(r.raw), r.value === "hello" ? "ok" : "bad");
+}
+
+async function tEcho() {
+  var cases = ["abc", "a/b", "a;b", "a%b", "a%20b", "a+b", "a b", "a|b", "a\tb", "a\nb", "a\\b", "a\\tb", "\u00e9\u2014\u{1F3B5}", "a&b?c=d#e", "{\"k\":\"v\"}"];
+  for (var i = 0; i < cases.length; i++) {
+    var c = cases[i];
+    var r = await call("echo", c);
+    if (!r) { log("T4 echo " + q(c) + ": " + "no reply", "bad"); continue; }
+    if (r.setFailed) { log("T4 echo " + q(c) + ": SET failed http " + r.setFailed.status, "bad"); continue; }
+    var verdict = "MISMATCH";
+    [["raw", r.value], ["unescaped", unescapeReaper(r.value)]].some(function (cand) {
+      var k = cand[1].indexOf("|");
+      var len = parseInt(cand[1].slice(0, k), 10), got = cand[1].slice(k + 1);
+      if (got === c && len === utf8len(c)) { verdict = "exact (" + cand[0] + ")"; return true; }
+      return false;
+    });
+    log("T4 echo " + q(c) + ": " + verdict + (verdict === "MISMATCH" ? " got=" + q(r.value) : ""), verdict === "MISMATCH" ? "bad" : "ok");
+  }
+}
+
+async function tChars() {
+  var r = await call("chars", "");
+  if (!r) return log("T5 reply chars: no reply", "bad");
+  var raw = r.value === CHARS, un = unescapeReaper(r.value) === CHARS;
+  log("T5 reply chars: raw match=" + raw + ", unescaped match=" + un + "; got=" + q(r.value), raw || un ? "ok" : "bad");
+}
+
+async function tReplySize() {
+  var sizes = [1000, 10000, 65536, 262144, 1048576, 4194304];
+  for (var i = 0; i < sizes.length; i++) {
+    var n = sizes[i];
+    var r = await call("size", String(n), 30000);
+    if (!r || r.setFailed) { log("T6 reply " + n + " B: FAILED (" + (r ? "SET http " + r.setFailed.status : "no reply in 30 s") + ")", "bad"); break; }
+    var ok = r.value.length === n && r.value === pattern(n);
+    log("T6 reply " + n + " B: " + (ok ? "OK" : "WRONG (got " + r.value.length + " chars, starts " + q(short(r.value, 60)) + ")") +
+        "; round trip " + r.totalMs + " ms, final GET " + r.lastGetMs + " ms", ok ? "ok" : "bad");
+    if (!ok) break;
+  }
+}
+
+// Binary-search the longest argument that reaches Lua intact. v1 showed silent truncation near 1 KB of URL.
+async function tRequestSize() {
+  var kinds = [["ascii", function (n) { return pattern(n); }, 4000],
+               ["e-acute (2 UTF-8 bytes, 6 URL chars each)", function (n) { return "é".repeat(n); }, 1000]];
+  for (var k = 0; k < kinds.length; k++) {
+    var label = kinds[k][0], make = kinds[k][1], lo = 0, hi = kinds[k][2], lastSeen = "";
+    var probe = async function (n) {
+      var arg = make(n), r = await call("len", arg, 3000);
+      if (r && !r.setFailed) lastSeen = r.value;
+      return !!(r && !r.setFailed && r.value === String(utf8len(arg)));
+    };
+    if (await probe(hi)) { log("T7 request " + label + ": " + hi + " chars still OK (no limit found)", "ok"); continue; }
+    var failSeen = lastSeen;
+    while (hi - lo > 1) {
+      var mid = (lo + hi) >> 1;
+      if (await probe(mid)) lo = mid; else { hi = mid; failSeen = lastSeen; }
+    }
+    var url = "/_/SET/EXTSTATE/" + S + "/req/" + encodeURIComponent(newId() + "|len|" + make(lo));
+    log("T7 request " + label + ": max intact " + lo + " chars = " + utf8len(make(lo)) + " bytes; URL path length " + url.length +
+        " (id " + newId().length + " chars); at " + hi + " chars Lua saw " + failSeen + " bytes");
+  }
+}
+
+async function tLatency() {
+  var ms = [];
+  for (var i = 0; i < 20; i++) {
+    var r = await call("ping", "p" + i);
+    if (r && !r.setFailed) ms.push(r.totalMs);
+  }
+  ms.sort(function (a, b) { return a - b; });
+  if (!ms.length) return log("T8 latency: no replies", "bad");
+  var pick = function (p) { return ms[Math.min(ms.length - 1, Math.floor(p * ms.length))]; };
+  log("T8 latency (" + ms.length + "/20, poll every 25 ms): min " + ms[0] + " / median " + pick(0.5) + " / p90 " + pick(0.9) + " / max " + ms[ms.length - 1] + " ms");
+  var id = newId();
+  var c = await req("SET/EXTSTATE/" + S + "/req/" + encodeURIComponent(id + "|ping|combo") + ";GET/EXTSTATE/" + S + "/res;TRANSPORT");
+  log("T8b combined SET;GET;TRANSPORT: http " + c.status + " raw=" + q(short(c.text, 400)));
+  await awaitRes(id, 3000);
+}
+
+async function tBlocking() {
+  var t0 = performance.now();
+  var s = await send("slow", "3000");
+  var polls = ["SET took " + s.http.ms + "ms"];
+  while (performance.now() - t0 < 4500) {
+    var g = await getExt("heartbeat", 6000);
+    polls.push(Math.round(performance.now() - t0) + "ms:" + (g.http.ok ? (g.found ? "hb=" + g.value : "nokey") : "ERR " + (g.http.error || g.http.status)) + "(" + g.http.ms + "ms)");
+    await sleep(200);
+  }
+  var r = await awaitRes(s.id, 8000);
+  log("T9 Lua blocks main thread 3 s: reply " + (r ? q(r.value) + " (slept|lua_start|lua_end)" : "none") +
+      " at page +" + Math.round(performance.now() - t0) + "ms; heartbeat polls (beat@lua_time): " + polls.join(" "));
+}
+
+async function runAll() {
+  lines = [];
+  document.getElementById("log").textContent = "";
+  document.getElementById("run").disabled = true;
+  document.getElementById("copy").disabled = true;
+  document.getElementById("status").textContent = " running...";
+  log("LCRR arrange bridge spike, " + new Date().toISOString());
+  log("UA: " + navigator.userAgent + "; host " + location.host);
+  try {
+    await tMissingKey();
+    var alive = await tHeartbeat();
+    if (alive) {
+      await tPing();
+      await tEcho();
+      await tChars();
+      await tReplySize();
+      await tRequestSize();
+      await tLatency();
+      await tBlocking();
+    } else {
+      var r = await call("ping", "dead", 2000);
+      log("T3 ping with bridge stopped: " + (r ? "unexpected reply " + q(r.value) : "no reply (expected)"));
+    }
+  } catch (e) {
+    log("CRASH: " + (e && e.stack || e), "bad");
+  }
+  log("done");
+  document.getElementById("report").value = lines.join("\n");
+  document.getElementById("run").disabled = false;
+  document.getElementById("copy").disabled = false;
+  document.getElementById("status").textContent = " done";
+}
+
+document.getElementById("run").addEventListener("click", runAll);
+document.getElementById("copy").addEventListener("click", function () {
+  var ta = document.getElementById("report");
+  var text = ta.value;
+  var done = function (ok) { document.getElementById("status").textContent = ok ? " copied" : " select the text below and copy it"; };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+  else { ta.select(); try { done(document.execCommand("copy")); } catch (e) { done(false); } }
+});
+</script>
+</body>
+</html>

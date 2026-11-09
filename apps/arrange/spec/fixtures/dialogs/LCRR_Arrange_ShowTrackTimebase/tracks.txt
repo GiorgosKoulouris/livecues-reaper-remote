@@ -1,0 +1,18 @@
+ShowConsoleMsg <<
+Show Track Timebase -- Lua Lua 5.4, 6 tracks
+  1  Gtr                        0  time
+  2  Keys                      -1  project default
+  3  Perc                       2  beats (position only)
+  4  Odd                        5  UNKNOWN
+  5  Gtr 2                      0  time
+  6  Bass                       1  beats (position, length, rate)?
+
+Tally:
+   -1  project default                  1 track(s)
+    0  time                             2 track(s)
+    1  beats (position, length, rate)?  1 track(s)
+    2  beats (position only)            1 track(s)
+    5  UNKNOWN                          1 track(s)
+
+Track timebase only. Items can override it; that is not shown here.
+>>

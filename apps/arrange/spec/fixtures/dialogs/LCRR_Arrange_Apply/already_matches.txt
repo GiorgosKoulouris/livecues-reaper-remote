@@ -1,0 +1,5 @@
+project.snapshot() #1
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Packed"
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Arrangement "Packed" already matches the timeline. Nothing to do.
+>>

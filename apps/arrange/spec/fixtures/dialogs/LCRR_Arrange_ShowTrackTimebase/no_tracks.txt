@@ -1,0 +1,3 @@
+ShowMessageBox("Show Track Timebase", 0) -> 1 <<
+This project has no tracks.
+>>

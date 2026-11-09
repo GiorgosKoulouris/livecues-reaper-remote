@@ -1,0 +1,29 @@
+project.snapshot() #1
+ShowConsoleMsg <<
+Show bar lines -- 4 region(s)
+regions read via GetRegionOrMarker
+TimeMap2_timeToBeats(0, 0.0) reports measure index 0 -- so REAPER numbers measures from this (research/reaper-scripting.md §4.5)
+tempo at 0.0: 120 bpm, 4/4
+pad threshold: 0.0001 s (lib/regions.lua's BOUNDARY_TOLERANCE)
+
+Alpha                               0.00000 ..    8.00000  (8.000s, 120 bpm 4/4)
+    start: nearest bar line at or after = 0.00000 (+0.000000) -- already on a bar line
+    end:   next bar line = 8.00000 -> PAD +0.000000 (none)
+Bravo                              12.00000 ..   21.00000  (9.000s, 120 bpm 4/4)
+    start: nearest bar line at or after = 12.00000 (+0.000000) -- already on a bar line
+    end:   next bar line = 22.00000 -> PAD +1.000000  ** would add silence inside the region **
+Charlie                            32.00000 ..   40.00000  (8.000s, 90 bpm 4/4)
+    start: nearest bar line at or after = 32.00000 (+0.000000) -- already on a bar line
+    end:   next bar line = 40.00000 -> PAD -0.000000 (none)
+Delta                              48.00000 ..   53.00000  (5.000s, 90 bpm 3/4)
+    start: nearest bar line at or after = 48.00000 (+0.000000) -- already on a bar line
+    end:   next bar line = 54.00000 -> PAD +1.000000  ** would add silence inside the region **
+
+2 of 4 region(s) would be padded, adding 2.000000s of silence in total.
+Nothing has been changed -- this action only reads.
+>>
+ShowMessageBox("Show bar lines", 0) -> 1 <<
+2 of 4 region(s) would be padded, adding 2.000s of silence.
+
+The per-region detail is in the console. Nothing has been changed.
+>>

@@ -1,0 +1,10 @@
+project.snapshot() #1
+ShowMessageBox("Apply Arrangement", 4) -> 6 <<
+This project has no Arrangement sidecar yet. Import one from another file?
+>>
+GetUserFileNameForRead("", "Import Arrangement sidecar", "") -> true, "/elsewhere/bad.lua"
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+/elsewhere/bad.lua is not a valid Arrangement sidecar:
+
+sidecar must return a table, got number
+>>

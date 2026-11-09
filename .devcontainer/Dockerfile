@@ -20,8 +20,16 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # Tools needed for development:
 #  - python3: throwaway static server to smoke-test the page (python3 -m http.server)
 #  - jq: inspect REAPER HTTP API responses (curl/ca-certificates are in the base image)
+#  - lua5.4, lua-busted, lua-check: the arrange app's Lua (apps/arrange/), run by npm test / npm run check.
+#    REAPER embeds Lua 5.4. lua-busted drags in lua5.1 and makes it the default `lua`, so the alternative is
+#    pointed at 5.4; busted itself is pinned by apps/arrange/.busted (lua = "lua5.4"), guarded by
+#    spec/toolchain_spec.lua. The checks fail the build rather than leave a broken toolchain looking fine.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 jq \
+    && apt-get install -y --no-install-recommends python3 jq lua5.4 lua-busted lua-check \
+    && update-alternatives --set lua-interpreter /usr/bin/lua5.4 \
+    && lua5.4 -e 'assert(_VERSION == "Lua 5.4")' \
+    && busted --lua=lua5.4 --version >/dev/null \
+    && luacheck --version >/dev/null \
     && rm -rf /var/lib/apt/lists/*
 
 USER vscode

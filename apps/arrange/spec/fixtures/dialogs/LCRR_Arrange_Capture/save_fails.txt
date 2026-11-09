@@ -1,0 +1,5 @@
+project.snapshot() #1
+GetUserInputs("Capture Region Order", 1, "Arrangement name:,extrawidth=200", "Captured") -> true, "Live"
+ShowMessageBox("Capture Region Order", 0) -> 1 <<
+could not write /proj/Bars.arrangements.lua: /proj/Bars.arrangements.lua: Permission denied
+>>

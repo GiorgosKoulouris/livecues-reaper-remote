@@ -1,0 +1,18 @@
+project.snapshot() #1
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Tiny"
+ShowMessageBox("Apply Arrangement", 3) -> 6 <<
+This Arrangement adjusts the Headroom of 1 region(s):
+
+  B: +0.500s
+
+Headroom is RELATIVE: it moves each region's end from where it is now, so applying this Arrangement a second time moves those ends a second time. Every other part of a Repack can be run repeatedly without changing the result; this cannot.
+
+Each end is rounded to the nearest bar line, so a request under half a bar resolves to no change. The run log records what each one actually resolved to.
+
+Yes    -- repack, and apply the Headroom above.
+No     -- repack only, treating every Headroom as zero.
+Cancel -- do nothing. Nothing has been written yet.
+>>
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Arrangement "Tiny" already matches the timeline. Nothing to do.
+>>

@@ -1,0 +1,22 @@
+# REAPER working files. Media is never committed: spec/fixtures/repack_basic/ holds 4.6 GB of takes on the host.
+*.RPP-bak
+*.rpp-bak
+*.RPP-UNDO
+*.rpp-undo
+*.reapeaks
+*.wav
+*.mp3
+
+# NOTE: *.arrange.log (and the older *.tsb.log) files are deliberately NOT ignored. Per docs/adr/0005, a
+# fixture's log is part of its golden record.
+
+# Scratch comparison output from live REAPER runs. before.rpp is the tracked
+# baseline to revert to; after.rpp is what a run produced, and it churns on every
+# experiment. A *verified* after.rpp that forms a golden pair with before.rpp per
+# docs/adr/0005 is a different thing and should be committed deliberately:
+#     git add -f spec/fixtures/<scenario>/after.rpp
+spec/fixtures/*/after.rpp
+
+# Coverage
+luacov.stats.out
+luacov.report.out

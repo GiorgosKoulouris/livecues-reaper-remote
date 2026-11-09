@@ -1,0 +1,145 @@
+[2026-07-30 13:54:36] Capture Region Order -- captured "ORIG"
+   1. Sleep Tight
+   2. Darkness of Blue
+   3. NES_15
+   4. Intro
+   5. Sundown
+   6. What I Deserve
+   7. I'm gonna tell God everything
+   8. Payback
+   9. Prophets
+  10. Low Fall
+  11. NES 16
+  12. SoFarGone
+  13. The pain you leave behind
+  14. The distance that happens
+  15. Dear Youth
+  16. Maze
+  17. NES_19
+  18. NES_11
+  19. NES_22
+Written to D:\Projects\ReaperScripts\spec\fixtures\repack_basic\before.arrangements.lua
+
+[2026-07-30 22:19:46] Apply Arrangement -- "ORIG"
+  Darkness of Blue: 800.525 -> 0.000 (-800.525)
+  Sleep Tight: 436.039 -> 317.143 (-118.896)
+  NES_15: 1337.481 -> 618.825 (-718.656)
+  Intro: 2206.881 -> 833.325 (-1373.556)
+  Sundown: 2276.481 -> 902.925 (-1373.556)
+  What I Deserve: 2482.481 -> 1108.925 (-1373.556)
+  I'm gonna tell God everything: 2759.357 -> 1385.801 (-1373.556)
+  Payback: 2996.779 -> 1623.223 (-1373.556)
+  Prophets: 3147.435 -> 1773.879 (-1373.556)
+  Low Fall: 3771.165 -> 1998.034 (-1773.131)
+  NES 16: 4390.699 -> 2232.068 (-2158.631)
+  SoFarGone: 5094.579 -> 2413.068 (-2681.511)
+  The pain you leave behind: 5353.865 -> 2672.354 (-2681.511)
+  The distance that happens: 6192.298 -> 2937.653 (-3254.646)
+  Dear Youth: 6675.669 -> 3191.770 (-3483.899)
+  Maze: 6893.240 -> 3409.340 (-3483.899)
+  NES_11: 7722.852 -> 3629.576 (-4093.276)
+  NES_19: 7271.087 -> 3886.201 (-3384.886)
+  NES_22: 8195.467 -> 4097.965 (-4097.501)
+  marker "Sleep Tight": 436.039 -> 317.143 (-118.896)
+  marker "Darkness of Blue": 800.525 -> 0.000 (-800.525)
+  marker "Sundown": 2276.481 -> 902.925 (-1373.556)
+  marker "What I Deserve": 2482.481 -> 1108.925 (-1373.556)
+  marker "I'm gonna tell God everything": 2759.357 -> 1385.801 (-1373.556)
+  marker "Payback": 2996.779 -> 1623.223 (-1373.556)
+  marker "Prophets": 3147.435 -> 1773.879 (-1373.556)
+  marker "Low Fall": 3771.165 -> 1998.034 (-1773.131)
+  marker "SoFarGone": 5094.579 -> 2413.068 (-2681.511)
+  marker "The pain you leave behind": 5353.865 -> 2672.354 (-2681.511)
+
+[2026-07-31 00:10:46] Capture Region Order -- captured "Captured"
+   1. Sleep Tight
+   2. Darkness of Blue
+   3. NES_15
+   4. Intro
+   5. Sundown
+   6. What I Deserve
+   7. I'm gonna tell God everything
+   8. Payback
+   9. Prophets
+  10. Low Fall
+  11. NES 16
+  12. SoFarGone
+  13. The pain you leave behind
+  14. The distance that happens
+  15. Dear Youth
+  16. Maze
+  17. NES_19
+  18. NES_11
+  19. NES_22
+Written to D:\Projects\ReaperScripts\spec\fixtures\repack_basic\before.arrangements.lua
+
+[2026-07-31 13:42:55] Capture Region Order -- replaced "Captured"
+   1. Sleep Tight
+   2. Darkness of Blue
+   3. NES_15
+   4. Intro
+   5. Sundown
+   6. What I Deserve
+   7. I'm gonna tell God everything
+   8. Payback
+   9. Prophets
+  10. Low Fall
+  11. NES 16
+  12. SoFarGone
+  13. The pain you leave behind
+  14. The distance that happens
+  15. Dear Youth
+  16. Maze
+  17. NES_19
+  18. NES_11
+  19. NES_22
+Written to D:\Projects\ReaperScripts\spec\fixtures\repack_basic\before.arrangements.lua
+
+[2026-07-31 13:53:27] Capture Region Order -- replaced "Captured"
+   1. Sleep Tight
+   2. Darkness of Blue
+   3. NES_15
+   4. Intro
+   5. Sundown
+   6. What I Deserve
+   7. I'm gonna tell God everything
+   8. Payback
+   9. Prophets
+  10. Low Fall
+  11. NES 16
+  12. SoFarGone
+  13. The pain you leave behind
+  14. The distance that happens
+  15. Dear Youth
+  16. Maze
+  17. NES_19
+  18. NES_11
+  19. NES_22
+Written to D:\Projects\ReaperScripts\spec\fixtures\repack_basic\before.arrangements.lua
+
+[2026-08-05 15:53:53] Find Duplicate Region Names
+All 19 region names are unique and non-empty.
+This project is ready for Arrangements.
+
+[2026-08-05 15:54:17] Capture Region Order -- replaced "Captured"
+   1. Sleep Tight
+   2. Darkness of Blue
+   3. NES_15
+   4. Intro
+   5. Sundown
+   6. What I Deserve
+   7. I'm gonna tell God everything
+   8. Payback
+   9. Prophets
+  10. Low Fall
+  11. NES 16
+  12. SoFarGone
+  13. The pain you leave behind
+  14. The distance that happens
+  15. Dear Youth
+  16. Maze
+  17. NES_19
+  18. NES_11
+  19. NES_22
+Written to D:\Projects\ReaperScripts\spec\fixtures\repack_basic\before.arrangements.lua
+

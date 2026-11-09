@@ -1,0 +1,4 @@
+project.snapshot() #1
+ShowMessageBox("Show bar lines", 0) -> 1 <<
+This project has no regions.
+>>

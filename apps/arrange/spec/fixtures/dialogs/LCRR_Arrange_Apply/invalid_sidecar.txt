@@ -1,0 +1,6 @@
+project.snapshot() #1
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+The Arrangement sidecar exists but could not be read:
+
+/proj/Bars.arrangements.lua: sidecar is not valid Lua: arrangements:1: unexpected symbol near <eof>
+>>

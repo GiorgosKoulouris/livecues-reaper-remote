@@ -1,0 +1,99 @@
+project.snapshot() #1
+GetUserInputs("Apply Arrangement", 1, "Arrangement name (Ghost / Packed / Shrink / Swapped / Tiny):,extrawidth=200", "") -> true, "Swapped"
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Apply Arrangement -- "Swapped"
+  regions read via EnumProjectMarkers3
+  tempo anchor (region "A"): 0.000 = 120 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "B"): 8.000 = 120 bpm 4/4 (already present, rewritten)
+  B: 8.000 -> 0.000 (-8.000)
+  A: 0.000 -> 8.000 (+8.000)
+  tempo (region "A"): 0.000 -> 8.000 (+8.000)
+  tempo (region "B"): 8.000 -> 0.000 (-8.000)
+  item (track 1): 2.000 -> 10.000 (+8.000)
+>>
+file /proj/Packed.arrange.log (a) <<
+[2026-11-07 12:00:00] Apply Arrangement -- "Swapped"
+  regions read via EnumProjectMarkers3
+  tempo anchor (region "A"): 0.000 = 120 bpm 4/4 (already present, rewritten)
+  tempo anchor (region "B"): 8.000 = 120 bpm 4/4 (already present, rewritten)
+  B: 8.000 -> 0.000 (-8.000)
+  A: 0.000 -> 8.000 (+8.000)
+  tempo (region "A"): 0.000 -> 8.000 (+8.000)
+  tempo (region "B"): 8.000 -> 0.000 (-8.000)
+  item (track 1): 2.000 -> 10.000 (+8.000)
+
+>>
+Undo_BeginBlock()
+apply.plan {
+  changing_envelope_anchors = 0,
+  cut_fade = 0.005,
+  drops = {},
+  envelope_anchors = {},
+  envelope_drops = {},
+  envelope_moves = {},
+  headroom = {},
+  is_empty = false,
+  item_moves = {
+    [1] = {
+      delta = 8,
+      from = 2,
+      length = 2,
+      to = 10,
+      track_index = 0,
+    },
+  },
+  marker_moves = {},
+  packed_end = 16,
+  pads = {},
+  park_delta = 0,
+  parks = {},
+  places = {
+    [1] = {
+      delta = -8,
+      from_end = 16,
+      from_start = 8,
+      length = 8,
+      name = "B",
+      number = 2,
+      to_start = 0,
+    },
+    [2] = {
+      delta = 8,
+      from_end = 8,
+      from_start = 0,
+      length = 8,
+      name = "A",
+      number = 1,
+      to_start = 8,
+    },
+  },
+  splits = {},
+  tempo_moves = {
+    [1] = {
+      bpm = 120,
+      delta = 8,
+      from = 0,
+      kind = "region",
+      lineartempo = false,
+      region_name = "A",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 8,
+    },
+    [2] = {
+      bpm = 120,
+      delta = -8,
+      from = 8,
+      kind = "region",
+      lineartempo = false,
+      region_name = "B",
+      timesig_denom = 4,
+      timesig_num = 4,
+      to = 0,
+    },
+  },
+}
+Undo_EndBlock("Apply Arrangement", -1)
+ShowMessageBox("Apply Arrangement", 0) -> 1 <<
+Applied "Swapped": 2 region(s), 0 marker(s), 2 tempo marker(s), 0 envelope point(s) and 1 item(s) moved, 0 cut(s) made.
+>>

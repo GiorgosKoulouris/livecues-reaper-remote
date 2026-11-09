@@ -1,0 +1,78 @@
+project.snapshot() #1
+GetUserInputs("Capture Region Order", 1, "Arrangement name:,extrawidth=200", "Captured") -> true, "Identity"
+ShowMessageBox("Capture Region Order", 4) -> 6 <<
+An Arrangement named "Identity" already exists. Replace it?
+>>
+file /proj/Bars.arrangements.lua (w) <<
+-- REAPER Arrangements. Each entry is an ordered list of Region Names.
+-- `headroom` adjusts a region's end, in seconds; 0 leaves it alone, and the
+-- new end is always rounded to the nearest bar line. Shrinking may only ever
+-- remove silence -- a run refuses rather than cutting into a region's content.
+-- Edit freely; this file is read in a sandbox and validated on load.
+return {
+  ["Ghost"] = {
+    { "Alpha", headroom = 0 },
+    { "Zulu", headroom = 0 },
+  },
+  ["Headroom"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 4 },
+    { "Delta", headroom = 0 },
+  },
+  ["Identity"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 0 },
+    { "Charlie", headroom = 0 },
+    { "Delta", headroom = 0 },
+  },
+  ["Reordered"] = {
+    { "Charlie", headroom = 0 },
+    { "Alpha", headroom = 0 },
+    { "Delta", headroom = 0 },
+    { "Bravo", headroom = 0 },
+  },
+  ["Shrink"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = -20 },
+    { "Delta", headroom = 0 },
+  },
+  ["Subset"] = {
+    { "Alpha", headroom = 0 },
+    { "Bravo", headroom = 0 },
+    { "Delta", headroom = 0 },
+  },
+}
+>>
+ShowConsoleMsg <<
+[2026-11-07 12:00:00] Capture Region Order -- replaced "Identity"
+Regions read via GetRegionOrMarker (issue #11).
+   1. Alpha
+   2. Bravo
+   3. Charlie
+   4. Delta
+Written to /proj/Bars.arrangements.lua
+>>
+file /proj/Bars.arrange.log (a) <<
+[2026-11-07 12:00:00] Capture Region Order -- replaced "Identity"
+Regions read via GetRegionOrMarker (issue #11).
+   1. Alpha
+   2. Bravo
+   3. Charlie
+   4. Delta
+Written to /proj/Bars.arrangements.lua
+
+>>
+ShowMessageBox("Capture Region Order", 0) -> 1 <<
+Replaced "Identity" with 4 regions.
+
+/proj/Bars.arrangements.lua
+
+Next, in a text editor:
+
+  1. Duplicate the ["Identity"] = { ... } block and give the copy a different name.
+  2. Reorder the Region Names inside the copy, or delete some to make a subset.
+  3. Set `headroom` on any entry to add or remove seconds at that region's end. It is rounded to the nearest bar, and it is relative -- applying twice moves twice.
+  4. Run 'Check Arrangement' on the new name, then 'Apply Arrangement', then 'Verify Arrangement'.
+
+Editing the copy leaves "Identity" intact as a record of the current order.
+>>
