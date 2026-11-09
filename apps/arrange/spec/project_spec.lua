@@ -126,6 +126,11 @@ local function api_with_tracks(track_specs, entries, project_path)
     if not time then
       return false
     end
+    -- A point may be given as { time, value } to say which of two points at one
+    -- time is which.
+    if type(time) == "table" then
+      return true, time[1], time[2], 0, 0, false
+    end
     return true, time, 0.5, 0, 0, false
   end
   return api
@@ -525,6 +530,38 @@ describe("project.snapshot envelope points", function()
     assert.are.equal(50, snapshot.envelope_points[2].position)
   end)
 
+  -- Real automation is authored as step pairs: two points at one time, where
+  -- the *last* is the value in effect afterwards (lib/regions.lua's
+  -- `value_at_bound` depends on that). `table.sort` is not stable, so sorting
+  -- every point by position used to shuffle such pairs: on a real project a
+  -- second Apply wrote the other half of a step at five shared region bounds,
+  -- flipping Mute states (.scratch/arrange/issues/02).
+  it("keeps the order of points that share a time, as REAPER holds them", function()
+    local tracks = {}
+    for track = 1, 12 do
+      local points = {}
+      for step = 1, 8 do
+        points[#points + 1] = { step * 10, 0 }
+        points[#points + 1] = { step * 10, 1 }
+      end
+      tracks[track] = { mode = 0, items = {}, envelopes = { { name = "Mute", points = points } } }
+    end
+
+    local snapshot = project.snapshot(api_with_tracks(tracks, {}))
+
+    -- Per envelope: at every time, the 0 comes before the 1.
+    local seen = {}
+    for _, point in ipairs(snapshot.envelope_points) do
+      local key = point.track_index .. "@" .. point.position
+      if seen[key] == nil then
+        assert.are.equal(0, point.value, "the first point at " .. key .. " should be the 0")
+      else
+        assert.are.equal(1, point.value, "the second point at " .. key .. " should be the 1")
+      end
+      seen[key] = point.value
+    end
+  end)
+
   -- Master automation is stranded by a Repack exactly like a track's, and the
   -- master has no index in REAPER's track enumeration to report it under.
   it("reads the master track's envelopes, under MASTER_TRACK_INDEX", function()
@@ -599,5 +636,47 @@ describe("project.region_names", function()
 
   it("is empty when the project has no regions", function()
     assert.are.same({}, project.region_names(project.snapshot(api_with({}))))
+  end)
+end)
+
+-- The reader and the planner together, on the shape that went wrong on a real
+-- project (issue 02): step pairs on many envelopes, two regions sharing a bound
+-- that holds one. Each unit is covered on its own (above, and regions_spec's
+-- "takes the last of a step pair"); this is the seam between them, which is
+-- where the order of tied points is silently lost or kept.
+describe("project.snapshot feeding regions.plan_pack", function()
+  local regions = require("lib.regions")
+  local harness = require("spec.support.script_harness")
+
+  it("anchors every shared bound with the last point of its step pair", function()
+    local tracks = {}
+    for track = 1, 12 do
+      local points = {}
+      for step = 1, 8 do
+        points[#points + 1] = { step * 2, 0 }
+        points[#points + 1] = { step * 2, 1 }
+      end
+      tracks[track] = { mode = 0, name = "T" .. track, items = {},
+        envelopes = { { name = "Mute", points = points } } }
+    end
+    local api = api_with_tracks(tracks, {
+      { isrgn = true, pos = 0, rgnend = 8, name = "A", number = 1 },
+      { isrgn = true, pos = 8, rgnend = 16, name = "B", number = 2 },
+    })
+    api.TimeMap2_timeToBeats = function() return 0, 1 end
+
+    local plan = assert(regions.plan_pack(project.snapshot(api), { "A", "B" },
+      harness.even_grid(2, 200), { value_at = function() return 0.5 end }))
+
+    -- (A's start at 0 has no point before it, so the oracle answers there.)
+    local checked = 0
+    for _, anchor in ipairs(plan.envelope_anchors) do
+      if anchor.from > 0 then
+        checked = checked + 1
+        assert.are.equal(1, anchor.value, ("%s at %s (%s)"):format(
+          anchor.track_name, anchor.from, anchor.edge))
+      end
+    end
+    assert.are.equal(12 * 3, checked)
   end)
 end)

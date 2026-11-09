@@ -14,7 +14,7 @@ Everything in `../spec.md` assumes a web page can talk to a background Lua scrip
 6. What does `GET/EXTSTATE` return for a key that was never set? (This is how "bridge not running" will be detected.)
 
 ## How to run
-Files are in `../spike/`.
+The spike files (`lcrr-arrange-spike.html`, `LCRR_Arrange_SpikeBridge.lua`) were deleted after the spike; they are in git history before the commit that removed `.scratch/arrange/spike/`.
 
 1. Copy `lcrr-arrange-spike.html` into `%APPDATA%\REAPER\reaper_www_root\`.
 2. Copy `LCRR_Arrange_SpikeBridge.lua` anywhere under `%APPDATA%\REAPER\Scripts\`, load it in the Action list (New action → Load ReaScript) and run it. The toolbar/action shows as running, and running it again stops it.

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrange · LiveCues ReaperRemote</title>
+<link rel="icon" href="lcrr/shared/img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="lcrr/shared/img/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="lcrr/shared/img/apple-touch-icon.png">
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/arrange/css/arrange.css">
+</head>
+<body data-state="connecting">
+<header class="arrange-bar">
+  <div class="arrange-bar-inner">
+    <h1 class="arrange-title">Arrange</h1>
+    <span id="arrange-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="arrange-shape" aria-hidden="true"></i><span id="arrange-state-text">Connecting&hellip;</span></span>
+  </div>
+  <div id="arrange-banner" role="alert" hidden></div>
+  <div id="arrange-busy" role="status" aria-live="polite" hidden></div>
+</header>
+
+<main>
+  <div id="arrange-project" class="arrange-project" hidden>
+    <span class="arrange-label">Project</span>
+    <strong id="arrange-project-name"></strong>
+    <span id="arrange-project-path" class="arrange-path"></span>
+    <button type="button" id="arrange-refresh" class="arrange-quiet" disabled>Refresh</button>
+  </div>
+
+  <div id="arrange-work" class="is-locked">
+    <section class="arrange-section" aria-labelledby="arrange-h-arrangement">
+      <h2 id="arrange-h-arrangement" class="arrange-h">Arrangement</h2>
+      <label class="arrange-field">
+        <span class="arrange-label">Name</span>
+        <select id="arrange-name" disabled></select>
+      </label>
+      <p id="arrange-sidecar" class="arrange-note" hidden></p>
+      <div class="arrange-buttons">
+        <button type="button" id="arrange-check" disabled>Check</button>
+        <button type="button" id="arrange-verify" disabled>Verify</button>
+      </div>
+      <p class="arrange-hint">Check shows everything knowable without writing, then offers Apply. Verify asks whether the timeline now holds what a Repack promises.</p>
+    </section>
+
+    <section class="arrange-section" aria-labelledby="arrange-h-capture">
+      <h2 id="arrange-h-capture" class="arrange-h">Capture</h2>
+      <label class="arrange-field">
+        <span class="arrange-label">Save the current region order as</span>
+        <input id="arrange-capture-name" type="text" value="Captured" autocomplete="off" disabled>
+      </label>
+      <div class="arrange-buttons"><button type="button" id="arrange-capture" disabled>Capture</button></div>
+    </section>
+
+    <section class="arrange-section" aria-labelledby="arrange-h-diagnostics">
+      <h2 id="arrange-h-diagnostics" class="arrange-h">Diagnostics</h2>
+      <div class="arrange-buttons">
+        <button type="button" id="arrange-dup" disabled>Duplicate and unnamed regions</button>
+        <button type="button" id="arrange-timebase" disabled>Track timebase</button>
+        <button type="button" id="arrange-bars" disabled>Bar lines and Padding</button>
+      </div>
+    </section>
+  </div>
+
+  <section id="arrange-result" class="arrange-result" aria-live="polite"></section>
+  <p class="arrange-host-note">Some steps happen only in REAPER on the host: importing a sidecar after Save As, and saving a project that has never been saved. This page never starts those.</p>
+</main>
+
+<footer class="lcrr-footer">
+  <div class="lcrr-footer-inner">
+    <a class="lcrr-home" href="lcrr.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Home</a>
+  </div>
+</footer>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/arrange/js/wire.js"></script>
+<script src="lcrr/arrange/js/client.js"></script>
+<script src="lcrr/arrange/js/words.js"></script>
+<script src="lcrr/arrange/js/arrange.js"></script>
+</body>
+</html>

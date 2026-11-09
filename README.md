@@ -6,6 +6,7 @@ Remote-control pages for REAPER, served by REAPER's built-in web interface. Open
 |---|---|---|
 | Home | `lcrr.html` | App buttons and a REAPER connection indicator |
 | Podium | `lcrr-podium.html` | Transport bar, region list and marker list for the stage |
+| Arrange | `lcrr-arrange.html` | Region Repack from the desk: Check, Apply, Verify, Capture and diagnostics, through a background script in REAPER |
 
 ## Setup (Windows)
 

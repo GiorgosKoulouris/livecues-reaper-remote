@@ -3,42 +3,74 @@
 For a fresh session picking up the **arrange** app (the region Repack suite moving into LCRR). It's short on purpose and carries only what the files don't make obvious.
 
 Read in this order:
-1. `/CLAUDE.md` (suite rules, user rules: work on `dev`, never `main`, **no Claude/Anthropic co-author or attribution in commits**).
+1. `/CLAUDE.md` (suite rules, user rules: work on `dev`, never `main`, **no Claude/Anthropic co-author or attribution in commits**, ask questions with AskUserQuestion).
 2. `.scratch/arrange/spec.md`: every decision, and the order of work. **Don't re-open settled decisions** without asking the user.
-3. `.scratch/arrange/issues/01-bridge-spike.md`: what the real REAPER web API does with ExtState. It's resolved, and its facts are also in `/CONTEXT.md`.
+3. `.scratch/arrange/issues/01-bridge-spike.md`: what the real REAPER web API does with ExtState (also in `/CONTEXT.md`). Read it before building the bridge.
+4. `apps/arrange/CLAUDE.md`, `apps/arrange/HANDOFF.md`, `apps/arrange/docs/decisions.md`, then `apps/arrange/docs/adr/0008-headless-cores-thin-front-ends.md`: the core contract the bridge builds on.
 
-## Where things stand (2026-11-07)
+## Where things stand (2026-11-07, end of the step-4 session)
 
-- **Step 1 is done.** The bridge spike ran on real REAPER (Windows, Chrome, phone). ExtState works both ways. **Requests are silently truncated at ~1026 URL chars**, and **REAPER serves web requests on its main thread**, so every request hangs while the bridge works. `spike/` holds the throwaway page and Lua. Keep them as a reference, but don't build on them.
-- **Step 2 is done** (2026-11-07): `apps/arrange/` exists and every spec and lint passes under Lua 5.4 (517 specs). repack_basic's text files are in `apps/arrange/spec/fixtures/repack_basic/` (logs renamed to `.arrange.log`, contents unchanged); its `after.rpp` stays gitignored by the user's choice, so it's local only. `apps/reorg/` was deleted (user OK).
-- Decided while doing step 2 (user, 2026-11-07): `install.ps1` took over `sync.ps1` (reaper slices, `-Resource`, `-Link`); **release zip and ReaPack don't carry the Lua yet** (own later step). `npm test`/`check` **fail** when busted/luacheck are missing. The **home button waits for step 4** (no page to link to).
-- **Step 3 is done** (2026-11-07): every `LCRR_Arrange_*.lua` is now a dialog front end over a headless core in `lib/core/<action>.lua`, with the wording in `lib/text/<action>.lua`. `report.lua` returns structured findings (codes and fields). The details are in `apps/arrange/docs/adr/0008`. Before the split, a harness recorded 78 transcripts of every script's dialogs, console, log, undo and applier calls (`apps/arrange/spec/dialog_spec.lua`, baseline commit `983047b`), and all 78 are still byte-identical after it. Step 4's bridge calls the same cores: `prepare` then `run(prepared, request)`. A `status = "confirm"` result means "ask, then call again". Apply takes `headroom = "apply" | "zero" | "cancel"`, and a missing sidecar comes back as `sidecar_missing`, because the import is host-only. `Logger:write` always calls `ShowConsoleMsg`, so a bridge-started run would open REAPER's console on the host. Decide that in step 4 (the page must never cause a dialog there).
-- **Nothing has run in REAPER since the migration** (nor since step 3). First real run: `install.ps1` on Windows (its reaper-slice code is untested, no PowerShell here), load the `LCRR_Arrange_*` actions, run a read-only one, then the usual run-twice check. The old `Scripts\TSB\` install and its Action list entries are left for the user to remove.
-- The old ReaperScripts repo has **no open issues** (the user checked on GitHub, 2026-11-07), so there's nothing to port. New arrange issues go in `.scratch/arrange/issues/`, numbered from `02`.
+- **Steps 1 to 4 are done and have run in real REAPER** (7.82/win64): the bridge, started by `Scripts/__startup.lua`, and the page. Commits on `dev` up to `33875c3`. `npm test` (93 node, 768 busted) and `npm run check` pass; the 78 dialog transcripts are unchanged.
+- **Step 4 in one paragraph.** `LCRR_Arrange_Bridge.lua` is a background defer script over the same cores as the dialog scripts (`lib/bridge/`: `service` requests and replies, `request`, `json`, `tokens`, `runner`). The page `lcrr-arrange.html` (`apps/arrange/www/`) talks to it through ExtState; contract in `apps/arrange/docs/bridge.md`. Apply needs the token of a Check that would proceed. The bridge silences REAPER's console (an `api` wrapper) and still writes the run log file. `install.ps1` adds and removes one marked line in `Scripts/__startup.lua`. The page's wording (`js/words.js`) is tested against replies recorded from the real Lua (`apps/arrange/test/fixtures/bridge-replies.txt`, `spec/bridge_contract_spec.lua`).
+- **Verified on the host by the user:** the startup line starts the bridge after a REAPER restart; the page shows "Bridge running", and Capture, Check, Verify, the duplicate-names diagnostic and Apply all work from it, on `podium-dummy` and on the real project `Rehearsal_Current` (21 regions). **Apply takes under a second** (recorded in `spec.md`). Apply twice on the real project: the second run is a clean no-op except for the bug below, and after the fix the user judged the result correct. A Check followed by clicking around in REAPER and then Apply was refused by the check-token guard ("project changed"); the user accepts that.
+- **A real engine bug was found and fixed (issue 02, `33875c3`).** `lib/project.lua` sorted envelope points with the unstable `table.sort`, so step pairs (two points at one time) came out in arbitrary order and the Automation Anchor planner read the wrong half, on the first Apply as well as the second, flipping Mute/Bypass values at shared bounds. Now ties keep read order (`sort_by_position`; `docs/decisions.md`). **Any Apply made before the fix on a real project may have written wrong automation values**; the old run logs list every anchor, so they can be compared with the original envelopes.
+- **Host checks since the fix (user, 2026-11-07 ~19:54, `Rehearsal_Current.arrange.log`):** on the original `.rpp`, Apply 1 now anchors every BassDI Mute bound with the last half of its step pair (God start/end 1.0, Low Fall start 1.0, and so on, matching the file); the following Check says "already matches the timeline" with Padding EXACT; a second Apply wrote no log entry, which is correct (an empty plan with every anchor redundant logs nothing and creates no undo point). The bridge was stopped and restarted with the page open: all good. Check-token sensitivity: accepted as is.
+- **Decisions made this session** (user): the bridge silences the console and keeps the log file; bridge and page in one session. **Mine, not asked (cheap to change):** a Check mints a token only when it would proceed; Apply is a plain button with a 1.5 s repeat-tap guard (no hold); the page replaces its result panel on each command.
+- **Not seen yet in REAPER or a browser:** a Headroom Apply through the page's question; Show Bar Lines and Show Track Timebase (from the page or the Action list); Apply refusing after its Tempo Anchors (the "one undo step" message); the page on the tablet; how the page looks at desktop and tablet widths (nobody has reported on it; Check findings are long); the bridge being stopped and restarted while the page is open; `-Uninstall` removing only its `__startup.lua` line, and a second `install.ps1` not duplicating it (written without PowerShell to run it).
+- **The user's `dev/reaper-projects/` files are uncommitted** (`Rehearsal_Current.*`, `podium-dummy.*`, `Backups/`) and so is `temp.txt` (an old copy of the step-4 prompt). Leave them alone unless asked; ask before committing any of them (the real project's `.rpp` and log are the user's data).
 
-## Traps
+## Next steps, in order
 
-- `apps/reorg/` (the gitignored source copy) was deleted after step 2. `apps/arrange/` is the only copy now.
-- **Read `apps/arrange/HANDOFF.md` and `apps/arrange/docs/decisions.md` before changing any Lua.** Many things there look like bugs and aren't. The engine was tested by hand at length on real projects; step 3 (core/front-end split) must keep its behaviour too.
-- **REAPER isn't reachable from the container, and there's no Lua here yet.** The root devcontainer (`/.devcontainer/`) needs `lua5.4`, busted and luacheck added. Keep the `.busted` pin `lua = "lua5.4"`: without it, busted runs specs under 5.1, and they pass there but fail inside REAPER (`spec/toolchain_spec.lua` guards this).
-- Lua scripts find `lib/` through `reaper.get_action_context()`, so `lib/` must stay a sibling of the scripts: `apps/arrange/reaper/Scripts/LCRR/arrange/{LCRR_Arrange_*.lua, lib/}`.
-- `spec/fixtures/repack_basic/` is the 4.6 GB live project. It exists only on the host and is empty here. Never commit media; reorg's `.gitignore` rules (`*.wav`, `*.rpp-bak`, …) must carry over. `spec/fixtures/repack_bars/` is the golden pair (reorg ADR-0005): move it as it is.
-- The run log becomes `<Project>.arrange.log`. Fixture files named `*.tsb.log` are golden records: rename the files and their references, but don't edit their contents.
-- `scripts/release-lib.js` only knows `www/` slices (`sliceRoots`). `reaper/` slices need adding there, in `install.ps1` (taking over reorg's `tools/sync.ps1`) and in the ReaPack index (per-source `type="script"`, unverified). That may be step 2 or its own step, so ask the user.
-- Suite rule: `npm test` and `npm run check` must pass before any commit. They must also run busted and luacheck once the Lua is in.
+1. **Phase 2 grilling** (user's call, 2026-11-07: ready). Phase 2 is the Arrangement editor in the page: drag the order, Headroom controls. It needs a grilling session before any code (`/mattpocock-skills:grilling`, or the `grilling` skill) and its decisions go in `spec.md`. Seeds, not decisions:
+   - It **overturns reorg ADR-0003** (`apps/arrange/docs/adr/0003-arrangements-as-name-keyed-lua-sidecar.md`): the sidecar is authored only in a text editor, which is why Capture's output tells the user to edit the file by hand. Today the page cannot write an Arrangement at all except through Capture.
+   - **Known trap: a Lua rewrite of a hand-edited sidecar loses its comments** (`lib/sidecar.lua` parses in a sandbox and `serialize`s from tables). Options to weigh: keep comments by editing text, write a separate machine-owned file, or accept and warn.
+   - **The bridge's 900-character request limit**: an Arrangement of 21 regions with long names will not fit in one request, so the spec's "large payloads are sent in chunks" becomes real. Needs a chunk protocol in `docs/bridge.md`, `lib/bridge/request.lua` and `client.js`.
+   - Who owns the file when it is also open in a text editor on the host (stale overwrite), concurrency with the check token (the token binds the name, not the contents), Undo, validation (reuse `sidecar.parse`), how Headroom's relative semantics (ADR-0007) are shown safely in a UI, omitted regions (Parked Material), and whether a page-edited Arrangement can be a new `bridge` command or needs a new core (ADR-0008: cores take a request table and never open a dialog).
+2. **Release question, still open (user's):** see "What ReaPack is here" below. The release zip includes the page but not the Lua.
+3. **Host checks not done yet** (not blocking): a Headroom Apply through the page (the Arrangement `This` had a +300 s Headroom on Outro), Show Bar Lines and Show Track Timebase, `install.ps1` twice then `-Uninstall` (look at `__startup.lua`), the page on a tablet and at desktop widths, and the "Applying…" display (Apply is under a second, so it barely shows). Record failures as issues from `03`.
+4. **Housekeeping that remains on the host:** remove the old `Scripts\TSB\` actions. (Done in the repo: spike deleted, EnumProjectMarkers3 fallback deliberately kept, an end-to-end step-pair spec added.)
 
-## Step 2 checklist (from the spec)
-- [x] `apps/arrange/` laid out like the other apps (`CLAUDE.md`, `CONTEXT.md`, `docs/adr/`, `test/` or `spec/`, `www/` placeholder only if needed), plus `reaper/Scripts/LCRR/arrange/`.
-- [x] Carry over and adapt reorg's `CLAUDE.md`, `CONTEXT.md` (glossary), `HANDOFF.md`, `docs/` (workflow, actions, limitations, decisions, ADRs 0001 to 0007) and `research/`. Drop `docs/agents/` and GitHub-issue references (the suite uses `.scratch/`).
-- [x] Rename `TSB_<Verb><Noun>.lua` to `LCRR_Arrange_<Verb>.lua` (`Apply`, `Check`, `Capture`, `Verify`, `FindDuplicateRegionNames`, `ShowBarLines`, `ShowTrackTimebase`). `@description` starts with `LCRR Arrange: `. Update docs and specs that name them.
-- [x] `.tsb.log` → `.arrange.log` in code, docs and fixture file names.
-- [x] Root devcontainer gains lua5.4, busted and luacheck. `npm test` / `npm run check` call them (keep `.busted` and `.luacheckrc`).
-- [x] Suite ADR-0001 amended for `reaper/` slices. `CONTEXT-MAP.md` gets an arrange entry.
-- [x] All specs green under Lua 5.4, then commit to `dev`.
+## What ReaPack is here
 
-## Step 3 checklist (from the spec)
-- [x] Every script split into a headless core (request table in, result table out) and a dialog front end that keeps today's Action-list behaviour exactly (pinned by `spec/dialog_spec.lua`).
-- [x] `report.lua` returns structured tables. The dialog front ends format text from them through `lib/text/`.
-- [x] Specs cover the cores (`spec/core_*_spec.lua`) and the structured reports (`spec/report_spec.lua`, `spec/text_spec.lua`).
+ReaPack is REAPER's package manager. Suite ADR-0002 says LCRR ships as **one** ReaPack package of type `webinterface` (main file `lcrr.html`), built by `npm run release -- --base-url ...` into `index.xml` plus a zip; users import the repository URL and ReaPack installs the files into `reaper_www_root`. Today the index lists only `www/` slice files, so a ReaPack or zip user gets the Arrange **page** but not the **Lua** (`apps/arrange/reaper/Scripts/LCRR/arrange/`: scripts, `lib/`, the bridge) or the `__startup.lua` line that `install.ps1` adds, so the page would sit on "Bridge not running" with no way for them to fix it. The planned step: have the same package also carry the Lua as `type="script"` sources (ReaPack scripts install under `Scripts/<repo>/...`, with `lib/` beside them, which must keep matching `get_action_context()`), and decide how the bridge starts there (ReaPack can't edit `__startup.lua`; the user would run the action once, or ReaPack's own "run at startup" handling). The spec marks "per-source `type="script"`" as "to verify". Nothing of the ReaPack index has ever been verified in a live ReaPack either (`/CONTEXT.md`). Until it is done, the decision is: hold the Arrange page back from the release, or ship the release as install.ps1-only for Arrange.
 
-Step 4 (bridge and page) is in the spec. Start it in a fresh session.
+## Known gaps and traps
+
+- **The token binds the Arrangement name, not the sidecar's contents.** Edit the sidecar between Check and Apply and Apply uses the new contents. The dialog front end has the same gap. Leave unless the user wants it.
+- **Read `apps/arrange/HANDOFF.md` and `apps/arrange/docs/decisions.md` before changing any Lua.** Many things there look like bugs and aren't. Rule that found issue 02: a single clean run proves nothing about anything idempotent; run it twice and diff.
+- REAPER serves web requests on its main thread, so every request hangs while the bridge works (spike facts in `/CONTEXT.md`). Requests stay under about 900 encoded URL chars.
+- REAPER isn't reachable from the container. Keep the `.busted` pin `lua = "lua5.4"`. The container has no PowerShell and no browser: `install.ps1` and `arrange.js` can only be checked on the host.
+- `spec/fixtures/repack_basic/` is the 4.6 GB live project. It exists only on the host. Never commit media.
+- Lua scripts find `lib/` through `reaper.get_action_context()`, so `lib/` stays a sibling of the scripts (`spec/layout_spec.lua` guards this).
+- Changing a bridge reply: update `docs/bridge.md`, `lib/bridge/service.lua`, re-record `test/fixtures/bridge-replies.txt` (`LCRR_RECORD_BRIDGE=1 busted spec/bridge_contract_spec.lua`), and `www/lcrr/arrange/js/words.js`. The Lua wording in `lib/text/` and the page's `words.js` say the same things and are kept in step by hand.
+
+## Next-session prompt
+
+```
+We're continuing the "arrange" app (the REAPER region-Repack Lua suite in apps/arrange/).
+Steps 1-4 are done and run in real REAPER (bridge + page), and issue 02 is fixed and
+confirmed on the real project. This session is the PHASE 2 GRILLING: no code until it's done.
+
+Read, in order: /CLAUDE.md, .scratch/arrange/HANDOFF.md ("Next steps" item 1 has the seeds),
+.scratch/arrange/spec.md (phase 2 is mentioned under Scope), then apps/arrange/CLAUDE.md,
+apps/arrange/CONTEXT.md, apps/arrange/docs/adr/0003-arrangements-as-name-keyed-lua-sidecar.md
+(the decision phase 2 overturns), 0007 (Headroom is relative) and 0008 (headless cores, thin
+front ends), apps/arrange/docs/bridge.md, apps/arrange/reaper/Scripts/LCRR/arrange/lib/sidecar.lua
+and apps/arrange/www/lcrr/arrange/js/arrange.js. Look at a real sidecar:
+dev/reaper-projects/Rehearsal_Current.arrangements.lua.
+
+Then run the grilling skill (mattpocock-skills:grilling) on phase 2: the Arrangement editor in
+the page (reorder, Headroom controls, create/duplicate/delete Arrangements). Ask one decision at
+a time with AskUserQuestion, give your recommendation for each, and walk the dependency order
+(where the source of truth lives and what happens to hand-written comments comes first). The
+900-character request limit, the check token, undo, the stale-overwrite problem when the file is
+also open in a text editor on the host, and ADR-0007's relative Headroom are all in scope. Record
+the result in .scratch/arrange/spec.md (a phase 2 section, decisions only, not how) and write an
+ADR in apps/arrange/docs/adr/ for anything that overturns an existing one; split the work into
+issues in .scratch/arrange/issues/ (numbered from 03). Don't re-open settled decisions in the
+spec without asking.
+
+The release/ReaPack question (HANDOFF, "What ReaPack is here") is separate and mine to decide;
+raise it at the end, don't fold it in. Don't commit the files under dev/reaper-projects/ or
+temp.txt. Work on dev, never main, and don't add Claude/Anthropic as co-author.
+```

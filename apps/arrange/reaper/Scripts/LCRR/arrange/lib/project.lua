@@ -38,8 +38,25 @@ function project.path(api)
   return path or ""
 end
 
-local function by_position(a, b)
-  return (a.start_time or a.position) < (b.start_time or b.position)
+--- Sort by position, keeping entries at one position in the order they were
+--- read. `table.sort` is not stable, and that order is data: automation is
+--- authored as step pairs (two points at one time, the last being the value in
+--- effect afterwards), and `lib/regions.lua`'s `value_at_bound` takes "the
+--- last point at a position" from this order. With an unstable sort, a second
+--- Repack of a real project read the wrong half of a step at shared region
+--- bounds and wrote it back (.scratch/arrange/issues/02).
+local function sort_by_position(list)
+  local read_order = {}
+  for index, entry in ipairs(list) do
+    read_order[entry] = index
+  end
+  table.sort(list, function(a, b)
+    local pa, pb = a.start_time or a.position, b.start_time or b.position
+    if pa ~= pb then
+      return pa < pb
+    end
+    return read_order[a] < read_order[b]
+  end)
 end
 
 -- Track timebase modes safe to reposition an item under directly, confirmed
@@ -107,7 +124,7 @@ local function tempo_markers(api)
       }
     end
   end
-  table.sort(markers, by_position)
+  sort_by_position(markers)
   return markers
 end
 
@@ -354,8 +371,8 @@ function project.snapshot(api)
     regions, markers = read_legacy(api)
   end
 
-  table.sort(regions, by_position)
-  table.sort(markers, by_position)
+  sort_by_position(regions)
+  sort_by_position(markers)
 
   local items, envelope_points = {}, {}
   for track_index = 0, api.CountTracks(0) - 1 do
@@ -390,8 +407,8 @@ function project.snapshot(api)
     collect_envelope_points(api, master, project.MASTER_TRACK_INDEX, "Master", envelope_points)
   end
 
-  table.sort(items, by_position)
-  table.sort(envelope_points, by_position)
+  sort_by_position(items)
+  sort_by_position(envelope_points)
 
   return {
     project_path = project.path(api),

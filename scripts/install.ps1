@@ -9,6 +9,8 @@
   Each install replaces the whole lcrr\ and Scripts\LCRR\ trees, so a file deleted or renamed in the repo
   disappears from REAPER too. Re-run to update. Run from a PowerShell prompt on the Windows host:
       .\scripts\install.ps1
+  The Arrange bridge (LCRR_Arrange_Bridge.lua) starts with REAPER through one marked line in Scripts\__startup.lua,
+  which install adds (or replaces) and -Uninstall removes; the rest of that file is left alone.
   New Lua scripts must be loaded once in REAPER (Actions > Show action list > New action > Load ReaScript);
   already-loaded ones pick up changes on their next run.
 .PARAMETER Root
@@ -61,6 +63,28 @@ function Remove-Entry([string]$p) {
   else { Remove-Item -LiteralPath $p -Recurse -Force }
 }
 
+# The Arrange bridge runs in the background from REAPER's start (Scripts\__startup.lua). That file may hold the user's
+# own lines, so ours is one marked line: it is replaced on every install and removed on uninstall, nothing else is
+# touched. __startup.lua cannot just dofile the bridge, because get_action_context() would then name __startup.lua and
+# the bridge could not find its lib\; it registers the bridge as an action and runs that (same command id each start).
+$startupFile = Join-Path $scripts '__startup.lua'
+$startupMarker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'
+$startupLine = 'do local p = reaper.GetResourcePath() .. "/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua"; ' +
+  'local id = reaper.AddRemoveReaScript(true, 0, p, true); if id ~= 0 then reaper.Main_OnCommand(id, 0) end end ' + $startupMarker
+
+function Set-StartupLine([bool]$present) {
+  $kept = @()
+  if (Test-Path -LiteralPath $startupFile) {
+    $kept = @(Get-Content -LiteralPath $startupFile | Where-Object { $_ -notlike "*$startupMarker*" })
+  }
+  if ($present) { $kept += $startupLine }
+  if ($kept.Count -eq 0) {
+    if (Test-Path -LiteralPath $startupFile) { Remove-Item -LiteralPath $startupFile -Force }
+    return
+  }
+  [System.IO.File]::WriteAllText($startupFile, (($kept -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding $false))
+}
+
 function Remove-Installed {
   Get-ChildItem $Root -File -Filter 'lcrr*.html' -ErrorAction SilentlyContinue | ForEach-Object { Remove-Entry $_.FullName }
   $lcrr = Join-Path $Root 'lcrr'
@@ -72,6 +96,7 @@ function Remove-Installed {
     Get-ChildItem $scriptsLcrr -Force | ForEach-Object { Remove-Entry $_.FullName }
     Remove-Entry $scriptsLcrr
   }
+  if (Test-Path -LiteralPath $startupFile) { Set-StartupLine $false }
 }
 
 if ($Uninstall) {
@@ -127,6 +152,10 @@ foreach ($slice in $reaperSlices) {
 if ($count) {
   Write-Host ("{0} {1} script folders into {2}" -f ($(if ($Link) {'Linked'} else {'Copied'}), $count, $scriptsLcrr))
   Write-Host "New scripts: in REAPER, Actions > Show action list > New action > Load ReaScript, from $scriptsLcrr\<app>."
+}
+if (Test-Path -LiteralPath (Join-Path $scriptsLcrr 'arrange\LCRR_Arrange_Bridge.lua')) {
+  Set-StartupLine $true
+  Write-Host "Arrange bridge: starts with REAPER (marked line in $startupFile). Restart REAPER, or run LCRR_Arrange_Bridge.lua once from the Action list."
 }
 
 $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |

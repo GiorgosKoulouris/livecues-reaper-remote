@@ -80,7 +80,11 @@ function core_env.new(options)
   local applier = setmetatable({}, {
     __index = function(_, name)
       return function(called_with, value)
-        assert(called_with == api, "applier called with something other than the api")
+        -- The bridge hands the cores a wrapper of the api whose console is
+        -- silent (lib/bridge/service.lua): still the api, as far as this goes.
+        local wrapped = getmetatable(called_with)
+        assert(called_with == api or (wrapped and wrapped.__index == api),
+          "applier called with something other than the api")
         record({ apply = name, value = value })
       end
     end,

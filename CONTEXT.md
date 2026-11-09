@@ -1,6 +1,6 @@
 # LiveCues ReaperRemote (LCRR): suite context
 
-A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher), **Podium** (`lcrr-podium.html`, the stage transport and cue list) and **Arrange** (region Repack ReaScript actions; its page comes later). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
+A suite of remote-control pages for REAPER, served by REAPER's built-in web interface to a phone, tablet or desktop on the same trusted LAN. Apps: **Home** (`lcrr.html`, the launcher), **Podium** (`lcrr-podium.html`, the stage transport and cue list) and **Arrange** (`lcrr-arrange.html`, a page over region Repack ReaScript actions through a background Lua bridge). Internet exposure is out of scope for the whole suite. App details: see `CONTEXT-MAP.md`.
 
 ## Terms
 
@@ -32,4 +32,5 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 - ReaPack: the generated `index.xml` (one `webinterface` package whose `file` attributes keep the `lcrr/...` subfolders), install and update. Generate it with `npm run release -- --base-url ...`; no index is committed yet because no repo URL exists.
 - `scripts/install.ps1` after the restructure (slices, folder symlinks with `-Link`, uninstall removing links without touching their targets): written in the devcontainer, which has no PowerShell. The same goes for its reaper-slice part (`-Resource`, `Scripts\LCRR\`), added 2026-11-07.
 - Behaviour with several project tabs open.
+- The Arrange bridge and page in real REAPER: the `Scripts/__startup.lua` line that `install.ps1` adds (it registers the bridge with `AddRemoveReaScript` and runs it), whether `GetProjectStateChangeCount` stays still between a Check and an Apply, and how long an Apply holds the web interface. See `.scratch/arrange/HANDOFF.md`.
 - The home page and the suite footer in a real browser and on a phone: checked only by unit tests, a node sandbox run and asset-resolution checks against `npm run serve`.

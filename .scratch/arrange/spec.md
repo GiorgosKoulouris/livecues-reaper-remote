@@ -24,7 +24,7 @@ Decided in a grilling session on 2026-11-07. The Lua engine stays; the web page 
 - Wire facts come from the spike (`issues/01-bridge-spike.md`):
   - Requests: keep them under ~900 encoded URL chars. REAPER silently truncates at ~1026, so each request declares its length and the bridge refuses a short one. Large payloads are sent in chunks.
   - Replies: the page unescapes `\t`, `\n` and `\\`. Detect the bridge only from a changing heartbeat.
-  - REAPER serves web requests on its main thread, so **every request hangs while the bridge works**. There's no readable busy flag. The page knows a long action is running from its own outstanding request: it shows "Applying…" with elapsed seconds instead of the guard's offline state, and uses a long timeout (120 s). Design for an Apply of **5 to 30 s** on the real 19-region, 330-item project. The user remembers it as quick, but it hasn't been measured, so measure it on the first real run and record the result here. Bridge requests can share the suite poller (`SET;GET;TRANSPORT` in one request works).
+  - REAPER serves web requests on its main thread, so **every request hangs while the bridge works**. There's no readable busy flag. The page knows a long action is running from its own outstanding request: it shows "Applying…" with elapsed seconds instead of the guard's offline state, and uses a long timeout (120 s). Design for an Apply of **5 to 30 s** on the real 19-region, 330-item project. **Measured 2026-11-07 (user, from the page, on `Rehearsal_Current`, 21 regions): under a second.** The 120 s timeout and the elapsed-seconds display are therefore generous; they stay as cheap insurance against a much bigger project or a slow host. Bridge requests can share the suite poller (`SET;GET;TRANSPORT` in one request works).
 
 ### Repo, naming, packaging
 - Fresh copy (no history) into `apps/arrange/`. Page `lcrr-arrange.html`, JS `LCRR.arrange`, CSS/IDs `arrange-`.
@@ -41,4 +41,4 @@ Decided in a grilling session on 2026-11-07. The Lua engine stays; the web page 
 1. Bridge spike on real REAPER (`issues/01-bridge-spike.md`). Everything else depends on it.
 2. Migrate and rename into `apps/arrange/`, then get the tests green (npm wraps busted and luacheck).
 3. Split scripts into core and front ends, and make `report.lua` structured.
-4. Build the bridge and the page.
+4. Build the bridge and the page. **Built 2026-11-07; not yet run in REAPER** (see `HANDOFF.md`). Apply's timing is still to be measured and recorded here.

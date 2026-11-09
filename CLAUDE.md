@@ -4,7 +4,7 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 
 ## Where things are
 
-- `apps/<app>/`: one folder per app (`home`, `podium`, `arrange`). Each has its own `CLAUDE.md`, `CONTEXT.md`, `docs/adr/`, `test/` and `www/`. Work inside one app and read only that app's docs. Arrange is Lua (no page yet): `reaper/` slice and busted `spec/` instead of `www/` and `test/`.
+- `apps/<app>/`: one folder per app (`home`, `podium`, `arrange`). Each has its own `CLAUDE.md`, `CONTEXT.md`, `docs/adr/`, `test/` and `www/`. Work inside one app and read only that app's docs. Arrange is Lua plus a page: a `reaper/` slice and busted `spec/` beside `www/` and `test/`.
 - `shared/`: code and CSS every app uses (REAPER reply parsing, poller, guards, press-and-hold, tokens, base CSS, suite footer). See `shared/CLAUDE.md` before changing it.
 - `scripts/`: install (Windows), release, syntax check, local server. `test/`: tests for those scripts.
 - `CONTEXT.md`: suite facts and the verified REAPER web API facts. `docs/adr/`: suite decisions. `DESIGN.md`: the suite's design system. `README.md`: setup, install, dev, release.

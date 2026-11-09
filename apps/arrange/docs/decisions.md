@@ -84,6 +84,8 @@ proved the obvious version wrong. Read the entry — and the ADR it names — be
 
 ## Tolerances and no-ops
 
+- **The snapshot's sorts break ties by read order (`project.sort_by_position`).** `table.sort` is not stable, and for envelope points the order of two points at one time is data: the last is the value in effect. An unstable sort made `value_at_bound` read the wrong half of a step pair, on the first run as well as the second (issue 02). Do not swap it for a plain `table.sort`. Specs with in-order fakes cannot see the difference; `project_spec` has a case big enough to.
+
 - **Region boundaries within `BOUNDARY_TOLERANCE` collapse to one cut.** Two
   regions can meet microseconds apart (measured: `8.07e-06 s`), and cutting at
   both asks REAPER for a **0.39-sample** fragment, which aborts the run.
@@ -112,6 +114,9 @@ proved the obvious version wrong. Read the entry — and the ADR it names — be
 
 ## Structure
 
+- **The bridge silences REAPER's console and keeps the log file** (ADR-0008). Looks like dropping a log line; the file is the only record of Dropped Material, and the console would open a window on the host the page must never touch.
+- **A Check mints its token only when it would proceed, and Apply is a plain button.** No hold-to-apply: the token already makes Apply follow a Check and be used once, and the suite's rule is that scripts run immediately with Undo and the logged plan as the safety net. The Headroom question is the one confirmation, as in the dialog front end.
+
 - **The run log is written by the core, not by the dialog front end**
   (ADR-0008). It looks like presentation, but for Dropped Material it is the
   only record, so a run from any front end must write it, and Apply writes it
@@ -127,7 +132,7 @@ proved the obvious version wrong. Read the entry — and the ADR it names — be
   "by internal index" does not promise `0 .. count-1` addresses every entry
   (research §4.1d), and a snapshot missing regions would Repack part of the
   timeline and report success. Every snapshotting script reports which reader it
-  used. Fair to delete once real runs have exercised the modern path.
+  used. Fair to delete once real runs have exercised the modern path. They have (every 2026-11-07 log says `regions read via GetRegionOrMarker`), and it was **kept on purpose** (user, 2026-11-07): the short-read guard has no other protection and the fallback costs nothing.
 - **Parking writes nothing of its own** (#7). `apply.split_parks` routes each
   parked kind into the applier its category already had, so there is no
   `apply.parks` to find.

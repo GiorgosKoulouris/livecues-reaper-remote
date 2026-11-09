@@ -29,7 +29,7 @@ describe("reaper/ slice layout", function()
   local names = scripts()
 
   it("finds the entry scripts", function()
-    assert.is_true(#names >= 7, "expected the LCRR_Arrange_*.lua scripts in " .. SCRIPT_DIR)
+    assert.is_true(#names >= 8, "expected the LCRR_Arrange_*.lua scripts in " .. SCRIPT_DIR)
   end)
 
   for _, name in ipairs(names) do

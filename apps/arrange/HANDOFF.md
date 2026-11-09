@@ -96,20 +96,9 @@ explicitly to `0`, or `lib/project.lua` refuses their items.
 
 ## Never run in REAPER
 
-**Nothing has run in REAPER since the migration to LCRR** (2026-11-07): the
-renamed scripts, their new `package.path` line (lib/ beside the scripts, not
-one level up), the `.arrange.log` name and `install.ps1`'s reaper-slice code
-are covered only by specs here. Neither has step 3's split of every script
-into a core and a dialog front end (ADR-0008). `spec/dialog_spec.lua` shows
-each script still makes the same dialogs, console output, log, undo calls and
-applier calls as before, but only against a scripted stand-in for REAPER.
-`LCRR_Arrange_ShowTrackTimebase` now requires `lib/` too, so it needs the
-whole folder installed. The first real run should be a read-only
-action (`LCRR_Arrange_FindDuplicateRegionNames`), then the usual run-twice
-check. `LCRR_Arrange_ShowTrackTimebase`'s packaged version is untested. `apply.splits`' cut
-fade-*out* is written but unobserved — `repack_bars`' one cut leaves its left
-piece Dropped before anything reads it; covering it needs an item straddling a
-region *end*.
+Since the migration to LCRR, these have run in real REAPER (2026-11-07, 7.82/win64): Capture, Check, Verify, Find Duplicate Region Names and **Apply** (twice, on `podium-dummy` and on the real project `Rehearsal_Current`), the bridge, the page and `install.ps1`'s `__startup.lua` line. Step 3's core split is therefore exercised for those. The first real run-twice found a bug that no spec could see (issue 02: `table.sort` shuffling envelope step pairs); it is fixed and the user judged the result correct.
+
+**Still never run in REAPER:** Show Bar Lines and Show Track Timebase (`LCRR_Arrange_ShowTrackTimebase` now requires `lib/`, so it needs the whole folder installed); a Headroom Apply; an Apply that refuses after its Tempo Anchors; `install.ps1 -Uninstall` and a repeated install (the `__startup.lua` line); the page on a tablet. `apply.splits`' cut fade-*out* is written but unobserved: `repack_bars`' one cut leaves its left piece Dropped before anything reads it, and covering it needs an item straddling a region *end*. The next steps and the prompt for them are in `.scratch/arrange/HANDOFF.md`.
 
 ## Process state
 

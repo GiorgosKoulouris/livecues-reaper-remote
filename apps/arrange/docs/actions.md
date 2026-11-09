@@ -16,6 +16,7 @@ Vocabulary is [CONTEXT.md](../CONTEXT.md)'s. The path these actions sit in is
 | `LCRR_Arrange_Check.lua` | Check an Arrangement before applying it (read-only) | No |
 | `LCRR_Arrange_Apply.lua` | Apply a named Arrangement | **Yes** |
 | `LCRR_Arrange_Verify.lua` | Verify the timeline against an Arrangement (read-only) | No |
+| `LCRR_Arrange_Bridge.lua` | Bridge for the LCRR Arrange web page (background) | Only what the page asks for, through the actions above ([bridge.md](bridge.md)) |
 
 Every action except `Apply` leaves REAPER's undo history untouched — they create
 no undo point at all, so running one does not push a real edit further down the
