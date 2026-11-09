@@ -1,6 +1,6 @@
 /* Monitor: page styles. Tokens and base styles come from lcrr/shared/css/. */
 #monitor-bar { position:sticky; top:0; z-index:10; background:var(--console-grey); }
-.monitor-bar-inner { display:flex; align-items:center; gap:.625rem; max-width:48rem; margin:0 auto; padding:.375rem 1rem; min-height:3rem; }
+.monitor-bar-inner { display:flex; align-items:center; gap:.625rem; max-width:48rem; margin:0 auto; padding:.125rem 1rem; min-height:3rem; }
 #monitor-title { flex:1; min-width:0; margin:0; font-size:1.25rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #monitor-state { display:inline-flex; align-items:center; gap:.5rem; flex:none; padding:.3rem .625rem; border:2px solid currentColor; border-radius:6px; text-transform:uppercase; font-size:.875rem; font-weight:600; letter-spacing:.06em; line-height:1; color:var(--paper-white); }
 #monitor-state[data-state=offline] { color:var(--warn-amber); }
@@ -24,34 +24,47 @@ button.monitor-mix:active { background:var(--paper-white); color:var(--stage-bla
 .monitor-setup h2 { margin:0 0 .5rem; font-size:1.1rem; }
 .monitor-setup li { margin-bottom:.5rem; }
 .monitor-setup code { padding:.1rem .3rem; background:var(--key-grey); border-radius:4px; }
-.monitor-mix-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
-.monitor-back { flex:none; min-height:44px; padding:.4rem .75rem; font:inherit; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; }
+.monitor-back { flex:none; width:44px; height:44px; padding:0; font:inherit; font-size:1.25rem; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; }
 .monitor-back:focus-visible { outline:2px solid var(--cue-blue); outline-offset:2px; }
 @media (hover:hover) { .monitor-back:hover { background:var(--key-grey-hover); } }
-.monitor-mix-title { flex:1; min-width:0; margin:0; font-size:1.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.monitor-overall { padding:.25rem .25rem .75rem; margin-bottom:.5rem; border-bottom:1px solid var(--hairline); }
-.monitor-overall-head { display:flex; justify-content:space-between; align-items:baseline; gap:.75rem; }
-.monitor-overall-label { font-weight:700; }
-.monitor-overall-db { min-width:5rem; text-align:right; font-variant-numeric:tabular-nums; }
+.monitor-master { display:flex; align-items:center; height:53px; padding:0 100px 4px 0; margin-bottom:4px; border-bottom:1px solid var(--hairline); } /* 100px: the Solo and Mute buttons and their gaps, so the 0 dB marks line up */
+.monitor-master .monitor-fader-name { font-weight:600; }
 .monitor-rows { list-style:none; margin:0; padding:0; }
-.monitor-row { display:grid; grid-template-columns:.5rem minmax(0,1fr) auto auto; align-items:center; gap:0 .75rem; min-height:56px; padding:.5rem .25rem; border-bottom:1px solid var(--hairline); }
-.monitor-row-swatch { grid-row:1 / span 2; width:.5rem; align-self:stretch; border-radius:3px; background:var(--key-grey-hover); }
-.monitor-row-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.monitor-row-db { min-width:5rem; text-align:right; font-variant-numeric:tabular-nums; }
-.monitor-row-mute { min-width:5rem; min-height:44px; padding:.3rem .5rem; font:inherit; text-align:center; background:none; color:inherit; border:2px solid var(--hairline); border-radius:6px; }
-.monitor-row-mute.on { opacity:1; border-color:var(--paper-white); background:var(--paper-white); color:var(--stage-black); font-weight:700; text-decoration:line-through; }
-.monitor-row-mute:active:not(:disabled) { background:var(--cue-blue); border-color:var(--cue-blue); color:var(--stage-black); }
-.monitor-row-mute:focus-visible { outline:2px solid var(--cue-blue); outline-offset:2px; }
-.monitor-row-mute:disabled { opacity:.4; cursor:not-allowed; }
-@media (hover:hover) { .monitor-row-mute:hover:not(:disabled):not(.on) { background:var(--key-grey-hover); } }
-/* Fader: only the thumb takes touches. The track and the row leave vertical scrolling alone, and tapping them does nothing. */
-.monitor-fader { grid-column:2 / -1; position:relative; height:44px; --thumb:44px; }
-.monitor-fader-track { position:absolute; left:calc(var(--thumb) / 2); right:calc(var(--thumb) / 2); top:calc(50% - 2px); height:4px; border-radius:2px; background:var(--key-grey-hover); pointer-events:none; }
-.monitor-fader-mark { position:absolute; top:calc(50% - 9px); width:2px; height:18px; margin-left:-1px; left:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); background:var(--paper-white); opacity:.7; pointer-events:none; }
-.monitor-fader-thumb { position:absolute; top:0; left:calc((100% - var(--thumb)) * var(--pos, 0)); width:var(--thumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
-.monitor-fader-thumb::after { content:""; position:absolute; left:6px; right:6px; top:8px; bottom:8px; border-radius:6px; background:var(--paper-white); border:2px solid var(--hairline); }
-.monitor-fader-thumb.over::after { border-color:var(--warn-amber); }
-.monitor-fader-thumb.dragging { cursor:grabbing; }
-.monitor-fader-thumb.dragging::after { background:var(--cue-blue); }
+.monitor-row { display:flex; align-items:center; gap:6px; height:48px; }
+.monitor-row-solo, .monitor-row-mute { flex:none; width:44px; height:44px; padding:0; font:inherit; font-weight:600; text-align:center; background:var(--key-grey); color:inherit; border:1px solid var(--hairline); border-radius:6px; }
+.monitor-row-mute.on { border-color:var(--paper-white); background:var(--paper-white); color:var(--stage-black); }
+.monitor-row-solo.on { border-color:var(--warn-amber); background:var(--warn-amber); color:var(--stage-black); }
+.monitor-row-solo:active:not(:disabled), .monitor-row-mute:active:not(:disabled) { background:var(--cue-blue); border-color:var(--cue-blue); color:var(--stage-black); }
+.monitor-row-solo:focus-visible, .monitor-row-mute:focus-visible { outline:2px solid var(--cue-blue); outline-offset:2px; }
+.monitor-row-solo:disabled, .monitor-row-mute:disabled { opacity:.4; cursor:not-allowed; }
+@media (hover:hover) { .monitor-row-solo:hover:not(:disabled):not(.on), .monitor-row-mute:hover:not(:disabled):not(.on) { background:var(--key-grey-hover); } }
+.monitor-row.muted .monitor-fader-fill, .monitor-row.muted .monitor-fader-mark, .monitor-row.muted .monitor-fader-text { opacity:.45; }
+.monitor-row.muted .monitor-fader-handle { opacity:.7; }
+/* Fader: a pill holding the fill, name and value. Only the thumb (an invisible 44px area around the visible handle) takes touches; the rest of the pill leaves vertical scrolling alone, and tapping it does nothing. --x is the handle's centre. */
+.monitor-fader { --thumb:44px; --pos:0; --x:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); position:relative; flex:1; min-width:0; height:44px; overflow:hidden; border-radius:6px; background:var(--console-grey); }
+.monitor-fader-fill { position:absolute; left:0; top:0; bottom:0; width:var(--x); background:var(--key-grey-hover); pointer-events:none; }
+.monitor-fader.tinted .monitor-fader-fill { background:color-mix(in srgb, var(--c) 25%, var(--key-grey)); } /* 25% keeps the text above 4.5:1 on any track colour */
+.monitor-fader-mark { position:absolute; top:13px; bottom:13px; width:2px; margin-left:-1px; left:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); background:var(--paper-white); opacity:.45; pointer-events:none; }
+.monitor-fader-handle { position:absolute; top:2px; bottom:2px; left:calc(var(--x) - 5px); width:10px; border-radius:3px; background:var(--paper-white); pointer-events:none; }
+.monitor-fader.over .monitor-fader-handle { background:var(--warn-amber); }
+.monitor-fader.dragging .monitor-fader-handle { background:var(--cue-blue); }
+.monitor-fader-text { position:absolute; inset:0; display:flex; align-items:center; gap:.5rem; padding:0 10px 0 14px; pointer-events:none; }
+.monitor-fader-text.on-handle { color:var(--stage-black); clip-path:inset(0 calc(100% - var(--x) - 5px) 0 calc(var(--x) - 5px)); }
+.monitor-fader-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.monitor-fader-value { flex:none; font-size:.85rem; font-variant-numeric:tabular-nums; }
+.monitor-fader-thumb { position:absolute; top:0; left:calc((100% - var(--thumb)) * var(--pos)); width:var(--thumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
+.monitor-fader.dragging .monitor-fader-thumb { cursor:grabbing; }
 .monitor-fader-thumb:focus-visible { outline:2px solid var(--cue-blue); outline-offset:-2px; }
 body.offline #monitor-mix-view { opacity:.6; }
+@media (max-width:480px) {
+  main { padding:.5rem; }
+  .monitor-bar-inner { padding:.125rem .5rem; }
+  #monitor-banner { padding:0 .5rem .375rem; }
+}
+/* A phone turned sideways or a tablet: Master and the sources fill two columns. */
+@media (min-width:640px) {
+  .monitor-mixer { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:1rem; }
+  .monitor-mixer > .monitor-empty { grid-column:1 / -1; }
+  .monitor-rows { display:contents; }
+  .monitor-master { height:48px; padding-bottom:0; margin-bottom:0; border-bottom:0; }
+}

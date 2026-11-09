@@ -88,12 +88,12 @@ test("applyReceives ignores a late reply for another track number", () => {
   assert.strictEqual(next[0].vol, 1);
 });
 
-test("dbText converts linear level to dB text", () => {
-  assert.strictEqual(core.dbText(1), "0.0 dB");
-  assert.strictEqual(core.dbText(0.5), "-6.0 dB");
-  assert.strictEqual(core.dbText(Math.pow(10, 6 / 20)), "+6.0 dB");
-  assert.strictEqual(core.dbText(0), "-inf dB");
-  assert.strictEqual(core.dbText(0.99999), "0.0 dB");
+test("dbText converts linear level to the dB value, with no unit", () => {
+  assert.strictEqual(core.dbText(1), "0.0");
+  assert.strictEqual(core.dbText(0.5), "-6.0");
+  assert.strictEqual(core.dbText(Math.pow(10, 6 / 20)), "+6.0");
+  assert.strictEqual(core.dbText(0), "-inf");
+  assert.strictEqual(core.dbText(0.99999), "0.0");
 });
 
 test("buildReceiveRequests covers every receive and keeps each URL under the limit", () => {
@@ -125,8 +125,8 @@ test("rowsFor builds one view row per receive with source name, colour, dB and m
   const tracks = tracksOf([trackLine(1, "Kick", 0, 0, 0x10000ff), trackLine(2, "Snare", 0, 0), trackLine(3, "IEM_Drums", 2, 1)]);
   const recv = core.applyReceives([], [sendLine(3, -1, 0, "0.5", 1), sendLine(3, -2, 8, "1.0", 2)].join("\n"), 3, 2);
   assert.deepStrictEqual(core.rowsFor(recv, tracks), [
-    { n: 1, y: -1, source: 1, name: "Kick", color: 0x10000ff, vol: 0.5, db: "-6.0 dB", muted: false },
-    { n: 2, y: -2, source: 2, name: "Snare", color: 0, vol: 1, db: "0.0 dB", muted: true }
+    { n: 1, y: -1, source: 1, name: "Kick", color: 0x10000ff, vol: 0.5, db: "-6.0", muted: false },
+    { n: 2, y: -2, source: 2, name: "Snare", color: 0, vol: 1, db: "0.0", muted: true }
   ]);
 });
 
@@ -171,8 +171,8 @@ test("writeAllowed needs the same mix track, the same source, a fresh read and a
   assert.ok(!core.writeAllowed({ track: 4, y: -2, source: 9 }, Object.assign({}, st, { fresh: false })));
   assert.ok(!core.writeAllowed({ track: 4, y: -2, source: 9 }, Object.assign({}, st, { offline: true })));
   assert.ok(!core.writeAllowed({ track: 4, y: -2, source: 9 }, null));
-  // the overall fader: send index 0, hardware output, source -1
-  // (the overall fader's stale check is in its own test below)
+  // the master fader: send index 0, hardware output, source -1
+  // (the master fader's stale check is in its own test below)
 });
 
 test("holdLevels keeps the local level of held rows when the source is the same", () => {
@@ -464,23 +464,23 @@ test("holdLevels keeps the on-screen mute of rows whose mute is held, and the re
   assert.deepStrictEqual(core.holdLevels(prev, [{ source: 9, vol: 1, muted: false }], () => true, () => true), [{ source: 9, vol: 1, muted: false }]);
 });
 
-// ---- Overall fader (issue 06) ----
+// ---- Master fader (issue 06) ----
 function ovLine(t, y, vol, other, flags) { return ["SEND", t, y, flags || 0, vol, "0.000000", other].join("\t"); }
 
-test("parseOverallReply reads SEND/0 for the mix, only when it is a hardware output", () => {
+test("parseMasterReply reads SEND/0 for the mix, only when it is a hardware output", () => {
   const text = ovLine(4, 0, "0.5", -1) + "\n";
-  assert.deepStrictEqual(core.parseOverallReply(text, 4, 1), { vol: 0.5 });
-  // an ordinary send's line (real track number last) never drives the overall fader
-  assert.strictEqual(core.parseOverallReply(ovLine(4, 0, "0.5", 7) + "\n", 4, 1), null);
+  assert.deepStrictEqual(core.parseMasterReply(text, 4, 1), { vol: 0.5 });
+  // an ordinary send's line (real track number last) never drives the master fader
+  assert.strictEqual(core.parseMasterReply(ovLine(4, 0, "0.5", 7) + "\n", 4, 1), null);
   // another track number
-  assert.strictEqual(core.parseOverallReply(text, 5, 1), null);
+  assert.strictEqual(core.parseMasterReply(text, 5, 1), null);
   // other send indexes
-  assert.strictEqual(core.parseOverallReply(ovLine(4, 1, "0.5", -1) + "\n" + ovLine(4, -1, "0.5", -1) + "\n", 4, 1), null);
+  assert.strictEqual(core.parseMasterReply(ovLine(4, 1, "0.5", -1) + "\n" + ovLine(4, -1, "0.5", -1) + "\n", 4, 1), null);
   // no hardware output: a missing send looks like a silent hardware output, so it is not read
-  assert.strictEqual(core.parseOverallReply(text, 4, 0), null);
-  assert.strictEqual(core.parseOverallReply("", 4, 1), null);
+  assert.strictEqual(core.parseMasterReply(text, 4, 0), null);
+  assert.strictEqual(core.parseMasterReply("", 4, 1), null);
   // found among receive lines in one reply
-  assert.deepStrictEqual(core.parseOverallReply(ovLine(4, -1, "1", 9) + "\n" + text, 4, 2), { vol: 0.5 });
+  assert.deepStrictEqual(core.parseMasterReply(ovLine(4, -1, "1", 9) + "\n" + text, 4, 2), { vol: 0.5 });
 });
 
 test("applyReceives still ignores the hardware output and ordinary sends", () => {
@@ -488,7 +488,7 @@ test("applyReceives still ignores the hardware output and ordinary sends", () =>
   assert.deepStrictEqual(core.applyReceives([], text, 4, 1), [{ source: 7, vol: 0.3, muted: false }]);
 });
 
-test("buildReadRequests puts the overall read first and keeps every URL under the limit", () => {
+test("buildReadRequests puts the master read first and keeps every URL under the limit", () => {
   const reqs = core.buildReadRequests(123, 60, 900);
   reqs.forEach((q) => assert.ok(("/_/" + q).length <= 900));
   const all = reqs.join(";").split(";");
@@ -500,16 +500,16 @@ test("buildReadRequests puts the overall read first and keeps every URL under th
   assert.deepStrictEqual(core.buildReadRequests(5, 1, 900), ["GET/TRACK/5/SEND/0;GET/TRACK/5/SEND/-1"]);
 });
 
-test("writeAllowed for the overall fader needs the mix track, a fresh read, online and a known level", () => {
-  const st = { number: 4, receives: [], fresh: true, offline: false, overall: 1 };
+test("writeAllowed for the master fader needs the mix track, a fresh read, online and a known level", () => {
+  const st = { number: 4, receives: [], fresh: true, offline: false, master: 1 };
   const t = { track: 4, y: 0, source: -1 };
   assert.ok(core.writeAllowed(t, st));
-  assert.ok(core.writeAllowed(t, Object.assign({}, st, { overall: 0 })));
+  assert.ok(core.writeAllowed(t, Object.assign({}, st, { master: 0 })));
   assert.ok(!core.writeAllowed({ track: 5, y: 0, source: -1 }, st));
   assert.ok(!core.writeAllowed(t, Object.assign({}, st, { fresh: false })));
   assert.ok(!core.writeAllowed(t, Object.assign({}, st, { offline: true })));
-  assert.ok(!core.writeAllowed(t, Object.assign({}, st, { overall: null })));
-  assert.ok(!core.writeAllowed(t, Object.assign({}, st, { overall: undefined })));
+  assert.ok(!core.writeAllowed(t, Object.assign({}, st, { master: null })));
+  assert.ok(!core.writeAllowed(t, Object.assign({}, st, { master: undefined })));
   assert.ok(!core.writeAllowed(t, null));
   // only the first hardware output (index 0) and never an ordinary send or a source
   assert.ok(!core.writeAllowed({ track: 4, y: 1, source: 9 }, st));
@@ -519,12 +519,12 @@ test("writeAllowed for the overall fader needs the mix track, a fresh read, onli
   assert.ok(!core.writeAllowed({ track: 4, y: NaN, source: -1 }, st));
 });
 
-test("on a track with an ordinary send, the overall fader writes only send index 0", async () => {
+test("on a track with an ordinary send, the master fader writes only send index 0", async () => {
   const sent = [];
   const drag = core.createFaderDrag({
     now: () => 0, setTimer: () => 1, clearTimer: () => {}, travelPx: 100,
     send: (cmd) => { sent.push(cmd); return Promise.resolve(""); },
-    check: (t) => core.writeAllowed(t, { number: 4, receives: [{ source: 7, vol: 1, muted: false }], fresh: true, offline: false, overall: 1 })
+    check: (t) => core.writeAllowed(t, { number: 4, receives: [{ source: 7, vol: 1, muted: false }], fresh: true, offline: false, master: 1 })
   });
   assert.ok(drag.begin({ track: 4, y: 0, source: -1 }, 1, 100));
   drag.move(-20);
@@ -533,4 +533,28 @@ test("on a track with an ordinary send, the overall fader writes only send index
   assert.ok(sent.length >= 2);
   sent.forEach((cmd) => cmd.split(";").forEach((c) => assert.match(c, /^SET\/TRACK\/4\/SEND\/0\/VOL\/[0-9.]+e?$/)));
   assert.ok(/e$/.test(sent[sent.length - 1]));
+});
+
+test("soloPlan mutes every other receive and unmutes the soloed one, recording what it changed", () => {
+  const rx = [{ source: 1, muted: false }, { source: 2, muted: true }, { source: 3, muted: true }];
+  const p = core.soloPlan(rx, 1, []);
+  assert.deepStrictEqual(p.moves, [{ index: 0, to: true }, { index: 1, to: false }]);
+  assert.deepStrictEqual(p.changes, [{ index: 0, source: 1, from: false, to: true }, { index: 1, source: 2, from: true, to: false }]);
+});
+
+test("soloPlan moving solo keeps the original states", () => {
+  const first = [{ source: 1, muted: false }, { source: 2, muted: true }, { source: 3, muted: false }];
+  const a = core.soloPlan(first, 0, []);
+  const after = [{ source: 1, muted: false }, { source: 2, muted: true }, { source: 3, muted: true }];
+  const b = core.soloPlan(after, 2, a.changes);
+  assert.deepStrictEqual(b.moves, [{ index: 0, to: true }, { index: 2, to: false }]);
+  assert.deepStrictEqual(b.changes, [{ index: 0, source: 1, from: false, to: true }]);
+  assert.deepStrictEqual(core.restorePlan([{ source: 1, muted: true }, { source: 2, muted: true }, { source: 3, muted: false }], b.changes).moves, [{ index: 0, to: false }]);
+});
+
+test("restorePlan leaves receives changed by someone else or now another source", () => {
+  const changes = [{ index: 0, source: 1, from: false, to: true }, { index: 1, source: 2, from: false, to: true }, { index: 2, source: 3, from: true, to: false }];
+  const now = [{ source: 1, muted: false }, { source: 9, muted: true }, { source: 3, muted: false }];
+  assert.deepStrictEqual(core.restorePlan(now, changes).moves, [{ index: 2, to: true }]);
+  assert.deepStrictEqual(core.restorePlan([], changes).moves, []);
 });

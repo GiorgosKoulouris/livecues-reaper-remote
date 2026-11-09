@@ -78,18 +78,18 @@
     return out;
   }
 
-  // Linear level to dB text: "0.0 dB", "-6.0 dB", "+6.0 dB", "-inf dB".
+  // Linear level to the dB value shown in a fader, with no unit: "0.0", "-6.0", "+6.0", "-inf".
   function dbText(vol) {
-    if (!(vol > 0)) return "-inf dB";
+    if (!(vol > 0)) return "-inf";
     var d = Math.round(20 * Math.log(vol) / Math.LN10 * 10) / 10;
     if (d === 0) d = 0; // no "-0.0"
-    return (d > 0 ? "+" : "") + d.toFixed(1) + " dB";
+    return (d > 0 ? "+" : "") + d.toFixed(1);
   }
 
-  // The mix's overall level: the SEND line for index 0 of `mixNumber`, accepted only when its last field is -1 (a
+  // The mix's master level: the SEND line for index 0 of `mixNumber`, accepted only when its last field is -1 (a
   // hardware output; an ordinary send has a real track number there) and the mix has a hardware output (a missing
   // send answers like a silent one). Returns { vol } or null.
-  function parseOverallReply(text, mixNumber, hwoutcnt) {
+  function parseMasterReply(text, mixNumber, hwoutcnt) {
     if (!(hwoutcnt >= 1)) return null;
     var found = null;
     parseSendReply(text).forEach(function (s) {
@@ -102,7 +102,7 @@
   function buildReceiveRequests(track, recvcnt, maxChars) {
     return pack(track, recvcnt, maxChars, []);
   }
-  // The same, with the overall level (send index 0) read first, on the same cycle as the receives.
+  // The same, with the master level (send index 0) read first, on the same cycle as the receives.
   function buildReadRequests(track, recvcnt, maxChars) {
     return pack(track, recvcnt, maxChars, ["GET/TRACK/" + track + "/SEND/0"]);
   }
@@ -159,15 +159,15 @@
 
   // May a write for `target` ({ track, y, source }) go out? `st` is the latest state: { number: the mix's track
   // index from the latest poll, receives, fresh: the receives were read under the latest track list, offline }.
-  // A source (y < 0) must also still be the receive at that index. The overall fader (y 0, source -1, the first
-  // hardware output) needs its level to have been read (`st.overall`, a number); nothing else with y >= 0 passes.
+  // A source (y < 0) must also still be the receive at that index. The master fader (y 0, source -1, the first
+  // hardware output) needs its level to have been read (`st.master`, a number); nothing else with y >= 0 passes.
   function writeAllowed(target, st) {
     if (!st || !target || st.offline || !st.fresh || st.number !== target.track) return false;
     if (target.y < 0) {
       var r = st.receives[-target.y - 1];
       return !!r && r.source === target.source && r.source >= 0;
     }
-    return target.y === 0 && target.source === -1 && typeof st.overall === "number" && isFinite(st.overall);
+    return target.y === 0 && target.source === -1 && typeof st.master === "number" && isFinite(st.master);
   }
 
   // After a read: rows whose fader is held (dragging, or writes not landed, or a read begun too early) keep the
@@ -210,7 +210,34 @@
     };
   }
 
-  // One fader's drag and write state, shared by the source rows and (issue 06) the overall fader.
+  // Solo in my mix: the web API has no per-send solo, so it mutes the other receives (and unmutes the soloed
+  // one). `changes` is what solo changed: [{ index, source, from, to }] (0-based receive index, muted states).
+  // soloPlan works from the original states (`prev` changes still in effect are undone first), so moving solo
+  // to another row never loses what the first solo muted. moves: [{ index, to }] are the writes still needed.
+  function soloPlan(receives, index, prev) {
+    var changes = [], moves = [];
+    receives.forEach(function (r, i) {
+      if (!r) return;
+      var cur = !!r.muted, orig = cur, want = i !== index;
+      (prev || []).forEach(function (c) { if (c.index === i && c.source === r.source && c.to === cur) orig = c.from; });
+      if (orig !== want) changes.push({ index: i, source: r.source, from: orig, to: want });
+      if (cur !== want) moves.push({ index: i, to: want });
+    });
+    return { changes: changes, moves: moves };
+  }
+
+  // Ending solo puts back only what solo changed: a receive still where the source and the muted state solo left
+  // it. One that another phone or the engineer has changed since (or that is now another source) is left alone.
+  function restorePlan(receives, changes) {
+    var moves = [];
+    (changes || []).forEach(function (c) {
+      var r = receives[c.index];
+      if (r && r.source === c.source && !!r.muted === c.to) moves.push({ index: c.index, to: c.from });
+    });
+    return { moves: moves };
+  }
+
+  // One fader's drag and write state, shared by the source rows and (issue 06) the master fader.
   // opts: now(), setTimer(fn, ms), clearTimer(h), send(cmd) -> Promise, check(target) -> bool (the stale check,
   // run at the moment each request would go out), gateMs (50), slopPx (3), travelPx (thumb travel in px).
   // Movement is relative: move(dx) takes the distance from the press, positive toward louder.
@@ -296,7 +323,7 @@
     };
   }
 
-  return { CAP: CAP, faderValue: faderValue, faderPos: faderPos, setVolCommand: setVolCommand, writeAllowed: writeAllowed, setMuteCommand: setMuteCommand, createMuteWriter: createMuteWriter,
+  return { CAP: CAP, faderValue: faderValue, faderPos: faderPos, setVolCommand: setVolCommand, writeAllowed: writeAllowed, setMuteCommand: setMuteCommand, soloPlan: soloPlan, restorePlan: restorePlan, createMuteWriter: createMuteWriter,
     holdLevels: holdLevels, createFaderDrag: createFaderDrag, tracksKey: tracksKey, parseTrackReply: parseTrackReply, listMixes: listMixes, findMix: findMix, parseSendReply: parseSendReply,
-    applyReceives: applyReceives, parseOverallReply: parseOverallReply, buildReadRequests: buildReadRequests, dbText: dbText, buildReceiveRequests: buildReceiveRequests, rowsFor: rowsFor };
+    applyReceives: applyReceives, parseMasterReply: parseMasterReply, buildReadRequests: buildReadRequests, dbText: dbText, buildReceiveRequests: buildReceiveRequests, rowsFor: rowsFor };
 });

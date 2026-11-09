@@ -14,6 +14,7 @@
 <body>
 <header id="monitor-bar">
   <div class="monitor-bar-inner">
+    <button type="button" id="monitor-back" class="monitor-back" aria-label="Back to mixes" hidden>&larr;</button>
     <h1 id="monitor-title">Monitor</h1>
     <span id="monitor-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="monitor-shape" aria-hidden="true"></i><span id="monitor-state-text">connecting&hellip;</span></span>
   </div>
@@ -31,7 +32,7 @@
       <ol>
         <li>Name a track <code>IEM_&lt;name&gt;</code>, for example <code>IEM_Drums</code>.</li>
         <li>Give it at least one receive, one for each source to monitor.</li>
-        <li>Give it at least one hardware output, going to the performer&rsquo;s output. The overall fader controls the first one.</li>
+        <li>Give it at least one hardware output, going to the performer&rsquo;s output. The Master fader on this page controls the first one.</li>
         <li>Usually turn off its master send.</li>
       </ol>
       <p>The list updates by itself. The prefix is exactly <code>IEM_</code>, capitals and underscore.</p>
@@ -39,16 +40,11 @@
   </section>
 
   <section id="monitor-mix-view" aria-label="Mix" hidden>
-    <div class="monitor-mix-head">
-      <button type="button" id="monitor-back" class="monitor-back">&larr; Mixes</button>
-      <h2 id="monitor-mix-name" class="monitor-mix-title"></h2>
+    <div class="monitor-mixer">
+      <div id="monitor-master-fader" class="monitor-master"></div>
+      <p id="monitor-rows-empty" class="monitor-empty">Loading sources&hellip;</p>
+      <ul id="monitor-rows" class="monitor-rows"></ul>
     </div>
-    <div class="monitor-overall">
-      <div class="monitor-overall-head"><span class="monitor-overall-label">Overall</span><span id="monitor-overall-db" class="monitor-overall-db">&ndash;</span></div>
-      <div id="monitor-overall-fader"></div>
-    </div>
-    <p id="monitor-rows-empty" class="monitor-empty">Loading sources&hellip;</p>
-    <ul id="monitor-rows" class="monitor-rows"></ul>
   </section>
 </main>
 
