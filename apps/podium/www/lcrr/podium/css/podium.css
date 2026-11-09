@@ -1,49 +1,52 @@
-/* Podium: page styles. Tokens and base styles come from lcrr/shared/css/. */
+/* Podium: page styles. Tokens and base styles come from lcrr/shared/. */
 /* Header and tab bar stick together, so the tabs always sit directly under the bar whatever its height. */
-#podium-sticky { position:sticky; top:0; z-index:10; background:var(--console-grey); }
-/* Bar content is capped to the list's width so the controls line up with the rows on a desktop. */
-.podium-bar { display:flex; align-items:center; gap:.625rem; max-width:48rem; margin:0 auto; padding:.375rem 1rem; }
+#podium-sticky { position:sticky; top:0; z-index:10; background:var(--bar); }
+/* One compact bar: clock and transport keys on the first row, state and region on the second. Capped to the list's width so the keys line up with the rows on a desktop. */
+.podium-bar { display:grid; grid-template-columns:auto 1fr auto; grid-template-areas:"time time ctl" "state region region"; align-items:center; column-gap:.625rem; row-gap:.125rem; max-width:48rem; margin:0 auto; padding:.5rem .5rem .375rem 1rem; }
 .podium-title, .podium-sr { position:absolute; width:1px; height:1px; margin:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-/* Status strip: what is happening (state chip), what is playing (region), how far in (clock). Read first, from a distance. */
-#podium-state { position:relative; display:inline-flex; align-items:center; gap:.5rem; min-height:2rem; flex:none; padding:.3rem .625rem; border:2px solid currentColor; border-radius:6px; text-transform:uppercase; font-size:.875rem; font-weight:600; letter-spacing:.06em; line-height:1; color:var(--paper-white); }
-#podium-state[data-state=playing] { color:var(--live-green); }
-#podium-state[data-state=recording] { color:var(--rec-red); }
+/* State: a small drawn shape and its word. The shape repeats the state so colour is never the only signal (stopped square, playing triangle, recording disc, paused bars, offline ring). */
+#podium-state { grid-area:state; display:inline-flex; align-items:center; gap:.4rem; color:var(--legend-dim); font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; line-height:1; white-space:nowrap; }
+#podium-state[data-state=playing] > .podium-shape { color:var(--led-green); }
+#podium-state[data-state=recording] > .podium-shape { color:var(--led-red); }
 #podium-state[data-state=offline] { color:var(--warn-amber); }
-#podium-state[data-state=paused] { color:var(--paper-white); }
-#podium-state[data-state=connecting] { color:var(--paper-white); opacity:.7; }
-/* The shape repeats the state so colour is never the only signal (stopped square, playing triangle, recording disc, paused bars, offline ring). */
-.podium-shape { display:block; width:.8rem; height:.8rem; flex:none; background:currentColor; }
+.podium-shape { display:block; width:.7rem; height:.7rem; flex:none; background:currentColor; }
 [data-state=stopped] > .podium-shape { border-radius:1px; }
 [data-state=playing] > .podium-shape { clip-path:polygon(0 0, 100% 50%, 0 100%); }
 [data-state=recording] > .podium-shape { border-radius:50%; }
 [data-state=paused] > .podium-shape { background:linear-gradient(90deg, currentColor 0 36%, transparent 36% 64%, currentColor 64% 100%); }
 [data-state=offline] > .podium-shape, [data-state=connecting] > .podium-shape { background:none; border:2px solid currentColor; border-radius:50%; }
-#podium-region { flex:1 1 0; min-width:0; font-size:1.25rem; font-weight:600; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#podium-region { grid-area:region; min-width:0; font-size:1rem; font-weight:600; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #podium-region:empty::before { content:"\2014"; opacity:.4; }
-#podium-region.idle { font-weight:400; opacity:.6; }
-#podium-time { flex:none; font-size:1.5rem; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }
-/* Controls: Play and Stop share one slot (only one is visible, same size); Rec sits apart behind a hairline. */
-.podium-controls { flex:none; display:flex; align-items:center; gap:.5rem; }
-#podium-transport #podium-play, #podium-transport #podium-stop { width:5.5rem; font-weight:600; }
+#podium-region.idle { font-weight:500; opacity:.6; }
+/* Project time: a small recessed readout. Lit while the transport runs, grey otherwise. */
+#podium-time { grid-area:time; justify-self:start; padding:.25rem .5rem; background:var(--display); border:1px solid var(--edge); color:var(--signal); font-family:var(--font-mono); font-size:1.05rem; font-weight:500; line-height:1.2; letter-spacing:.03em; font-variant-numeric:tabular-nums; }
+body:not([data-state=playing]):not([data-state=recording]) #podium-time { color:var(--legend-dim); }
+/* Controls: symbols only. Play and Stop share one slot (only one is visible, same size); Rec sits beside them. */
+.podium-controls { grid-area:ctl; display:flex; align-items:center; gap:.375rem; }
 #podium-stop[hidden], #podium-play[hidden] { display:none; }
-.podium-stop-glyph { display:block; width:1rem; height:1rem; margin:0 auto; background:currentColor; border-radius:2px; }
-nav[role=tablist] { display:flex; border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline); }
-[role=tab] { flex:1; min-height:48px; padding:.75rem; background:none; border:0; border-bottom:3px solid transparent; color:inherit; font:inherit; }
-[role=tab][aria-selected=true] { border-bottom-color:var(--cue-blue); }
+.podium-glyph { display:block; flex:none; background:currentColor; }
+.podium-glyph.play { width:.8rem; height:1rem; margin-left:.1rem; clip-path:polygon(0 0, 100% 50%, 0 100%); }
+.podium-glyph.stop { width:.8rem; height:.8rem; }
+.podium-glyph.rec { width:.85rem; height:.85rem; border-radius:50%; }
+nav[role=tablist] { display:flex; border-bottom:1px solid var(--line); }
+[role=tab] { flex:1; min-height:44px; padding:.5rem .75rem; background:none; border:0; border-bottom:3px solid transparent; color:var(--legend-dim); font:inherit; font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+[role=tab][aria-selected=true] { color:var(--legend); border-bottom-color:var(--signal); }
 main { padding:1rem; max-width:48rem; margin:0 auto; }
 .empty { opacity:.6; }
 .notice { margin:0 0 .5rem; }
 .notice-details { margin-top:.5rem; }
 .notice-details summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
-.diag { margin:.25rem 0 0; padding:.75rem; background:var(--console-grey); border:1px solid var(--hairline); border-radius:6px; color:var(--paper-white); font:.85rem/1.5 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:60vh; overflow:auto; }
-[role=tab]:focus-visible, [role=tabpanel]:focus-visible, .diag:focus-visible, .notice-details summary:focus-visible { outline:2px solid var(--cue-blue); outline-offset:-2px; }
-#podium-transport button { min-width:44px; min-height:48px; padding:.5rem 1rem; font:inherit; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; }
-/* Recording: the Rec button becomes the live indicator. It stays disabled (a second record command would do nothing) but must not look offline-dim. */
-#podium-rec:disabled.recording { opacity:1; color:var(--rec-red); border-color:var(--rec-red); font-weight:600; }
-#podium-rec.recording::before { content:""; display:inline-block; width:.6em; height:.6em; margin-right:.4em; border-radius:50%; background:currentColor; }
+.diag { margin:.25rem 0 0; padding:.75rem; background:var(--display); border:1px solid var(--edge); color:var(--legend); font:.85rem/1.5 var(--font-mono); white-space:pre-wrap; overflow-wrap:anywhere; max-height:60vh; overflow:auto; }
+button:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
+[role=tab]:focus-visible, [role=tabpanel]:focus-visible, .diag:focus-visible, .notice-details summary:focus-visible { outline:2px solid var(--signal); outline-offset:-2px; }
+#podium-transport button { display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-width:44px; padding:0; font:inherit; border:0; border-radius:0; clip-path:var(--chamfer); background:var(--key); color:var(--legend); }
+#podium-transport #podium-rec { color:var(--led-red); }
+/* Recording: the Rec key becomes the live indicator, sunk with a red outline. It stays disabled (a second record command would do nothing) but must not look offline-dim. */
+#podium-rec:disabled.recording { opacity:1; background:var(--chassis); box-shadow:inset 0 0 0 2px var(--led-red); }
 #podium-rec, #podium-stop { position:relative; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-#podium-transport #podium-rec { margin-left:.375rem; border-left:1px solid var(--hairline); }
-#podium-rec::after, #podium-stop::after { content:""; position:absolute; inset:0; background:var(--rec-red); opacity:.55; transform:scaleX(0); transform-origin:left; }
+/* Hold keys carry a small bar under the symbol: press and hold, don't tap. */
+#podium-rec::before, #podium-stop::before { content:""; position:absolute; left:11px; right:11px; bottom:5px; border-bottom:2px solid currentColor; opacity:.45; }
+#podium-rec::after, #podium-stop::after { content:""; position:absolute; inset:0; background:var(--led-red); opacity:.55; transform:scaleX(0); transform-origin:left; }
 #podium-rec.holding::after, #podium-stop.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 800ms) linear; }
 /* Reduced motion: no sweep. The fill covers the button and fades in over the same hold time, so the 800 ms countdown is still visible. */
 @media (prefers-reduced-motion: reduce) {
@@ -51,57 +54,51 @@ main { padding:1rem; max-width:48rem; margin:0 auto; }
   #podium-rec.holding::after, #podium-stop.holding::after { opacity:.55; transition:opacity var(--hold-ms, 800ms) linear; }
 }
 .podium-list { list-style:none; margin:0; padding:0; }
-.podium-list li { position:relative; display:flex; align-items:center; gap:.75rem; padding:.375rem .75rem .375rem .5rem; border-bottom:1px solid var(--hairline); }
-.podium-go { width:48px; height:48px; min-width:44px; flex:none; border:1px solid var(--hairline); border-radius:6px; background:var(--key-grey); color:inherit; font:inherit; }
-.podium-swatch { width:1rem; height:1rem; flex:none; border-radius:50%; background:transparent; border:1px solid var(--hairline); }
-.podium-name { flex:1; min-width:0; font-size:1.1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.podium-start { font-variant-numeric:tabular-nums; opacity:.6; font-size:.85rem; }
-.podium-list li.active { background:var(--cue-blue-wash); border-bottom-color:transparent; border-radius:6px; }
-.podium-list li.active .podium-name { font-weight:600; }
-.podium-list li.active .podium-start { opacity:.9; }
+.podium-list li { position:relative; display:flex; align-items:center; gap:.625rem; padding:.25rem .75rem .25rem .5rem; border-bottom:1px solid var(--line); }
+.podium-go { display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-width:44px; padding:0; flex:none; border:0; border-radius:0; clip-path:var(--chamfer); background:var(--key); color:inherit; font:inherit; }
+.podium-go .podium-glyph.play { width:.7rem; height:.85rem; }
+.podium-swatch { width:.75rem; height:.75rem; flex:none; background:transparent; border:1px solid var(--edge); }
+.podium-name { flex:1; min-width:0; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.podium-start { font-family:var(--font-mono); font-variant-numeric:tabular-nums; opacity:.7; font-size:.8rem; }
+.podium-list li.active { background:var(--active-wash); box-shadow:inset 3px 0 0 var(--signal); }
+.podium-list li.active .podium-name { font-weight:700; }
+.podium-list li.active .podium-start { opacity:1; }
 .podium-go:focus:not(:focus-visible) { outline:none; }
 /* Hover (hover-capable devices only; idle, enabled controls only). Declared before :active so a press still wins. */
 @media (hover:hover) {
-  #podium-transport button:not(:disabled):hover, .podium-go:not(:disabled):not(.holding):not(.pending):hover, [role=tab][aria-selected=false]:hover { background:var(--key-grey-hover); }
+  #podium-transport button:not(:disabled):hover, .podium-go:not(:disabled):not(.holding):not(.pending):hover { background:var(--key-hover); }
+  [role=tab][aria-selected=false]:hover { color:var(--legend); }
 }
 /* Press feedback: fully inverted face so a tap is unmistakable. Hold-mode ▶ and Rec show their sweep instead. */
-#podium-transport button:not(#podium-rec):not(#podium-stop):active, .podium-go:not(.hold-mode):active { background:var(--paper-white); color:var(--stage-black); border-color:var(--paper-white); }
+#podium-transport button:not(#podium-rec):not(#podium-stop):active, .podium-go:not(.hold-mode):active { background:var(--legend); color:var(--chassis); }
 /* Cue sent, waiting for REAPER (and repeat taps are being ignored). */
-.podium-go.pending { background:var(--paper-white); color:var(--stage-black); opacity:.55; }
-/* While the transport runs, ▶ is hold-to-cue: a paper-white sweep fills over the hold time. */
+.podium-go.pending { background:var(--legend); color:var(--chassis); opacity:.55; }
+/* While the transport runs, ▶ is hold-to-cue: a legend-coloured sweep fills over the hold time. */
 .podium-go { position:relative; overflow:hidden; }
 .podium-go.hold-mode { touch-action:pan-y; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
-.podium-go::after { content:""; position:absolute; inset:0; background:var(--paper-white); opacity:.4; transform:scaleX(0); transform-origin:left; pointer-events:none; }
+.podium-go::after { content:""; position:absolute; inset:0; background:var(--legend); opacity:.4; transform:scaleX(0); transform-origin:left; pointer-events:none; }
 .podium-go.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 500ms) linear; }
 @media (prefers-reduced-motion: reduce) {
   .podium-go::after { transform:none; opacity:0; }
   .podium-go.holding::after { opacity:.4; transition:opacity var(--hold-ms, 500ms) linear; }
 }
 /* Now playing: replaces the active row's ▶ (restart needs Stop, then a hold-cue on another row). Three drawn bars, state-coloured. */
-.podium-now { display:flex; align-items:center; justify-content:center; gap:3px; width:48px; height:48px; min-width:44px; flex:none; color:var(--paper-white); }
+.podium-now { display:flex; align-items:center; justify-content:center; gap:3px; width:44px; height:44px; min-width:44px; flex:none; color:var(--legend); }
 .podium-now[hidden] { display:none; }
-.podium-now i { display:block; width:4px; height:18px; border-radius:1px; background:currentColor; opacity:.7; }
+.podium-now i { display:block; width:4px; height:18px; background:currentColor; opacity:.7; }
 .podium-now i:nth-child(1) { height:12px; }
 .podium-now i:nth-child(3) { height:15px; }
-body[data-state=playing] .podium-now { color:var(--live-green); }
-body[data-state=recording] .podium-now { color:var(--rec-red); }
+body[data-state=playing] .podium-now { color:var(--led-green); }
+body[data-state=recording] .podium-now { color:var(--led-red); }
 body[data-state=playing] .podium-now i, body[data-state=recording] .podium-now i { opacity:1; }
 /* Offline: last-known time and highlight are stale, so dim them rather than let them pass for live. */
 body.offline #podium-time, body.offline #podium-region, body.offline .podium-list li.active { opacity:.4; }
-/* Overlays the top of the list just under the tabs (absolute), so the bar stays centred and nothing shifts when it appears. */
-#podium-banner { position:absolute; top:100%; left:0; right:0; padding:.3rem max(1rem, calc(50% - 24rem + 1rem)); font-size:.9rem; background:transparent; color:var(--warn-cream); border-top:1px solid transparent; }
-#podium-banner:not(:empty) { background:var(--warn-umber); border-top-color:var(--warn-edge); }
-/* Narrow phones (~360px): still one row; the chip keeps its shape and loses its word (shape and the Play/Stop slot carry the state) so the region name keeps room. */
+/* Overlays the top of the list just under the tabs (absolute), so the bar stays put and nothing shifts when it appears. */
+#podium-banner { position:absolute; top:100%; left:0; right:0; padding:.375rem max(1rem, calc(50% - 24rem + 1rem)); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; background:transparent; color:var(--signal-ink); }
+#podium-banner:not(:empty) { background:var(--signal); }
 @media (max-width: 480px) {
-  .podium-bar { padding:.25rem .5rem; gap:.375rem; }
-  #podium-state { padding:.3rem .5rem; }
-  #podium-state-text { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-  #podium-region { font-size:1.05rem; }
-  #podium-time { font-size:1.25rem; }
-  .podium-controls { gap:.375rem; }
-  #podium-transport #podium-play, #podium-transport #podium-stop { width:4.25rem; padding-inline:.5rem; }
-  #podium-transport #podium-rec { padding-inline:.625rem; margin-left:.125rem; }
-  #podium-banner { padding-inline:.5rem; }
+  .podium-bar { padding:.375rem .5rem .25rem .75rem; }
+  #podium-banner { padding-inline:.75rem; }
   main { padding:.5rem; }
   .podium-name { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; white-space:normal; overflow-wrap:anywhere; line-height:1.25; }
 }

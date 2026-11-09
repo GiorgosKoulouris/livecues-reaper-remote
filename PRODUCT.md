@@ -8,28 +8,30 @@ web
 
 ## Users
 
-Performers, operators and engineers running a REAPER session (live show, rehearsal, recording) who need to act on it from a phone, tablet or second computer on the same trusted LAN, away from the DAW and often in low light.
+- **Performers and stage operators** running a REAPER session (live show, rehearsal) who act on it from a phone or tablet on the same trusted LAN, away from the DAW, often in low light. Podium serves the operator; Monitor serves each performer adjusting their own in-ear mix.
+- **The engineer or producer at the desk** using Arrange to repack regions from a browser, not on stage.
 
 ## Product Purpose
 
-LiveCues ReaperRemote (LCRR) is a suite of small remote-control pages served by REAPER's built-in web interface. A home page (`lcrr.html`) launches each app; each app does one job well. Apps: **Podium** (stage transport and cue list; `apps/podium/PRODUCT.md`). More will follow.
+LiveCues ReaperRemote (LCRR) is a suite of small remote-control pages served by REAPER's built-in web interface. A home page (`lcrr.html`) launches each app; each app does one job well. Apps: **Podium** (stage transport, region and marker cue list), **Monitor** (personal in-ear mixes from a phone), **Arrange** (region Repack: Check, Apply, Verify, Capture, diagnostics, through a background Lua script). Success is a session that runs without anyone walking to the DAW and without a stray touch disrupting it.
 
 ## Positioning
 
-A set of focused, safe tools rather than one full remote. Zero install on the client: open a URL.
+A set of focused, safe tools rather than one full remote. Zero install on the client (open a URL), no compiled code, no SWS.
 
 ## Operating Context
 
-- Served from `%APPDATA%\REAPER\reaper_www_root` by REAPER's web interface; installed with the PowerShell install script or via ReaPack (unverified). The home page is meant to be the "Default interface".
-- Windows is the primary host; used from phone, tablet or desktop browsers.
+- Served from `%APPDATA%\REAPER\reaper_www_root` by REAPER's web interface; installed with the PowerShell script or via ReaPack (unverified). The home page is meant to be the "Default interface".
+- Windows is the primary host; clients are phone, tablet or desktop browsers on a trusted LAN.
 - Every app polls REAPER's web API and must show an offline state when the server stops responding.
 
 ## Capabilities and Constraints
 
-- Plain HTML/CSS/JS; no compiled code, no SWS, no build step, no runtime dependencies.
-- All files carry the `lcrr` prefix or live under `lcrr/`. One package, one version for the whole suite.
-- Every app has the same suite footer with Home, at the bottom.
-- Out of scope for the suite: internet exposure.
+- Plain HTML/CSS/JS, no build step, no runtime dependencies. Arrange adds a Lua slice installed into REAPER's resource path.
+- One ReaPack package and one version for the whole suite.
+- Every app page except Home ends with the shared suite footer (Home link).
+- Out of scope: internet exposure.
+- Verified REAPER API facts live in `CONTEXT.md`.
 
 ## Product Principles
 
@@ -41,6 +43,6 @@ A set of focused, safe tools rather than one full remote. Zero install on the cl
 
 ## Accessibility & Inclusion
 
-- Dark stage / low-light use: must stay readable without glare.
+- Dark stage and low-light use: readable without glare.
 - Large, error-proof touch targets (44px minimum).
-- WCAG AA contrast as the baseline.
+- WCAG AA contrast as the baseline; state never conveyed by color alone.

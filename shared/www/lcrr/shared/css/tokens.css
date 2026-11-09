@@ -1,11 +1,22 @@
-/* LCRR shared: design tokens (see DESIGN.md). Every page loads this first. */
+/* LCRR shared: design tokens (see DESIGN.md). Every page loads this first. Silkscreen Desk: a flat dark panel with one signal orange. */
+@font-face { font-family:"IBM Plex Sans"; font-weight:500 700; font-style:normal; font-display:swap; src:url("../fonts/IBMPlexSans.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:400; font-style:normal; font-display:swap; src:url("../fonts/IBMPlexMono-400.woff2") format("woff2"); }
+@font-face { font-family:"IBM Plex Mono"; font-weight:500; font-style:normal; font-display:swap; src:url("../fonts/IBMPlexMono-500.woff2") format("woff2"); }
+
 :root {
   color-scheme: dark;
-  --stage-black:#16181b; --console-grey:#1e2125; --key-grey:#2a2e33; --hairline:#2b2f34;
-  --key-grey-hover:#3a3f46; --paper-white:#e8e8e8;
-  --cue-blue:#4aa3ff; --cue-blue-wash:#245382;
-  --live-green:#5ad77a; --rec-red:#ff5a5a; --warn-amber:#e0a030;
+  /* Surfaces: chassis is the page; bar is the header and footer strip; display is a recessed slot (readouts, faders, fields); key is a button face. */
+  --chassis:#191a17; --bar:#141512; --display:#0c0d0b; --key:#282a25; --key-hover:#343630;
+  --edge:#3a3c34; --line:#2d2e29;
+  /* Legend text and the one signal colour (selection, focus, the single lit action). Ink is the text on a signal fill. */
+  --legend:#dcdbcd; --legend-dim:#8d8c80;
+  --signal:#ff6a1a; --signal-ink:#1c0b00; --active-wash:#22241f;
+  /* State only: playing / ok, recording / muted / over, warning. */
+  --led-green:#79e08a; --led-red:#ff4a3a; --warn-amber:#e0a030;
   --warn-umber:#5a3d0c; --warn-edge:#8a5d14; --warn-cream:#ffd48a;
+  --font-ui:"IBM Plex Sans", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --chamfer:polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
   --lcrr-content-max:48rem;
   --lcrr-footer-h:44px;
 }

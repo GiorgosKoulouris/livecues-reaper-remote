@@ -195,12 +195,23 @@
     if (ui.phase !== "ready" || ui.busy || !ui.everLive) return Promise.resolve(false);
     return editor.load().then(function (got) {
       if (got.changed) {
+        dropStaleCheck();
         fillNames(editor.names());
         renderEditor();
         refreshSidecarNote();
       }
       return true;
     }, function () { return false; });
+  }
+
+  // A Check (and its Apply button) belongs to the Arrangement it ran on and the file it read. Once either changes
+  // it must not stay on screen.
+  function dropStaleCheck() {
+    if (!ui.token) return;
+    ui.token = null;
+    clear(els.result);
+    els.result.classList.remove("is-problem");
+    syncControls();
   }
 
   function refreshSidecarNote() {
@@ -227,8 +238,18 @@
   // ---- result panel -----------------------------------------------------------------------------------------------
   function card(title) {
     clear(els.result);
-    els.result.appendChild(h("h2", "arrange-result-title", title));
+    var heading = h("h2", "arrange-result-title", title);
+    heading.tabIndex = -1;
+    els.result.appendChild(heading);
+    reveal(heading);
     return els.result;
+  }
+  // A new result sits under Check/Verify; bring it into view and, for screen readers, make it the focus. A field the
+  // user is typing in keeps the focus (the result is only scrolled to).
+  function reveal(heading) {
+    if ($("arrange-panel-run").hidden) return;
+    var a = document.activeElement, typing = !!a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName);
+    if (typing) heading.scrollIntoView({ block: "nearest" }); else heading.focus();
   }
   function paragraphs(parent, list) { list.forEach(function (t) { parent.appendChild(h("p", "arrange-text", t)); }); }
   function showProblem(title, text) {
@@ -256,6 +277,7 @@
     bullets(c, summary.effects);
     if (reply.token) {
       ui.token = reply.token;
+      showOrder(c, reply.name);
       var row = h("div", "arrange-apply-row");
       var apply = h("button", "arrange-primary", "Apply “" + reply.name + "”");
       apply.type = "button";
@@ -270,6 +292,25 @@
     syncControls();
   }
 
+  // What Apply will lay down, from the Arrangement the page just re-read (positions need REAPER, so none are shown).
+  function showOrder(c, name) {
+    var arr = editor.find(name), v = editor.view();
+    if (!arr) return;
+    var lists = E.splitLists(arr.entries, v.regions);
+    var placed = lists.inList.filter(function (r) { return r.inProject; });
+    if (!placed.length) return;
+    c.appendChild(h("h3", "arrange-group-title", words.orderTitles.order));
+    var ol = h("ol", "arrange-order");
+    placed.forEach(function (r) { ol.appendChild(h("li", "", r.name)); });
+    c.appendChild(ol);
+    if (lists.leftOut.length) {
+      c.appendChild(h("h3", "arrange-group-title", words.orderTitles.parked));
+      var ul = h("ul", "arrange-order is-parked");
+      lists.leftOut.forEach(function (r) { ul.appendChild(h("li", "", r.name)); });
+      c.appendChild(ul);
+    }
+  }
+
   function showVerify(reply) {
     var c = fresh("Verify: " + reply.name);
     var summary = words.verifySummary(reply);
@@ -281,20 +322,27 @@
   function showApplied(reply, answer) {
     var c = fresh("Applied");
     var summary = words.applySummary(reply);
-    paragraphs(c, [summary.headline]);
+    c.appendChild(h("p", "arrange-verdict" + (reply.noop ? "" : " is-ok"), summary.headline));
     bullets(c, summary.effects);
     if (summary.tail) paragraphs(c, [summary.tail]);
+    var next = h("div", "arrange-apply-row");
+    var verify = h("button", "arrange-answer arrange-primary", "Verify “" + reply.name + "”");
+    verify.type = "button";
+    verify.addEventListener("click", function () { doVerify(reply.name); });
+    next.appendChild(verify);
+    c.appendChild(next);
     var offer = E.clearHeadroomOffer(answer, reply);
-    if (!offer) return;
-    var box = h("div", "arrange-offer");
-    box.appendChild(h("p", "arrange-text", words.clearOffer.text(offer.arrangement)));
-    var row = h("div", "arrange-apply-row");
-    var btn = h("button", "arrange-answer", words.clearOffer.button);
-    btn.type = "button";
-    btn.addEventListener("click", function () { doClearHeadroom(offer.arrangement, box, false); });
-    row.appendChild(btn);
-    box.appendChild(row);
-    c.appendChild(box);
+    if (offer) {
+      var box = h("div", "arrange-offer");
+      box.appendChild(h("p", "arrange-text", words.clearOffer.text(offer.arrangement)));
+      var row = h("div", "arrange-apply-row");
+      var btn = h("button", "arrange-answer", words.clearOffer.button);
+      btn.type = "button";
+      btn.addEventListener("click", function () { doClearHeadroom(offer.arrangement, box, false); });
+      row.appendChild(btn);
+      box.appendChild(row);
+      c.appendChild(box);
+    }
     syncControls();
   }
 
@@ -357,8 +405,8 @@
     });
   }
 
-  function doVerify() {
-    run("verify", { name: selectedName() }, "Verifying…").then(function (reply) {
+  function doVerify(name) {
+    run("verify", { name: name || selectedName() }, "Verifying…").then(function (reply) {
       if (!reply) return;
       if (reply.status === "ok") showVerify(reply); else showRefusal("Verify did not run", reply.error);
     });
@@ -600,9 +648,11 @@
     showPrompt(function (p) {
       p.appendChild(h("p", "arrange-text", words.deleteQuestion(name, entries.length)));
       var row = h("div", "arrange-apply-row");
-      row.appendChild(button("Delete", "arrange-answer arrange-primary", function () { hidePrompt(); doEdit("delete", { arrangement: name }); }));
-      row.appendChild(button("Keep it", "arrange-answer", hidePrompt));
+      row.appendChild(button("Delete", "arrange-answer", function () { hidePrompt(); doEdit("delete", { arrangement: name }); }));
+      var keep = button("Keep it", "arrange-answer arrange-primary", hidePrompt);
+      row.appendChild(keep);
       p.appendChild(row);
+      setTimeout(function () { keep.focus(); }, 0); // the safe answer holds the focus, so a stray Enter keeps the Arrangement
     });
   });
   function doUndo() {
@@ -623,7 +673,7 @@
   els.undoBtn.addEventListener("click", doUndo);
   editor.subscribe(function () { syncEditControls(); });
   els.editCheck.addEventListener("click", function () { setTab("run", true); doCheck(); });
-  els.name.addEventListener("change", function () { hidePrompt(); showMsg(""); renderEditor(); });
+  els.name.addEventListener("change", function () { hidePrompt(); showMsg(""); dropStaleCheck(); renderEditor(); });
 
   function renderEditor() {
     var v = editor.view();
@@ -706,6 +756,8 @@
     input.addEventListener("keydown", function (e) { if (e.key === "Enter") input.blur(); });
     hr.appendChild(button("−1 s", "arrange-hr-down", function () { setHeadroom(E.stepHeadroom(row.headroom, -1)); }, "Headroom of " + row.name + " minus one second"));
     hr.appendChild(input);
+    var unit = h("span", "arrange-hr-unit", "s"); unit.setAttribute("aria-hidden", "true");
+    hr.appendChild(unit);
     hr.appendChild(button("+1 s", "arrange-hr-up", function () { setHeadroom(E.stepHeadroom(row.headroom, 1)); }, "Headroom of " + row.name + " plus one second"));
     hr.appendChild(label);
     li.appendChild(hr);
@@ -753,7 +805,7 @@
   document.addEventListener("visibilitychange", function () { if (!document.hidden) reread(); });
 
   els.check.addEventListener("click", doCheck);
-  els.verify.addEventListener("click", doVerify);
+  els.verify.addEventListener("click", function () { doVerify(); });
   els.capture.addEventListener("click", function () { doCapture(false); });
   els.dup.addEventListener("click", doDuplicates);
   els.timebase.addEventListener("click", doTimebase);

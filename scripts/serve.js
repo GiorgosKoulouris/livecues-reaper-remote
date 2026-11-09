@@ -12,7 +12,7 @@ const lib = require("./release-lib.js");
 const repo = path.join(__dirname, "..");
 const argv = process.argv.slice(2);
 const port = Number(argv[argv.indexOf("--port") + 1]) || 8081;
-const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".txt": "text/plain" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".txt": "text/plain", ".woff2": "font/woff2" };
 
 http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);

@@ -35,4 +35,6 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 - `scripts/install.ps1` after the restructure (slices, folder symlinks with `-Link`, uninstall removing links without touching their targets): written in the devcontainer, which has no PowerShell. The same goes for its reaper-slice part (`-Resource`, `Scripts\LCRR\`), added 2026-11-07.
 - Behaviour with several project tabs open.
 - The Arrange bridge and page in real REAPER: the `Scripts/__startup.lua` line that `install.ps1` adds (it registers the bridge with `AddRemoveReaScript` and runs it), whether `GetProjectStateChangeCount` stays still between a Check and an Apply, and how long an Apply holds the web interface. See `apps/arrange/docs/limitations.md`.
+- The self-hosted fonts (`lcrr/shared/fonts/*.woff2`) from REAPER's web server: REAPER may not send a font content type. Browsers normally still use the face; if they do not, the system-ui fallback applies and the layout holds.
+- The Silkscreen Desk look on a real phone and in a dark room: checked only against unit tests, `npm run serve` asset resolution and the design drafts, not in a browser.
 - The home page and the suite footer in a real browser and on a phone: checked only by unit tests, a node sandbox run and asset-resolution checks against `npm run serve`.

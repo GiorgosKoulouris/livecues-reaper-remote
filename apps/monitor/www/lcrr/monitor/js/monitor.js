@@ -130,12 +130,14 @@
     mute.type = "button";
     mute.textContent = "M";
     mute.setAttribute("aria-pressed", "false");
+    mute.title = "Mute";
     mute.disabled = conn.isOffline();
     var solo = document.createElement("button");
     solo.className = "monitor-row-solo";
     solo.type = "button";
     solo.textContent = "S";
     solo.setAttribute("aria-pressed", "false");
+    solo.title = "Solo in my mix";
     solo.disabled = conn.isOffline();
     solo.addEventListener("click", function () { if (open === m) toggleSolo(n); });
     // The fader writes to this row's receive (send index -n) of the mix, and only while the latest poll still agrees.

@@ -53,7 +53,7 @@
   }
   function setRecording(on) {
     els.rec.classList.toggle("recording", on);
-    els.rec.textContent = on ? "REC" : "Rec";
+    els.rec.setAttribute("aria-label", on ? "Recording" : "Hold to record");
   }
 
   var banner = document.getElementById("podium-banner");
@@ -244,7 +244,10 @@
       var li = document.createElement("li");
       li.setAttribute("data-id", it.id);
       var btn = document.createElement("button");
-      btn.type = "button"; btn.className = "podium-go"; btn.textContent = "\u25B6";
+      btn.type = "button"; btn.className = "podium-go";
+      var glyph = document.createElement("i");
+      glyph.className = "podium-glyph play"; glyph.setAttribute("aria-hidden", "true");
+      btn.appendChild(glyph);
       btn.setAttribute("data-label", it.name);
       btn.setAttribute("aria-label", "Play from " + it.name);
       wireCue(btn, it.time);

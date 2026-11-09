@@ -238,7 +238,7 @@
       dropped: { items: r.dropped.items.length, points: r.dropped.envelope_points.length },
       cuts: r.counts.cuts
     };
-    return { headline: "Applied " + q(r.name) + ".", effects: effectLines(what, true), tail: "Undo in REAPER takes it back.\nNext: run Verify." };
+    return { headline: "Applied " + q(r.name) + ".", effects: effectLines(what, true), tail: "Undo in REAPER takes it back." };
   }
 
   var TIMEBASE = { "-1": "project default", "0": "time", "1": "beats (position, length, rate)?", "2": "beats (position only)" };
@@ -313,6 +313,7 @@
   }
 
   return { error: error, failure: failure, finding: finding, checkSummary: checkSummary, verifySummary: verifySummary, headroomQuestion: headroomQuestion,
+    orderTitles: { order: "Region order after Apply", parked: "Parked: left out of the order" },
     applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion,
     undoLabel: undoLabel, undoTitle: undoTitle, dragLabel: dragLabel, headroomInputLabel: headroomInputLabel, undone: undone, undoPartial: undoPartial, undoRefused: undoRefused, undoStale: undoStale,
     headroomLabel: headroomLabel, deleteQuestion: deleteQuestion, emptyArrangementNote: emptyArrangementNote,

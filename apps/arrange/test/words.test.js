@@ -121,7 +121,7 @@ test("a finished Apply is summarised in past tense, whatever it did", () => {
   assert.match(words.applySummary(replies.apply_noop).headline, /already matches the timeline/);
   const ok = words.applySummary(replies.apply_ok);
   assert.strictEqual(ok.headline, 'Applied "Identity".');
-  assert.strictEqual(ok.tail, "Undo in REAPER takes it back.\nNext: run Verify.");
+  assert.strictEqual(ok.tail, "Undo in REAPER takes it back.");
 });
 
 test("an Apply with a Headroom says what was changed", () => {
