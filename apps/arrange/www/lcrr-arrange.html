@@ -37,33 +37,72 @@
         <select id="arrange-name" disabled></select>
       </label>
       <p id="arrange-sidecar" class="arrange-note" hidden></p>
-      <div class="arrange-buttons">
-        <button type="button" id="arrange-check" disabled>Check</button>
-        <button type="button" id="arrange-verify" disabled>Verify</button>
-      </div>
-      <p class="arrange-hint">Check shows everything knowable without writing, then offers Apply. Verify asks whether the timeline now holds what a Repack promises.</p>
     </section>
 
-    <section class="arrange-section" aria-labelledby="arrange-h-capture">
-      <h2 id="arrange-h-capture" class="arrange-h">Capture</h2>
-      <label class="arrange-field">
-        <span class="arrange-label">Save the current region order as</span>
-        <input id="arrange-capture-name" type="text" value="Captured" autocomplete="off" disabled>
-      </label>
-      <div class="arrange-buttons"><button type="button" id="arrange-capture" disabled>Capture</button></div>
-    </section>
+    <div class="arrange-tabs" role="tablist" aria-label="Run or edit">
+      <button type="button" role="tab" id="arrange-tab-run" class="arrange-tab" aria-selected="true" aria-controls="arrange-panel-run">Run</button>
+      <button type="button" role="tab" id="arrange-tab-edit" class="arrange-tab" aria-selected="false" aria-controls="arrange-panel-edit" tabindex="-1">Edit</button>
+    </div>
 
-    <section class="arrange-section" aria-labelledby="arrange-h-diagnostics">
-      <h2 id="arrange-h-diagnostics" class="arrange-h">Diagnostics</h2>
-      <div class="arrange-buttons">
-        <button type="button" id="arrange-dup" disabled>Duplicate and unnamed regions</button>
-        <button type="button" id="arrange-timebase" disabled>Track timebase</button>
-        <button type="button" id="arrange-bars" disabled>Bar lines and Padding</button>
-      </div>
-    </section>
+    <div id="arrange-panel-run" role="tabpanel" aria-labelledby="arrange-tab-run">
+      <section class="arrange-section">
+        <div class="arrange-buttons">
+          <button type="button" id="arrange-check" disabled>Check</button>
+          <button type="button" id="arrange-verify" disabled>Verify</button>
+        </div>
+        <p class="arrange-hint">Check shows everything knowable without writing, then offers Apply. Verify asks whether the timeline now holds what a Repack promises.</p>
+      </section>
+
+      <section class="arrange-section" aria-labelledby="arrange-h-capture">
+        <h2 id="arrange-h-capture" class="arrange-h">Capture</h2>
+        <label class="arrange-field">
+          <span class="arrange-label">Save the current region order as</span>
+          <input id="arrange-capture-name" type="text" value="Captured" autocomplete="off" disabled>
+        </label>
+        <div class="arrange-buttons"><button type="button" id="arrange-capture" disabled>Capture</button></div>
+      </section>
+
+      <section class="arrange-section" aria-labelledby="arrange-h-diagnostics">
+        <h2 id="arrange-h-diagnostics" class="arrange-h">Diagnostics</h2>
+        <div class="arrange-buttons">
+          <button type="button" id="arrange-dup" disabled>Duplicate and unnamed regions</button>
+          <button type="button" id="arrange-timebase" disabled>Track timebase</button>
+          <button type="button" id="arrange-bars" disabled>Bar lines and Padding</button>
+        </div>
+      </section>
+
+      <section id="arrange-result" class="arrange-result" aria-live="polite"></section>
+    </div>
+
+    <div id="arrange-panel-edit" role="tabpanel" aria-labelledby="arrange-tab-edit" hidden>
+      <section class="arrange-section">
+        <div class="arrange-buttons">
+          <button type="button" id="arrange-new" disabled>New</button>
+          <button type="button" id="arrange-duplicate" disabled>Duplicate</button>
+          <button type="button" id="arrange-rename" disabled>Rename</button>
+          <button type="button" id="arrange-delete" disabled>Delete</button>
+          <button type="button" id="arrange-undo" disabled>Undo</button>
+        </div>
+        <div id="arrange-edit-prompt" class="arrange-prompt" hidden></div>
+        <p id="arrange-undo-note" class="arrange-hint" role="status" hidden></p>
+        <p id="arrange-edit-note" class="arrange-note" hidden></p>
+        <p id="arrange-edit-msg" class="arrange-note is-problem" role="alert" hidden></p>
+      </section>
+
+      <section id="arrange-editor" class="arrange-section" hidden>
+        <h3 class="arrange-group-title" id="arrange-h-in">In this Arrangement</h3>
+        <p id="arrange-empty-note" class="arrange-hint" hidden></p>
+        <ol id="arrange-in" class="arrange-rows" aria-labelledby="arrange-h-in"></ol>
+        <h3 class="arrange-group-title" id="arrange-h-out">Left out, will be parked</h3>
+        <ul id="arrange-out" class="arrange-rows" aria-labelledby="arrange-h-out"></ul>
+        <div class="arrange-buttons arrange-edit-foot">
+          <button type="button" id="arrange-edit-check" class="arrange-primary" disabled>Check this Arrangement</button>
+        </div>
+        <p class="arrange-hint">Changes are saved to the Arrangement file as you make them. Headroom is a change to a region's end at the next Apply, never a length.</p>
+      </section>
+    </div>
   </div>
 
-  <section id="arrange-result" class="arrange-result" aria-live="polite"></section>
   <p class="arrange-host-note">Some steps happen only in REAPER on the host: importing a sidecar after Save As, and saving a project that has never been saved. This page never starts those.</p>
 </main>
 
@@ -79,6 +118,7 @@
 <script src="lcrr/arrange/js/wire.js"></script>
 <script src="lcrr/arrange/js/client.js"></script>
 <script src="lcrr/arrange/js/words.js"></script>
+<script src="lcrr/arrange/js/editor.js"></script>
 <script src="lcrr/arrange/js/arrange.js"></script>
 </body>
 </html>

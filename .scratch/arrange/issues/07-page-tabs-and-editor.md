@@ -1,6 +1,6 @@
 # 07. The page: Run and Edit tabs, and the editor
 
-Status: ready-for-agent
+Status: done
 Type: task
 Blocked by: 05
 
@@ -24,3 +24,7 @@ Spec: `../spec.md`, "Phase 2", The editor, Headroom in the page, Edits on the wi
 
 ## Host check
 - Desktop width and tablet, mouse and touch drag, on `podium-dummy` and `Rehearsal_Current`. Edit while the file is open in a text editor: stale refusal and reload.
+
+## Comments
+
+Built in 6bc86a2. Host check still to do (desktop, tablet touch drag, stale refusal with the file open in a text editor).

@@ -165,3 +165,29 @@ proved the obvious version wrong. Read the entry — and the ADR it names — be
 - **The edit's field names on the wire:** `operation`, `revision`, `project` (the project path; not `path`, which would clash with the reply's `path` for the file), `arrangement`, `region`, `slot`, `headroom`, `name`, `rewrite=1`. Everything is a string; the core parses numbers.
 - **An unreadable sidecar still has a revision** (of its text), and `arrangements` sends the parse error. The page never edits it, so the revision is only informational there.
 - **A long project path eats the URL budget** (see `bridge.md`). No fix now: the client refuses what does not fit with a clear message. If a real path ever makes ordinary edits unsendable, send a short hash of the path instead of the path.
+
+## The page's editor (issue 07)
+
+- **`js/editor.js` is the editor's model and the one place an edit is sent** (pure, node-tested): `splitLists`, `slotForDrop`/`slotForStep`/`gapAt` (move arithmetic; a move's `slot` is the final 1-based position), `parseHeadroom`/`formatSeconds`/`stepHeadroom`, `checkName`/`copyName`, and `createEditor(client)` with `load`, `dispatch(operation, fields, { rewrite })` and `subscribe`. `dispatch` never rejects; it resolves `ok` (with `before`/`after` entries of the Arrangement, for Undo, issue 08), `confirm`, `stale` (state already reloaded), `refused` or `failed`. `arrange.js` only draws it.
+- **Headroom input** accepts `4`, `+4`, `-2.5`, `2,5`, `4 s` and empty (= 0), rounds to milliseconds, and is sent as plain seconds. Anything else is refused on the page.
+- **Quiet calls.** Edits and re-reads hold the page like any command (no polling, no second command) but do not show the busy bar, which would make the sticky header jump on a sub-second call. A second edit while one is in flight is dropped silently.
+- **Re-read** on window focus, on regaining visibility and before each Check; the editor is redrawn only if the revision, sidecar state or project changed, so a half-typed Headroom survives a focus event. A stale refusal reloads and redraws and says so.
+- **Add** appends to the end of the Arrangement (then move it); there is no drop from the "Left out" list. A name that is not in the project shows only a flag and Remove.
+- **Duplicate** proposes "<name> copy"; **Rename** to the same name is a no-op; names are checked on the page first (empty, taken) and again by the core.
+- **Tab** is remembered in `localStorage` (`lcrr.arrange.tab`), wrapped in try/catch. The picker, its note and the project line are above both tabs; the result panel lives in Run.
+- **Edit tab with a missing sidecar** offers New only (Capture is on Run, and the note says so); with an unreadable one it shows the parse error and no controls.
+
+## The page's Undo (issue 08)
+
+- **The stack lives in `createEditor`** (`editor.js`, pure, node-tested). **Every successful `dispatch` pushes its inverse** (`inverseOf`), from wherever on the page it was sent, so issue 09's `clear_headroom` after Apply is undoable with no extra call. `undo()` pops the newest and sends its steps through `dispatch` with an internal `undo` flag (not pushed back: no Redo). Depth is capped at 100. Lost on reload.
+- **Inverses.** move: move back to the old 1-based slot. set_headroom: set the old value. add: remove. remove: add at the old slot, then set the old Headroom if it was not 0 (two edits, one undo entry). clear_headroom: one set_headroom per region that had Headroom (one entry, several edits; none had any: nothing pushed). New and Duplicate: delete the created Arrangement (so the run log gets a Delete entry for it). Rename: rename back. Delete: no inverse.
+- **Staleness.** An Undo step is an ordinary revision-checked edit. A stale refusal reloads and drops the whole stack. Beyond the issue: any re-read that finds the file or project changed (`load()` after the first) also drops the stack, because the reload refreshes the revision and would otherwise let an old inverse through onto content it was not made for. A stale refusal of a normal edit does the same, being a reload.
+- **Delete drops the stack entries about that Arrangement**; other entries stay. An entry that is refused for any other reason (the region is gone, the name is taken) is dropped and says so; an Undo that gets no answer keeps its entry; a multi-edit inverse that fails after its first step is dropped as "partial" and tells the user to look.
+- **Undo works from the Edit tab only**; the button is disabled with nothing to undo, and its tooltip names what it would undo. The note under the buttons says what was undone and is replaced by the next message.
+
+## The post-Apply Headroom offer (issue 09)
+
+- **The decision is `clearHeadroomOffer(answer, reply)` in `js/editor.js`** (pure, node-tested). It offers only for an `ok`, non-noop Apply whose answer was not `zero`/`cancel` and whose reply `headroom` has an entry with `requested` other than 0. It judges by `requested`, not `resolved`: a request under half a bar resolves to 0 yet is still in the sidecar, so the offer stands. The page passes the answer it sent (`null` when no question was asked).
+- **The button lives in the Run result card** and sends `clear_headroom` for the reply's `name` straight through `editor.dispatch`, so the edit is revision-checked and pushed on the Undo stack like any other. Its answer (cleared, nothing left to clear, rewrite question, refusal) replaces the offer in the card, since the Edit tab's note is not visible from Run. It is not automatic and not repeated: the card is replaced by the next command.
+- **If the Arrangement was edited between Apply and the click**, the clear acts on the current file (revision-checked) and clears whatever Headroom is there; a stale refusal reloads and shows the usual message.
+

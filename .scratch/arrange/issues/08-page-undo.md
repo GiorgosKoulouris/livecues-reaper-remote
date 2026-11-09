@@ -1,6 +1,6 @@
 # 08. The page's Undo for Arrangement edits
 
-Status: ready-for-agent
+Status: done
 Type: task
 Blocked by: 07
 
@@ -12,3 +12,7 @@ Spec: `../spec.md`, "Phase 2", Undo and the record.
 
 ## Acceptance
 - Node tests: the inverse of each operation, and that applying an operation then its inverse returns the same Arrangement.
+
+## Comments
+
+Done in 3597be8.

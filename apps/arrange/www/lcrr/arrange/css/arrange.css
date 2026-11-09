@@ -64,6 +64,33 @@ button.arrange-quiet { min-height:44px; background:none; border-color:transparen
 .arrange-table th, .arrange-table td { padding:.375rem .5rem; text-align:left; border-bottom:1px solid var(--hairline); overflow-wrap:anywhere; }
 .arrange-table th { font-weight:600; opacity:.6; }
 
+/* Run / Edit tabs */
+.arrange-tabs { display:flex; gap:.25rem; border-bottom:1px solid var(--hairline); }
+button.arrange-tab { flex:1 1 0; background:none; border-color:transparent; border-radius:6px 6px 0 0; border-bottom:3px solid transparent; opacity:.6; }
+button.arrange-tab[aria-selected=true] { opacity:1; font-weight:600; border-bottom-color:var(--paper-white); }
+
+/* Editor */
+.arrange-prompt { margin-top:.75rem; padding:.75rem; background:var(--console-grey); border:1px solid var(--hairline); border-radius:6px; }
+.arrange-prompt .arrange-field { margin-bottom:.5rem; }
+.arrange-note.is-problem { border-color:var(--warn-edge); white-space:pre-wrap; overflow-wrap:anywhere; }
+#arrange-edit-note { white-space:pre-wrap; overflow-wrap:anywhere; margin-top:.75rem; }
+#arrange-edit-msg { margin-top:.75rem; }
+.arrange-rows { list-style:none; margin:.25rem 0 1rem; padding:0; }
+.arrange-row { position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:.25rem .5rem; padding:.25rem .5rem; margin:.25rem 0; background:var(--console-grey); border:1px solid var(--hairline); border-radius:6px; }
+.arrange-row.is-dragging { opacity:.5; }
+.arrange-row.is-drop-before { box-shadow:0 -3px 0 0 var(--cue-blue); }
+.arrange-row.is-drop-after { box-shadow:0 3px 0 0 var(--cue-blue); }
+.arrange-row-name { flex:1 1 8rem; min-width:0; overflow-wrap:anywhere; }
+.arrange-flag { display:block; font-size:.75rem; letter-spacing:.06em; text-transform:uppercase; color:var(--warn-amber); }
+.arrange-row.is-missing { border-color:var(--warn-edge); }
+.arrange-handle { flex:none; width:44px; padding:0; touch-action:none; cursor:grab; }
+.arrange-handle:active { cursor:grabbing; }
+.arrange-row button { padding:.5rem; min-width:44px; }
+.arrange-headroom { display:flex; align-items:center; gap:.25rem; flex-wrap:wrap; }
+.arrange-headroom input { width:5rem; min-height:44px; text-align:center; }
+.arrange-headroom-label { font-size:.8rem; opacity:.6; font-variant-numeric:tabular-nums; min-width:8rem; }
+.arrange-edit-foot { margin-top:1rem; }
+
 @media (max-width: 480px) {
   .arrange-bar-inner { padding:.375rem .5rem; gap:.5rem; }
   main { padding:.5rem; }

@@ -158,3 +158,30 @@ test("the edit and read replies carry what the editor needs", () => {
   assert.strictEqual(replies.edit_delete.entries, undefined);
   assert.ok(replies.edit_delete.deleted_entries.length > 0);
 });
+
+test("the editor's sentences", () => {
+  assert.strictEqual(words.headroomLabel(0), "No Headroom");
+  assert.strictEqual(words.headroomLabel(4), "+4 s at next Apply");
+  assert.strictEqual(words.headroomLabel(-2.5), "-2.5 s at next Apply");
+  assert.strictEqual(words.headroomLabel(1.25), "+1.25 s at next Apply");
+  assert.match(words.deleteQuestion("Show", 3), /"Show".*3 regions/);
+  assert.match(words.deleteQuestion("Show", 1), /1 region\?/);
+  clean(words.emptyArrangementNote("X"), "empty");
+  clean(words.headroomInputInvalid(), "invalid");
+  ["invalid", "unsaved", "missing"].forEach((s) => clean(words.noSidecarEditNote(s, "boom"), s));
+  assert.strictEqual(words.noSidecarEditNote("ok"), "");
+});
+
+test("the recorded edit replies all have words", () => {
+  Object.keys(replies).filter((n) => n.indexOf("edit_") === 0).forEach((n) => {
+    const r = replies[n];
+    if (r.error) clean(words.error(r.error), n);
+  });
+});
+
+test("undo sentences name the Arrangement and region", () => {
+  const e = { operation: "move", arrangement: "Show", region: "Intro", steps: [] };
+  assert.match(words.undone(e), /^Undid the move of .*Intro.* in .*Show/);
+  assert.match(words.undoLabel({ operation: "rename", arrangement: "Old" }), /renaming to .*Old/);
+  assert.match(words.undoRefused(e), /no longer applies/);
+});

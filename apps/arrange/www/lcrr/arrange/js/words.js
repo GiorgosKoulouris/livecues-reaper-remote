@@ -234,6 +234,57 @@
     return "The Arrangement sidecar has comments or formatting that saving does not keep. Saving rewrites the whole file. Continue?";
   }
 
+  // The editor's own sentences.
+  function headroomLabel(seconds) {
+    return seconds === 0 ? "No Headroom" : (seconds < 0 ? "-" : "+") + Math.abs(Number(seconds.toFixed(3))) + " s at next Apply";
+  }
+
+  function deleteQuestion(name, count) {
+    return "Delete the Arrangement " + q(name) + " and its " + count + " region" + (count === 1 ? "" : "s") + "? This cannot be undone from the page. The run log keeps the list of regions, so it could be rebuilt.";
+  }
+
+  // Undo (issue 08). `entry` is an inverse from editor.inverseOf.
+  function undoLabel(entry) {
+    var a = entry.arrangement ? " in " + q(entry.arrangement) : "";
+    var r = entry.region ? " " + q(entry.region) : "";
+    switch (entry.operation) {
+      case "move": return "the move of" + r + a;
+      case "set_headroom": return "the Headroom change of" + r + a;
+      case "add": return "adding" + r + a;
+      case "remove": return "removing" + r + a;
+      case "clear_headroom": return "clearing the Headroom of " + q(entry.arrangement);
+      case "new": return "creating " + q(entry.arrangement);
+      case "duplicate": return "duplicating into " + q(entry.arrangement);
+      case "rename": return "renaming to " + q(entry.arrangement);
+      default: return "the last change";
+    }
+  }
+  function undone(entry) { return "Undid " + undoLabel(entry) + "."; }
+  function undoPartial(entry) { return "Undoing " + undoLabel(entry) + " stopped half way. Look at the Arrangement; it may be partly restored."; }
+  function undoRefused(entry) { return "Could not undo " + undoLabel(entry) + ": it no longer applies. That step is dropped from Undo."; }
+  function undoStale() { return "The Arrangement file changed elsewhere, so Undo is cleared. The page has reloaded it."; }
+
+  function emptyArrangementNote(name) {
+    return "Arrangement " + q(name) + " is empty. Check refuses an empty Arrangement; add the regions it should play from the list below.";
+  }
+
+  // The post-Apply offer to clear the Headroom just applied (issue 09).
+  var clearOffer = {
+    button: "Clear the Headroom just applied",
+    text: function (name) { return "Applying " + q(name) + " again would move those region ends again. You can set its Headroom back to 0 now."; },
+    done: function (name) { return "The Headroom of " + q(name) + " is cleared. Undo on the Edit tab puts it back."; },
+    nothing: function (name) { return q(name) + " had no Headroom left to clear."; }
+  };
+
+  function headroomInputInvalid() { return "Headroom is a number of seconds, for example 4 or -2.5."; }
+
+  function noSidecarEditNote(sidecar, parseError) {
+    if (sidecar === "invalid") return error({ code: "sidecar_invalid", error: parseError || "unknown error" });
+    if (sidecar === "unsaved") return error({ code: "sidecar_unsaved" });
+    if (sidecar === "missing") return "This project has no Arrangement sidecar yet. New creates one, or Capture on the Run tab saves the current region order.";
+    return "";
+  }
+
   function captureSummary(r) {
     return (r.replaced ? "Replaced " : "Captured ") + q(r.name) + " with " + r.regions.length + " regions.\n\n" +
       "Next, in a text editor on the host, open " + r.path + ":\n" +
@@ -246,5 +297,8 @@
 
   return { error: error, failure: failure, finding: finding, severityHeading: severityHeading, blindSpot: blindSpot,
     paddingNote: paddingNote, checkVerdict: checkVerdict, verifyVerdict: verifyVerdict, headroomQuestion: headroomQuestion,
-    applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion, trackLabel: trackLabel };
+    applySummary: applySummary, timebase: timebase, problems: problems, captureSummary: captureSummary, replaceQuestion: replaceQuestion, rewriteQuestion: rewriteQuestion,
+    undoLabel: undoLabel, undone: undone, undoPartial: undoPartial, undoRefused: undoRefused, undoStale: undoStale,
+    headroomLabel: headroomLabel, deleteQuestion: deleteQuestion, emptyArrangementNote: emptyArrangementNote,
+    headroomInputInvalid: headroomInputInvalid, clearOffer: clearOffer, noSidecarEditNote: noSidecarEditNote, trackLabel: trackLabel };
 });
