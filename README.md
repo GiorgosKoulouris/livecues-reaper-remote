@@ -18,7 +18,9 @@ Remote-control pages for REAPER, served by REAPER's built-in web interface. Open
 
 ## Install / update on the Windows host
 
-From PowerShell on Windows, in the repo folder:
+Easiest: double-click `scripts\install.bat` in Explorer. It runs `install.ps1` (copy mode) without execution-policy prompts and keeps the window open to show the URLs. Re-run it to update.
+
+From PowerShell (or `scripts\install.bat <same arguments>` from cmd), in the repo folder:
 
 ```powershell
 .\scripts\install.ps1                 # copy into %APPDATA%\REAPER\reaper_www_root (re-run to update; no admin needed)
@@ -27,7 +29,7 @@ From PowerShell on Windows, in the repo folder:
 .\scripts\install.ps1 -Uninstall      # removes lcrr*.html and the lcrr folder
 ```
 
-If scripts are blocked: `powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1`. If the repo lives in WSL or a container, run it via its Windows path (e.g. `\\wsl$\...`).
+If scripts are blocked, use `install.bat`, or `powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1`. If the repo lives in WSL or a container, run it via its Windows path (e.g. `\\wsl$\...`).
 
 ## Troubleshooting
 

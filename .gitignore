@@ -2,5 +2,10 @@ node_modules/
 dist/
 *.rpp-bak
 Backups/
-.podium-history.bundle
 .impeccable/hook.cache.json
+
+# TEMP
+apps/reorg/
+
+# Empty lockfile (no dependencies yet); revisit when a dependency is added
+package-lock.json
