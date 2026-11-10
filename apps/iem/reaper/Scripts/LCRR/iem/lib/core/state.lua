@@ -15,6 +15,10 @@
 -- **Sources** are every other track, in project order, each with its folder
 -- nesting `depth` (0 at the top level) so the page can indent.
 --
+-- **The cue track** is the first track named `IEM-Cue` (IEM Mix listens through it): neither a mix nor a source row.
+-- `cue = { guid, outputs, missing }` (absent when there is none): its hardware outputs and the number of mixes with
+-- no send to it.
+--
 -- `folder.tracks_after` is true when tracks sit after the folder's last member.
 -- `colour` is the shared colour, `rrggbb`: the project's, or the default.
 --
@@ -26,6 +30,7 @@
 -- `device.channels` names the device's outputs; `master_outputs` are the master track's hardware outputs.
 
 local tracks = require("lib.core.tracks")
+local cue_core = require("lib.core.cue")
 
 local state = {}
 
@@ -55,6 +60,7 @@ function state.run(given)
   local api = given.api
   local mixes, sources = {}, {}
   local folder = nil
+  local cue = nil          -- the first track named `IEM-Cue`: not a source, not a mix
   local level = 0          -- folder nesting before the current track
   local folder_base = nil  -- `level` when the IEMs folder opened; nil outside it
 
@@ -73,6 +79,8 @@ function state.run(given)
         outputs = tracks.outputs(api, track),
         sends = sends_of(api, track),
       }
+    elseif not cue and name == tracks.CUE_NAME then
+      cue = { guid = guid, outputs = tracks.outputs(api, track), track = track }
     elseif not folder and name == state.FOLDER_NAME then
       folder = { guid = guid, is_folder = depth == 1 }
       if depth == 1 then
@@ -106,8 +114,18 @@ function state.run(given)
     channels[#channels + 1] = api.GetOutputChannelName(channel) or ""
   end
 
+  -- The cue track (absent when there is none): its output, and how many mixes still lack a send to it.
+  if cue then
+    local senders = cue_core.senders(api, cue.track)
+    local missing = 0
+    for _, mix in ipairs(mixes) do
+      if not senders[mix.guid] then missing = missing + 1 end
+    end
+    cue = { guid = cue.guid, outputs = cue.outputs, missing = missing }
+  end
+
   return {
-    status = "ok", folder = folder, colour = tracks.colour(api), mixes = mixes, sources = sources,
+    status = "ok", folder = folder, cue = cue, colour = tracks.colour(api), mixes = mixes, sources = sources,
     device = { channels = channels }, master_outputs = tracks.outputs(api, api.GetMasterTrack(0)),
   }
 end

@@ -218,9 +218,17 @@
     var t = tracks.filter(function (x) { return x.number === number; })[0];
     return t ? { kind: "source", number: number, name: t.name, focus: null } : null;
   }
+  function mixByNumber(tracks, number) { return listMixes(tracks).filter(function (x) { return x.number === number; })[0]; }
   function selectMix(tracks, number) {
-    var m = listMixes(tracks).filter(function (x) { return x.number === number; })[0];
+    var m = mixByNumber(tracks, number);
     return m ? { kind: "mix", number: number, name: tracks.filter(function (x) { return x.number === number; })[0].name, focus: null } : null;
+  }
+  // The short name (prefix stripped, as the bridge lists it) of the selected mix, or null when the selection is not a
+  // listed mix. `sel.name` stays the full track name: it guards against track numbers shifting.
+  function selectedMixName(tracks, sel) {
+    if (!sel || sel.kind !== "mix") return null;
+    var m = mixByNumber(tracks, sel.number);
+    return m ? m.name : null;
   }
   // A tap on a cell highlights its row in the panel that already holds it. Otherwise nothing changes: `sel` comes back as it was.
   function selectCell(sel, source, mixNumber) {
@@ -368,5 +376,5 @@
     buildReadRequests: buildReadRequests, layoutKey: layoutKey, buildGrid: buildGrid, createGridModel: createGridModel,
     canEdit: canEdit, markerReadCommand: markerReadCommand, markerWriteCommand: markerWriteCommand, parseMarker: parseMarker, newProjectId: newProjectId,
     claimProject: claimProject, markerHolds: markerHolds, writeAllowed: writeAllowed, selectSource: selectSource,
-    selectMix: selectMix, selectCell: selectCell, buildPanel: buildPanel, buildPanelRequests: buildPanelRequests, holdSlot: holdSlot };
+    selectMix: selectMix, selectedMixName: selectedMixName, selectCell: selectCell, buildPanel: buildPanel, buildPanelRequests: buildPanelRequests, holdSlot: holdSlot };
 });

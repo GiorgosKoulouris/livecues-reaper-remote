@@ -30,6 +30,12 @@
       </label>
     </div>
 
+    <section id="iemmix-listen" class="iemmix-listen" aria-label="Listen" hidden>
+      <h2 class="iemmix-label">Listen</h2>
+      <div id="iemmix-listen-keys" class="iemmix-listen-keys"></div>
+      <p id="iemmix-listen-note" class="iemmix-listen-note" role="status"></p>
+    </section>
+
     <p id="iemmix-empty" class="iemmix-message" role="status">Looking for mixes&hellip;</p>
 
     <div id="iemmix-scroll" class="iemmix-scroll" tabindex="0" role="region" aria-label="Level of every source in every mix" hidden>
@@ -48,6 +54,20 @@
     <p id="iemmix-panel-hint" class="iemmix-panel-hint">Tap a source name to see its send in every mix, or a mix name to see its sources and master level.</p>
     <p id="iemmix-panel-lock" class="iemmix-panel-hint iemmix-panel-lockhint" role="status">Locked. Press Unlock to change levels.</p>
     <ul id="iemmix-panel-list" class="iemmix-panel-list"></ul>
+
+    <section id="iemmix-snaps" class="iemmix-snaps" aria-labelledby="iemmix-snaps-title">
+      <h2 id="iemmix-snaps-title" class="iemmix-panel-title">Snapshots</h2>
+      <p id="iemmix-snaps-note" class="iemmix-panel-hint" role="status"></p>
+      <form id="iemmix-snaps-form" class="iemmix-snaps-form" autocomplete="off">
+        <label class="iemmix-snaps-field">
+          <span class="iemmix-label">Name</span>
+          <input id="iemmix-snaps-name" type="text" spellcheck="false" disabled>
+        </label>
+        <button id="iemmix-snaps-save" class="iemmix-key" type="submit" disabled>Save</button>
+      </form>
+      <p id="iemmix-snaps-empty" class="iemmix-panel-hint" hidden>No snapshots saved yet.</p>
+      <ul id="iemmix-snaps-list" class="iemmix-snaps-list"></ul>
+    </section>
   </aside>
 </main>
 
@@ -62,8 +82,14 @@
 <script src="lcrr/shared/js/guard.js"></script>
 <script src="lcrr/shared/js/fader-core.js"></script>
 <script src="lcrr/shared/js/fader.js"></script>
+<script src="lcrr/shared/js/hold.js"></script>
+<script src="lcrr/shared/js/bridge-wire.js"></script>
+<script src="lcrr/shared/js/bridge-client.js"></script>
 <script src="lcrr/iemmix/js/core.js"></script>
 <script src="lcrr/iemmix/js/wheel.js"></script>
+<script src="lcrr/iemmix/js/listen.js"></script>
+<script src="lcrr/iemmix/js/bridge.js"></script>
+<script src="lcrr/iemmix/js/snapshots.js"></script>
 <script src="lcrr/iemmix/js/iemmix.js"></script>
 </body>
 </html>

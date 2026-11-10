@@ -48,6 +48,11 @@
         <input id="iem-colour" type="color">
       </label>
       <button id="iem-move" type="button" hidden></button>
+      <button id="iem-cue" type="button" hidden></button>
+      <label class="iem-cue-out" id="iem-cue-out-box" hidden>
+        <span class="iem-label" id="iem-cue-out-label"></span>
+        <select id="iem-cue-out"></select>
+      </label>
       <button id="iem-lock" type="button" aria-pressed="false" disabled></button>
     </div>
   </div>
@@ -73,6 +78,8 @@
 <script src="lcrr/shared/js/poll.js"></script>
 <script src="lcrr/shared/js/guard.js"></script>
 <script src="lcrr/shared/js/hold.js"></script>
+<script src="lcrr/shared/js/bridge-wire.js"></script>
+<script src="lcrr/shared/js/bridge-client.js"></script>
 <script src="lcrr/iem/js/wire.js"></script>
 <script src="lcrr/iem/js/client.js"></script>
 <script src="lcrr/iem/js/core.js"></script>

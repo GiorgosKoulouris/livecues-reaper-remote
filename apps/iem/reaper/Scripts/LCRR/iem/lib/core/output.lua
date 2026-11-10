@@ -8,6 +8,7 @@
 --   channel  0-based first device channel, or "none" to clear
 --   mono     "1" for a mono downmix (I_SRCCHAN 0, I_DSTCHAN = channel | 1024); anything else is stereo
 --
+-- `guid` may also be the cue track's (`IEM-Cue`, cue.lua): its headphone output is set the same way, in the same step.
 -- Setting on a mix with an output replaces it in place (its send settings stay). Sharing a channel with another mix
 -- or the master is allowed: flagging it is the page's job. Refusals are decided before the block opens:
 --   track_gone, not_a_mix, multiple_outputs (read-only: more than one output), bad_channel (not a whole number, or
@@ -25,7 +26,12 @@ function output.run(given)
   local list = tracks.scan(api)
 
   local target, code = tracks.find_mix(list, fields.guid)
-  if not target then return tracks.refusal(code) end
+  if not target then
+    -- The cue track takes an output like a mix (IEM Mix's headphones); any other non-mix is still refused.
+    local cue_entry = tracks.find_cue(list)
+    if code ~= "not_a_mix" or cue_entry ~= tracks.find_by_guid(list, fields.guid) then return tracks.refusal(code) end
+    target = cue_entry
+  end
 
   local existing = tracks.outputs(api, target.track)
   if #existing > 1 then return tracks.refusal("multiple_outputs") end

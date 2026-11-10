@@ -16,6 +16,7 @@
 local tracks = require("lib.core.tracks")
 local undo = require("lib.core.undo")
 local cell = require("lib.core.cell")
+local cue = require("lib.core.cue")
 
 local create = {}
 
@@ -65,6 +66,9 @@ function create.run(given)
     for _, send in ipairs(copies) do
       cell.copy_send(api, send.track, mix, send)
     end
+    -- A cue track already in the project gets the new mix's send, in this same step.
+    local cue_entry = tracks.find_cue(list)
+    if cue_entry then cue.add_send(api, mix, cue_entry.track) end
   end)
 
   return result

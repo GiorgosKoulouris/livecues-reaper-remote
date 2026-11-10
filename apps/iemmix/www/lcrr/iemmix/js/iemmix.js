@@ -25,13 +25,19 @@
   poller.addCommand("TRACK");
   poller.addCommand(core.markerReadCommand()); // the project marker, in the same reply as the track list
   var model = core.createGridModel();
+  // Snapshots live behind IEM Setup's bridge (section LCRR_IEM); its heartbeat rides on the same poll.
+  var bridge = LCRR.iemmix.bridge, snaps = LCRR.iemmix.snapshots;
+  var beat = bridge.wire.createHeartbeat({ staleMs: 2500 });
+  poller.addCommand(bridge.wire.getCommand("heartbeat"));
 
   function $(id) { return document.getElementById(id); }
   var els = {
     chip: $("iemmix-state"), chipText: $("iemmix-state-text"), banner: $("iemmix-banner"), filter: $("iemmix-filter"),
     empty: $("iemmix-empty"), scroll: $("iemmix-scroll"), head: $("iemmix-head"), body: $("iemmix-body"),
     lock: $("iemmix-lock"), panel: $("iemmix-panel"), panelTitle: $("iemmix-panel-title"), panelFlag: $("iemmix-panel-flag"),
-    panelHint: $("iemmix-panel-hint"), panelLockHint: $("iemmix-panel-lock"), panelList: $("iemmix-panel-list")
+    panelHint: $("iemmix-panel-hint"), panelLockHint: $("iemmix-panel-lock"), panelList: $("iemmix-panel-list"),
+    snapsNote: $("iemmix-snaps-note"), snapsForm: $("iemmix-snaps-form"), snapsName: $("iemmix-snaps-name"),
+    snapsSave: $("iemmix-snaps-save"), snapsEmpty: $("iemmix-snaps-empty"), snapsList: $("iemmix-snaps-list")
   };
   var ui = { listed: false, shown: null, sweeping: false, phase: "connecting", unlocked: false, sel: null,
     panelKey: null, rows: {}, panelReading: false, focusShown: null, claim: null, unlocking: false, lockNote: "" };
@@ -84,6 +90,8 @@
     var hint = ui.lockNote || LOCK_HINT;
     if (els.panelLockHint.textContent !== hint) els.panelLockHint.textContent = hint;
     Object.keys(ui.rows).forEach(function (k) { setRowEnabled(ui.rows[k]); });
+    listenRender();
+    updateSnaps();
   }
   // Locking ends every drag with no final write.
   function setUnlocked(on) {
@@ -107,6 +115,168 @@
   els.lock.addEventListener("click", function () {
     if (ui.unlocked) { ui.lockNote = ""; setUnlocked(false); }
     else if (ui.phase === "connected" && !ui.unlocking) tryUnlock();
+  });
+
+  // ---- snapshots -------------------------------------------------------------------------------------------------
+  // Save, overwrite and delete go to IEM Setup's bridge and ignore REAPER's undo (project ExtState), so a press and hold
+  // is their only protection. Every write goes through snapWrite, which asks the one gate (editable) and the bridge.
+  // With the bridge not running only this section is unavailable; the rest of the page does not depend on it.
+  var SNAP_REFRESH_MS = 3000, HOLD_MS = 1000;
+  var snapUi = { list: null, error: "", reading: false, again: false, readAt: 0, busy: false, holding: 0, pending: false, key: null, result: "" };
+  var snapClient = bridge.createClient(S.bridgeClient.createBrowserIo());
+
+  function snapBridge() { return snaps.bridgeState(beat.state()); }
+  function snapCanWrite() { return snaps.canWrite(ui.phase, ui.unlocked, snapBridge()) && editable() && !snapUi.busy; }
+
+  function readSnaps() {
+    if (snapUi.reading) { snapUi.again = true; return; }
+    snapUi.reading = true;
+    snapUi.again = false;
+    snapUi.readAt = Date.now();
+    snapClient.snapshots().then(function (reply) {
+      var list = snaps.readList(reply);
+      if (list) { snapUi.list = list; if (!snapUi.busy) snapUi.error = ""; }
+      else if (reply && reply.status === "refused") snapUi.error = snaps.errorText(reply.error);
+    }, function () {}).then(function () {
+      snapUi.reading = false;
+      if (snapUi.again) readSnaps();
+      updateSnaps();
+    });
+  }
+
+  // `send` returns the bridge's reply; `describe` (recall only) words an ok reply, which stays until the next write.
+  function snapWrite(send, describe) {
+    if (!snapCanWrite()) return Promise.resolve(false);
+    snapUi.busy = true;
+    snapUi.error = "";
+    snapUi.result = "";
+    updateSnaps();
+    return send().then(function (reply) {
+      if (reply && reply.status === "ok") { if (describe) snapUi.result = describe(reply); return ""; }
+      return snaps.errorText(reply && reply.error);
+    }, function (err) { return snaps.errorText(err); }).then(function (note) {
+      snapUi.busy = false;
+      snapUi.error = note;
+      readSnaps();
+      updateSnaps();
+      return !note;
+    });
+  }
+
+  // A press-and-hold key (LCRR.shared.hold). There is no click handler on purpose: a plain tap must never act. The list is
+  // not rebuilt while a hold is down, so a refresh cannot swap the key under the finger; it is repainted once afterwards.
+  var DOC_RELEASE = ["pointerup", "pointercancel"];
+  function holdKey(btn, label, onComplete) {
+    var down = false;
+    btn.textContent = label;
+    function finish() {
+      if (!down) return;
+      down = false;
+      DOC_RELEASE.forEach(function (n) { document.removeEventListener(n, release); });
+      btn.classList.remove("holding");
+      snapUi.holding--;
+      if (!snapUi.holding && snapUi.pending) { snapUi.pending = false; renderSnapList(); }
+    }
+    var hold = S.hold.createHold({ holdMs: HOLD_MS, onCancel: finish, onComplete: function () { finish(); onComplete(); } });
+    function release() { hold.cancel(); finish(); }
+    function start() {
+      if (btn.disabled || down) return;
+      down = true;
+      snapUi.holding++;
+      btn.classList.add("holding");
+      DOC_RELEASE.forEach(function (n) { document.addEventListener(n, release); });
+      hold.start();
+    }
+    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
+    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
+    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    btn.addEventListener("keydown", function (e) {
+      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
+    });
+    btn.addEventListener("keyup", release);
+    return btn;
+  }
+
+  function snapSavedText(seconds) {
+    var d = new Date(seconds * 1000);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Recall the whole band, or one mix. REAPER's web API has no track GUIDs, so one mix's GUID comes from the bridge's
+  // `state` reply, found by the mix's name.
+  function recall(name, mixName) {
+    var send = function () {
+      if (mixName === null) return snapClient.recall(name);
+      return snapClient.state().then(function (reply) {
+        var found = snaps.findMix(reply, mixName);
+        return found.guid ? snapClient.recall(name, found.guid) : { status: "refused", error: { code: found.code } };
+      });
+    };
+    snapWrite(send, function (reply) { return snaps.recallText(reply, name, mixName); });
+  }
+  function selectedMix() { return core.selectedMixName(model.tracks(), ui.sel); }
+
+  function renderSnapList() {
+    var ready = snaps.canRead(ui.phase, snapBridge()) && !!snapUi.list;
+    var ok = snapCanWrite();
+    var mixName = selectedMix();
+    var key = ready ? JSON.stringify([snapUi.list, ok, mixName]) : "";
+    els.snapsEmpty.hidden = !ready || snapUi.list.length > 0;
+    if (key === snapUi.key) return;
+    if (snapUi.holding) { snapUi.pending = true; return; }
+    snapUi.key = key;
+    clear(els.snapsList);
+    if (!ready) return;
+    snapUi.list.forEach(function (s) {
+      var li = h("li", "iemmix-snap");
+      var text = h("div", "iemmix-snap-text");
+      text.appendChild(h("span", "iemmix-snap-name", s.name));
+      var when = snapSavedText(s.saved);
+      text.appendChild(h("span", "iemmix-snap-meta", snaps.counts(s) + (when ? " · " + when : "")));
+      li.appendChild(text);
+      var keys = [{ kind: "recallAll", run: function () { recall(s.name, null); } }];
+      if (mixName !== null) keys.push({ kind: "recallMix", run: function () { recall(s.name, mixName); } });
+      keys.push({ kind: "overwrite", run: function () { snapWrite(function () { return snapClient.save(s.name, true); }); } },
+        { kind: "delete", run: function () { snapWrite(function () { return snapClient.remove(s.name); }); } });
+      keys.forEach(function (k) {
+        var b = holdKey(h("button", "iemmix-key iemmix-hold"), snaps.keyLabel(k.kind, mixName), k.run);
+        b.type = "button";
+        b.disabled = !ok;
+        b.title = snaps.holdTitle(k.kind, mixName, s.name);
+        li.appendChild(b);
+      });
+      els.snapsList.appendChild(li);
+    });
+  }
+
+  function updateSnaps() {
+    var bridgeState = snapBridge(), ok = snapCanWrite();
+    var note = snaps.note(ui.phase, ui.unlocked, bridgeState, snapUi.error, snapUi.result);
+    if (els.snapsNote.textContent !== note) els.snapsNote.textContent = note;
+    els.snapsNote.hidden = !note;
+    var available = snaps.canRead(ui.phase, bridgeState);
+    els.snapsForm.hidden = !available;
+    els.snapsName.disabled = !ok;
+    els.snapsSave.disabled = !ok;
+    if (!available) snapUi.list = null;
+    else if (!snapUi.reading && Date.now() - snapUi.readAt >= SNAP_REFRESH_MS) readSnaps();
+    renderSnapList();
+  }
+  els.snapsForm.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!snapCanWrite()) return;
+    var names = (snapUi.list || []).map(function (s) { return s.name; });
+    var check = snaps.checkName(els.snapsName.value, names, bridge.nameFits);
+    if (!check.name) { snapUi.error = snaps.errorText(check); updateSnaps(); return; }
+    snapWrite(function () { return snapClient.save(check.name, false); }).then(function (done) {
+      if (done) els.snapsName.value = "";
+    });
+  });
+  poller.subscribe(function (e) {
+    if (e.ok) beat.update(bridge.wire.parseExtState(e.text, "heartbeat"));
+    updateSnaps();
   });
 
   // ---- painting --------------------------------------------------------------------------------------------------
@@ -366,7 +536,7 @@
   }
   function renderPanel() {
     var p = ui.sel ? model.panel(ui.sel) : null;
-    if (ui.sel && !p) { ui.sel = null; ui.shown = null; } // the track moved or went: never show another track's panel
+    if (ui.sel && !p) { ui.sel = null; ui.shown = null; updateSnaps(); } // the track moved or went: never show another track's panel
     var list = [];
     if (p) {
       if (p.master) list.push({ d: p.master, master: true });
@@ -405,6 +575,7 @@
     ui.shown = null; // repaint the grid's selection marks
     render();
     panelRead();
+    updateSnaps(); // the one-mix recall key follows the selected mix
   }
   function onGridClick(ev) {
     var tracks = model.tracks();
@@ -473,9 +644,69 @@
     })).then(function () { ui.panelReading = false; });
   }
 
+  // ---- Listen ----------------------------------------------------------------------------------------------------
+  // One mix at a time is heard through the cue track IEM-Cue, by its send's level (1 or 0, no undo entry). The state is
+  // read from the sends (listen.js), so a reload, a second tablet and a REAPER undo all show as they are. A tap
+  // goes through the same gate as every write: `editable()`. Reads ride the grid's once-a-second sweep.
+  var listen = LCRR.iemmix.listen, listenModel = listen.createListenModel();
+  var listenUi = { sweeping: false, writing: false, shown: null };
+  function listenView() { return listen.view(model.tracks(), listenModel.found(), listenModel.settled()); }
+  function listenRender() {
+    var box = $("iemmix-listen");
+    if (!box || !model.known()) return;
+    var v = listenView(), can = editable();
+    box.hidden = !v.rows.length;
+    var key = JSON.stringify([v, can, listenUi.writing]);
+    if (key === listenUi.shown) return;
+    listenUi.shown = key;
+    var keys = $("iemmix-listen-keys");
+    clear(keys);
+    v.rows.forEach(function (r) {
+      var b = h("button", "iemmix-listen-key", r.name);
+      b.type = "button";
+      b.setAttribute("data-listen", String(r.number));
+      b.setAttribute("aria-pressed", r.on ? "true" : "false");
+      b.disabled = !can || !r.enabled || listenUi.writing;
+      b.title = r.status === "nocuetrack" || r.status === "nocue" ? "No cue send for this mix. Set it up in IEM Setup." : "Listen to " + r.name + " in the cue output.";
+      keys.appendChild(b);
+    });
+    var note = v.note;
+    if (v.several) note = "More than one mix is on in the cue. Tap one to leave only that one.";
+    $("iemmix-listen-note").textContent = note;
+  }
+  function listenSweep() {
+    if (listenUi.sweeping || !model.known() || conn.isOffline() || listenUi.writing) return;
+    var tracks = model.tracks(), key = listenModel.key(), mark = listenModel.mark();
+    var cmds = listen.buildRequests(tracks, listenModel.found(), MAX_URL);
+    listenUi.sweeping = true;
+    Promise.all(cmds.map(function (cmd) {
+      return poll.send(cmd).then(function (text) { if (listenModel.apply(tracks, key, text, mark)) listenRender(); }, function () {});
+    })).then(function () { listenModel.endSweep(key, mark); listenUi.sweeping = false; listenRender(); });
+  }
+  function listenTap(number) {
+    var plan = listen.tapPlan(model.tracks(), listenModel.found(), listenModel.settled(), number, editable());
+    if (!plan || listenUi.writing) return;
+    listenUi.writing = true;
+    listenModel.wrote(); // reads begun before this write no longer count
+    plan.writes.forEach(function (w) { listenModel.setLocal(w.track, w.vol); });
+    listenRender();
+    poll.send(plan.command).then(function () {}, function () {}).then(function () {
+      listenUi.writing = false;
+      listenModel.wrote();
+      listenRender();
+      listenSweep();
+    });
+  }
+  $("iemmix-listen-keys").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-listen]");
+    if (b && !b.disabled) listenTap(parseInt(b.getAttribute("data-listen"), 10));
+  });
+
   function onTracks(list) {
     ui.listed = true;
     if (model.update(list)) sweep();
+    if (listenModel.update(list)) { listenUi.shown = null; listenSweep(); }
+    listenRender();
     render();
     panelRead();
     updateLock();
@@ -511,6 +742,7 @@
 
   els.filter.addEventListener("input", render);
   setInterval(sweep, SWEEP_MS);
+  setInterval(listenSweep, SWEEP_MS);
   updateLock();
   poller.start();
 })();

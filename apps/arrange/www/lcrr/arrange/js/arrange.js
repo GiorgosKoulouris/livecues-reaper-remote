@@ -12,19 +12,10 @@
   poller.addCommand(wire.getCommand("heartbeat"));
 
   // The long fetch: an Apply holds its request open until REAPER's main thread is free again.
-  function fetchText(url, ms) {
-    var ctl = typeof AbortController === "function" ? new AbortController() : null;
-    var req = fetch(url, { cache: "no-store", signal: ctl ? ctl.signal : undefined }).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.text();
-    });
-    return S.poll.withTimeout(req, ms, function (cb, t) { return setTimeout(cb, t); }, function (h) { clearTimeout(h); })
-      .catch(function (err) { if (ctl) ctl.abort(); throw err; });
-  }
-  var counter = 0;
+  var io = S.bridgeClient.createBrowserIo();
   var client = A.client.createClient({
-    fetchText: fetchText,
-    newId: function () { counter++; return Date.now().toString(36) + "-" + counter; }
+    fetchText: io.fetchText,
+    newId: io.newId
   });
 
   function $(id) { return document.getElementById(id); }

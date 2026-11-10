@@ -63,6 +63,7 @@ function fake_project.new(spec)
   local device = spec.device or {}
 
   local api = { tracks = tracks, ext = spec.ext or {}, undo_steps = {}, outside_block = {}, open_blocks = 0 }
+  api.ext_writes = 0 -- project ExtState writes (they are never undo steps)
   local inserted = 0
 
   local function changing(what)
@@ -149,8 +150,8 @@ function fake_project.new(spec)
   end
   function api.SetTrackSendInfo_Value(track, category, index, key, value)
     changing("set send " .. key)
-    if category == 0 then
-      local receive = track.sends[index + 1]
+    if category == 0 or category == -1 then
+      local receive = (category == 0 and track.sends or track.receives)[index + 1]
       if key == "I_SENDMODE" then receive.mode = value
       elseif key == "D_VOL" then receive.vol = value
       elseif key == "D_PAN" then receive.pan = value
@@ -162,6 +163,7 @@ function fake_project.new(spec)
     local out = track.outputs[index + 1]
     if key == "I_DSTCHAN" then out.dest = value
     elseif key == "I_SRCCHAN" then out.src = value
+    elseif key == "D_VOL" then out.vol = value
     else error("fake_project: unmodelled output key " .. key) end
     return true
   end
@@ -200,7 +202,8 @@ function fake_project.new(spec)
     return 1, value
   end
   function api.SetProjExtState(_, section, key, value)
-    changing("ext state")
+    -- Project ExtState ignores undo (suite CONTEXT.md, issue 01): a write is never an undo step, in a block or out.
+    api.ext_writes = api.ext_writes + 1
     api.ext[section .. "/" .. key] = value
     return 0
   end
@@ -239,6 +242,7 @@ function fake_project.new(spec)
       local output = track.outputs[index + 1]
       if key == "I_DSTCHAN" then return output.dest end
       if key == "I_SRCCHAN" then return output.src or 0 end
+      if key == "D_VOL" then return output.vol or 1.0 end
       error("fake_project: unmodelled output key " .. key)
     end
     assert(category == -1, "fake_project: only receives and outputs")

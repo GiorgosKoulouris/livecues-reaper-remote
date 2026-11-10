@@ -135,3 +135,35 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 .iemmix-fader-thumb { position:absolute; top:0; left:calc((100% - var(--thumb)) * var(--pos)); width:var(--thumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
 .iemmix-fader.dragging .iemmix-fader-thumb { cursor:grabbing; }
 .iemmix-fader-thumb:focus-visible { outline:2px solid var(--signal); outline-offset:-2px; }
+
+/* Listen: one key per mix, the one heard is pressed */
+.iemmix-listen { margin-bottom:.5rem; }
+.iemmix-listen-keys { display:flex; flex-wrap:wrap; gap:.375rem; }
+.iemmix-listen-key { min-height:var(--iemmix-ctl); padding:0 .875rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; cursor:pointer; }
+.iemmix-listen-key[aria-pressed=true] { background:var(--signal); color:var(--signal-ink); border-color:var(--signal); font-weight:600; }
+.iemmix-listen-key:disabled { opacity:.5; cursor:default; }
+.iemmix-listen-key:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
+.iemmix-listen-note { margin:.25rem 0 0; font-size:.8rem; }
+.iemmix-listen-note:empty { display:none; }
+
+/* Snapshots, below the panel's faders: a name field with Save, then a list. Recall, Overwrite and Delete are press-and-hold
+   keys (recall overwrites what the musicians set; overwrite and delete cannot be undone): a Warn Amber fill runs across the key while it is held. */
+.iemmix-snaps { margin-top:.75rem; padding-top:.5rem; border-top:1px solid var(--edge); }
+.iemmix-snaps-form { display:flex; align-items:flex-end; gap:.5rem; margin:.375rem 0; }
+.iemmix-snaps-field { display:flex; flex-direction:column; gap:.125rem; flex:1 1 0; min-width:0; }
+.iemmix-snaps-field input { min-width:0; }
+.iemmix-key { position:relative; overflow:hidden; flex:none; min-height:var(--iemmix-ctl); padding:0 .75rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; font-weight:600; cursor:pointer; }
+.iemmix-key:disabled { opacity:.5; cursor:not-allowed; }
+.iemmix-key:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
+@media (hover:hover) { .iemmix-key:hover:not(:disabled) { background:var(--key-hover); } }
+.iemmix-snaps-list { list-style:none; margin:.25rem 0 0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
+.iemmix-snap { display:flex; flex-wrap:wrap; align-items:center; gap:.25rem .5rem; padding:.25rem .5rem; background:var(--display); border:1px solid var(--edge); }
+.iemmix-snap-text { flex:1 1 8rem; min-width:0; display:flex; flex-direction:column; }
+.iemmix-snap-name { font-weight:500; overflow-wrap:anywhere; }
+.iemmix-snap-meta { font-size:.72rem; color:var(--legend-dim); }
+.iemmix-hold::after { content:""; position:absolute; inset:0; background:var(--warn-amber); opacity:.35; transform:scaleX(0); transform-origin:left; pointer-events:none; }
+.iemmix-hold.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 1000ms) linear; }
+@media (prefers-reduced-motion: reduce) {
+  .iemmix-hold::after { transform:none; opacity:0; }
+  .iemmix-hold.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
+}

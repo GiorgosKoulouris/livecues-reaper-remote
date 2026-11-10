@@ -65,7 +65,8 @@ test("each write sends its command with its fields, by GUID, and stays short", a
     [(c) => c.colour("ff8000"), "cmd=colour&colour=ff8000"],
     [(c) => c.moveToEnd("{AB-1}"), "cmd=move_to_end&guid=%7BAB-1%7D"],
     [(c) => c.deleteMix("{AB-1}"), "cmd=delete&guid=%7BAB-1%7D"],
-    [(c) => c.adopt("{AB-1}"), "cmd=adopt&guid=%7BAB-1%7D"]
+    [(c) => c.adopt("{AB-1}"), "cmd=adopt&guid=%7BAB-1%7D"],
+    [(c) => c.createCue(), "cmd=cue"]
   ];
   for (const [call, body] of cases) {
     const { c, urls } = rig((url) => Promise.resolve(url.indexOf("/_/SET/") === 0 ? "" : 'EXTSTATE\tLCRR_IEM\tres\tid1|{"status":"ok"}\n'));

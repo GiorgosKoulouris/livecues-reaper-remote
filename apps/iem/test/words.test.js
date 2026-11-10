@@ -22,6 +22,7 @@ test("every refusal the bridge can send has words, not just its code", () => {
   Object.keys(replies).forEach((name) => {
     const r = replies[name];
     if (r.status !== "refused") return;
+    if (/^snapshot/.test(name)) return; // IEM Mix's commands, worded by its page (apps/iemmix/test/snapshots.test.js)
     const text = words.error(r.error);
     clean(text, name);
     assert.ok(!text.startsWith("Something went wrong"), name + " has no wording for " + r.error.code);
@@ -121,4 +122,9 @@ test("picker wording: named channels, numbers when there is no name, and the fla
   const flags = words.headerFlags({ clashes: [{ "with": "mix", name: "Singer" }, { "with": "master" }] });
   assert.strictEqual(flags[0].text, "Output shared with mix Singer, the master");
   assert.match(words.headerFlags({ extraOutputs: 1 })[0].text, /read-only/);
+});
+
+test("the cue track's keys have words", () => {
+  ["createCue", "addCueSends", "cueOutput", "createCueHint", "addCueSendsHint", "cueOutputHint"].forEach((k) => clean(words.ui(k), k));
+  clean(words.cuePickerLabel, "cue picker");
 });

@@ -40,6 +40,26 @@ row_not_a_source	{"command":"row","error":{"code":"not_a_source"},"project":{"na
 column_on	{"changed":true,"command":"column","count":1,"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
 column_off	{"changed":true,"command":"column","count":1,"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
 column_not_a_mix	{"command":"column","error":{"code":"not_a_mix"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+cue_create	{"added":2,"changed":true,"command":"cue","created":true,"guid":"{NEW-1}","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
+cue_unchanged	{"added":0,"changed":false,"command":"cue","created":false,"guid":"{NEW-1}","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
+state_cue	{"colour":"3b82c4","command":"state","cue":{"guid":"{NEW-1}","missing":0,"outputs":[{"channel":2,"mono":true}]},"device":{"channels":["Output 1","Output 2","Output 3","Output 4"]},"folder":{"guid":"{GUID-2}","is_folder":true,"tracks_after":false},"master_outputs":[],"mixes":[{"guid":"{A}","in_folder":true,"master_send":true,"name":"A","outputs":[{"channel":0,"mono":false}],"sends":[{"mode":3,"muted":false,"source":"{K}","vol":1}]},{"guid":"{B}","in_folder":true,"master_send":true,"name":"B","outputs":[{"channel":2,"mono":false}],"sends":[]}],"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sources":[{"depth":0,"guid":"{K}","is_folder":false,"name":"Kick"}],"status":"ok","v":1}
+output_cue	{"changed":true,"command":"output","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
+cell_cue_not_a_source	{"command":"cell","error":{"code":"not_a_source"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshots_empty	{"command":"snapshots","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"snapshots":[],"status":"ok","v":1}
+snapshot_save_ok	{"command":"snapshot_save","mixes":4,"name":"Soundcheck","overwritten":false,"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":7,"status":"ok","v":1}
+snapshots_saved	{"command":"snapshots","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"snapshots":[{"mixes":4,"name":"Soundcheck","saved":1700000000,"sends":7},{"mixes":4,"name":"Show","saved":1700000000,"sends":7}],"status":"ok","v":1}
+snapshot_save_overwrite	{"command":"snapshot_save","mixes":4,"name":"Soundcheck","overwritten":true,"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":7,"status":"ok","v":1}
+snapshot_save_duplicate	{"command":"snapshot_save","error":{"code":"duplicate_name"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_save_empty_name	{"command":"snapshot_save","error":{"code":"empty_name"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_save_nothing	{"command":"snapshot_save","error":{"code":"nothing_to_save"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_save_not_found	{"command":"snapshot_save","error":{"code":"not_found"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_delete_ok	{"command":"snapshot_delete","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
+snapshot_delete_not_found	{"command":"snapshot_delete","error":{"code":"not_found"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_recall_ok	{"command":"snapshot_recall","missing":0,"mixes":4,"name":"Soundcheck","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":7,"skipped":0,"status":"ok","v":1}
+snapshot_recall_mix	{"command":"snapshot_recall","missing":0,"mixes":1,"name":"Soundcheck","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":4,"skipped":0,"status":"ok","v":1}
+snapshot_recall_skipped	{"command":"snapshot_recall","missing":0,"mixes":4,"name":"Soundcheck","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":6,"skipped":1,"status":"ok","v":1}
+snapshot_recall_not_found	{"command":"snapshot_recall","error":{"code":"not_found"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+snapshot_recall_track_gone	{"command":"snapshot_recall","error":{"code":"track_gone"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 unknown_command	{"command":"nope","error":{"code":"unknown_command","command":"nope"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 request_truncated	{"error":{"code":"request_truncated","declared":40,"received":7},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 bad_request	{"error":{"code":"bad_request"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}

@@ -56,6 +56,10 @@
     allOn: "All on", allOff: "All off",
     allOnHint: "Switch on every send that is missing. Sends already on are left as they are.",
     allOffHint: "Press and hold to remove every send in this row or column. REAPER undo brings them back.",
+    createCue: "Create cue", addCueSends: "Add missing cue sends", cueOutput: "Cue output",
+    createCueHint: "Make the IEM-Cue track in the IEMs folder, with a send at level 0 from every mix. IEM Mix listens through it. REAPER undo brings it back.",
+    addCueSendsHint: "Some mixes have no send to the cue track. Add the missing ones at level 0.",
+    cueOutputHint: "The hardware output of the cue track: the engineer’s headphones.",
     adopt: "Adopt",
     adoptHint: "Move this mix into the IEMs folder, turn its master send off, give it the shared colour and make its sends post-FX pre-fader. This can change what a musician hears. REAPER undo brings it back.",
     delete: "Delete", deleteHint: "Press and hold to delete this mix and its sends. REAPER undo brings it back."
@@ -97,6 +101,7 @@
     return "Stereo " + channelName(names, option.channel) + " + " + channelName(names, option.channel + 1);
   }
   function pickerLabel(mixName) { return "Output of mix " + mixName; }
+  var CUE_PICKER_LABEL = "Output of the cue track";
 
   function clashText(clash) {
     return clash["with"] === "master" ? "the master" : "mix " + clash.name;
@@ -153,7 +158,7 @@
 
   function noMatch(filter) { return "No track matches “" + filter + "”."; }
 
-  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, allOnLabel: allOnLabel, allOffLabel: allOffLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, clashText: clashText, modeText: modeText, modeTag: modeTag,
+  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, allOnLabel: allOnLabel, allOffLabel: allOffLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, cuePickerLabel: CUE_PICKER_LABEL, clashText: clashText, modeText: modeText, modeTag: modeTag,
     modeNote: modeNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, cellAction: cellAction, headerFlags: headerFlags,
     emptyMatrix: emptyMatrix, noMatch: noMatch };
 });

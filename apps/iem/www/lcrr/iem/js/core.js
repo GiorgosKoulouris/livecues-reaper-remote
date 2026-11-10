@@ -104,6 +104,21 @@
     return { readOnly: mix.outputs.length > 1, deviceClosed: count === 0, value: value, options: options };
   }
 
+  // What the page offers about the cue track (IEM Mix's Listen): `action` is "create" (no cue track yet), "repair"
+  // (it exists but some mixes have no send to it: the same command adds them) or null (nothing to do); `picker` is
+  // its output picker, null until the track exists. Reads the state's `cue` ({ guid, outputs, missing }, absent when
+  // there is no cue track).
+  function cueOffer(state) {
+    var cue = state.cue || null;
+    return {
+      exists: !!cue,
+      guid: cue ? cue.guid : null,
+      missing: cue ? cue.missing : 0,
+      action: !cue ? "create" : cue.missing > 0 ? "repair" : null,
+      picker: cue ? outputPicker(state, { outputs: cue.outputs }) : null
+    };
+  }
+
   // A picker value as the bridge's `output` command wants it: { none: true } or { channel, mono }; null if unreadable.
   function parseOutputChoice(value) {
     if (value === "none") return { none: true };
@@ -246,7 +261,7 @@
   }
 
   return { cellRequest: cellRequest, rowRequest: rowRequest, columnRequest: columnRequest, createRenderGate: createRenderGate, createPickerGuard: createPickerGuard, outputChannels: outputChannels, outputClashes: outputClashes,
-    outputPicker: outputPicker, parseOutputChoice: parseOutputChoice, STANDARD_MODE: STANDARD_MODE, dbText: dbText, connectionPhase: connectionPhase, readState: readState,
+    outputPicker: outputPicker, cueOffer: cueOffer, parseOutputChoice: parseOutputChoice, STANDARD_MODE: STANDARD_MODE, dbText: dbText, connectionPhase: connectionPhase, readState: readState,
     mixHeaders: mixHeaders, buildMatrix: buildMatrix, canEdit: canEdit, stillUnlocked: stillUnlocked,
     checkMixName: checkMixName, folderOffer: folderOffer, colourField: colourField };
 });

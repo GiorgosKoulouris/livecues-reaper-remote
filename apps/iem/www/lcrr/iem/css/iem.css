@@ -28,7 +28,8 @@ body > main { max-width:none; padding:.5rem 1rem; }
 .iem-actions:empty { display:none; }
 .iem-create { display:flex; align-items:flex-end; gap:.5rem; }
 .iem-create .iem-filter, .iem-create .iem-copy-from { flex:0 1 14rem; }
-.iem-colour { display:flex; flex-direction:column; gap:.125rem; }
+.iem-colour, .iem-cue-out { display:flex; flex-direction:column; gap:.125rem; }
+#iem-cue-out { min-height:var(--iem-ctl); max-width:16rem; font-family:var(--font-mono); font-size:.8rem; }
 input[type=color] { width:3rem; height:var(--iem-ctl); padding:2px; background:var(--display); border:1px solid var(--edge); border-radius:0; cursor:pointer; }
 input[type=color]:disabled { opacity:.4; cursor:default; }
 input[type=color]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }

@@ -11,6 +11,8 @@ local tracks = {}
 
 tracks.MIX_PREFIX = "IEM_"
 tracks.FOLDER_NAME = "IEMs"
+-- The cue track IEM Mix listens through: exact and case-sensitive, and not a mix (no `IEM_` prefix).
+tracks.CUE_NAME = "IEM-Cue"
 
 -- The colour of the folder and its mixes lives in the project (ExtState), so it
 -- travels with the .rpp. `DEFAULT_COLOUR` is used until the engineer picks one.
@@ -63,6 +65,15 @@ function tracks.find_folder(list)
   return nil
 end
 
+--- The cue track: the first track named `IEM-Cue` (a later one is an ordinary source), as the folder is the first
+--- `IEMs`. Nil when there is none.
+function tracks.find_cue(list)
+  for _, entry in ipairs(list) do
+    if entry.name == tracks.CUE_NAME then return entry end
+  end
+  return nil
+end
+
 function tracks.find_by_guid(list, guid)
   for _, entry in ipairs(list) do
     if entry.guid == guid then return entry end
@@ -70,11 +81,13 @@ function tracks.find_by_guid(list, guid)
   return nil
 end
 
---- Whether the entry is a source: any track that is not a mix and not the IEMs folder (a second track named `IEMs`
---- is an ordinary source).
+--- Whether the entry is a source: any track that is not a mix, not the IEMs folder and not the cue track (a second
+--- track named `IEMs` or `IEM-Cue` is an ordinary source). The cue track is never a source, so no cell can feed it
+--- back into a mix.
 function tracks.is_source(list, entry)
   local folder = tracks.find_folder(list)
   return not tracks.is_mix_name(entry.name) and not (folder and folder.entry == entry)
+    and tracks.find_cue(list) ~= entry
 end
 
 --- A refusal reply: a code and nothing else (wording is the page's).

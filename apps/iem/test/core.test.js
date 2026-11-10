@@ -323,3 +323,47 @@ test("a tap asks for the opposite of what the cell shows, by GUID, as a state ra
   assert.deepStrictEqual(core.cellRequest(row, col, null), { source: "{K}", mix: "{A}", on: true });
   assert.deepStrictEqual(core.cellRequest(row, col, { on: true }), { source: "{K}", mix: "{A}", on: false });
 });
+
+// ---- the cue track (IEM Mix issue 07) -----------------------------------------------------------------------------------
+test("the cue track is no mix and no source row in the recorded state, and the page offers what is missing", () => {
+  const state = core.readState(replies.state_cue);
+  assert.ok(state);
+  assert.deepStrictEqual(state.mixes.map((m) => m.name), ["A", "B"]);
+  assert.deepStrictEqual(state.sources.map((s) => s.name), ["Kick"]);
+  const matrix = core.buildMatrix(state, "");
+  assert.deepStrictEqual(matrix.columns.map((c) => c.name), ["A", "B"]);
+  assert.deepStrictEqual(matrix.rows.map((r) => r.name), ["Kick"]);
+
+  const offer = core.cueOffer(state);
+  assert.strictEqual(offer.exists, true);
+  assert.strictEqual(offer.guid, state.cue.guid);
+  assert.strictEqual(offer.action, null);
+  assert.strictEqual(offer.picker.value, "m:2");
+  assert.strictEqual(offer.picker.deviceClosed, false);
+});
+
+test("without a cue track the page offers Create cue; with sends missing, the same command repairs", () => {
+  const none = core.cueOffer(core.readState(replies.state_band));
+  assert.deepStrictEqual([none.exists, none.action, none.picker], [false, "create", null]);
+  const gap = core.cueOffer({ mixes: [], sources: [], device: { channels: [] }, cue: { guid: "{Q}", outputs: [], missing: 2 } });
+  assert.strictEqual(gap.action, "repair");
+  assert.strictEqual(gap.picker.value, "none");
+});
+
+test("Monitor's mix list is the same with the cue track in the project (shared listing rule, recorded state)", () => {
+  const reaper = require("../../../shared/www/lcrr/shared/js/reaper.js");
+  const state = replies.state_cue;
+  const tracks = state.mixes.map((m, i) => ({ name: "IEM_" + m.name, number: i + 2, recvcnt: Math.max(m.sends.length, 1), hwoutcnt: m.outputs.length }));
+  const listed = (list) => reaper.listMixes(list).map((m) => m.name);
+  const before = listed(tracks);
+  const cue = { name: "IEM-Cue", number: 9, recvcnt: state.mixes.length, hwoutcnt: state.cue.outputs.length };
+  assert.deepStrictEqual(listed(tracks.concat([cue])), before);
+  assert.deepStrictEqual(before, ["A", "B"]);
+  assert.strictEqual(reaper.tracksNamed(tracks.concat([cue]), "Cue").length, 0);
+});
+
+test("the recorded cue replies say what they did", () => {
+  assert.strictEqual(replies.cue_create.status, "ok");
+  assert.strictEqual(replies.cue_unchanged.changed, false);
+  assert.strictEqual(replies.cell_cue_not_a_source.error.code, "not_a_source");
+});

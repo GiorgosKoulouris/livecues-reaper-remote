@@ -12,19 +12,10 @@
   var poller = S.poll.createPoller({ intervalMs: 500 });
   poller.addCommand(wire.getCommand("heartbeat"));
 
-  function fetchText(url, ms) {
-    var ctl = typeof AbortController === "function" ? new AbortController() : null;
-    var req = fetch(url, { cache: "no-store", signal: ctl ? ctl.signal : undefined }).then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.text();
-    });
-    return S.poll.withTimeout(req, ms, function (cb, t) { return setTimeout(cb, t); }, function (h) { clearTimeout(h); })
-      .catch(function (err) { if (ctl) ctl.abort(); throw err; });
-  }
-  var counter = 0;
+  var io = S.bridgeClient.createBrowserIo();
   var client = I.client.createClient({
-    fetchText: fetchText,
-    newId: function () { counter++; return Date.now().toString(36) + "-" + counter; }
+    fetchText: io.fetchText,
+    newId: io.newId
   });
 
   function $(id) { return document.getElementById(id); }
@@ -34,7 +25,8 @@
     lock: $("iem-lock"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
     createCopy: $("iem-create-copy"), createCopyLabel: $("iem-create-copy-label"),
     createGo: $("iem-create-go"), colourBox: $("iem-colour-box"), colourLabel: $("iem-colour-label"), colour: $("iem-colour"),
-    move: $("iem-move"),
+    move: $("iem-move"), cue: $("iem-cue"), cueOutBox: $("iem-cue-out-box"), cueOutLabel: $("iem-cue-out-label"),
+    cueOut: $("iem-cue-out"),
     message: $("iem-message"), empty: $("iem-empty"), scroll: $("iem-scroll"), head: $("iem-head"), body: $("iem-body")
   };
 
@@ -101,7 +93,47 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     els.colour.disabled = !ok;
     els.move.hidden = !(offer && offer.moveToEnd);
     els.move.disabled = !ok;
+    updateCue(ok);
   }
+
+  // The cue track: Create cue (or Add missing cue sends) while something is missing, and its output picker once it
+  // exists, both while unlocked and through write(). The picker is rebuilt only when what it shows changes, and never
+  // while it is open (a refresh must not close it).
+  els.cueOutLabel.textContent = words.ui("cueOutput");
+  els.cueOutBox.title = words.ui("cueOutputHint");
+  function updateCue(ok) {
+    var offer = ui.state ? core.cueOffer(ui.state) : null;
+    var show = !!offer && ok;
+    els.cue.hidden = !(show && offer.action);
+    els.cue.disabled = !ok;
+    if (offer && offer.action) {
+      els.cue.textContent = words.ui(offer.action === "create" ? "createCue" : "addCueSends");
+      els.cue.title = words.ui(offer.action === "create" ? "createCueHint" : "addCueSendsHint");
+    }
+    els.cueOutBox.hidden = !(show && offer.picker);
+    if (!show || !offer.picker) return;
+    var info = offer.picker;
+    var names = ui.state.device ? ui.state.device.channels : [];
+    var key = JSON.stringify([info, names]);
+    els.cueOut.disabled = ui.busy || info.deviceClosed || info.readOnly;
+    if (key === els.cueOut.getAttribute("data-key") || document.activeElement === els.cueOut) return;
+    els.cueOut.setAttribute("data-key", key);
+    clear(els.cueOut);
+    els.cueOut.setAttribute("aria-label", words.cuePickerLabel);
+    info.options.forEach(function (o) {
+      var opt = h("option", "", info.deviceClosed && o.channel !== null ? words.outputText({ channel: o.channel, mono: o.mono }) : words.optionLabel(names, o));
+      opt.value = o.value;
+      els.cueOut.appendChild(opt);
+    });
+    els.cueOut.value = info.value;
+  }
+
+  els.cue.addEventListener("click", function () { write(function () { return client.createCue(); }); });
+  els.cueOut.addEventListener("change", function () {
+    var offer = ui.state && core.cueOffer(ui.state);
+    var choice = core.parseOutputChoice(els.cueOut.value);
+    if (offer && offer.exists && choice) write(function () { return client.setOutput(offer.guid, choice); });
+  });
 
   function setUnlocked(on) {
     ui.unlocked = on;

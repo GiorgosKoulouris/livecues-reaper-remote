@@ -20,7 +20,7 @@ end
 
 local function bridge(tracks, path, extra)
   extra = extra or {}
-  local handler = service.new({ api = fake_project.new({
+  local handler = service.new({ now = function() return 1700000000 end, api = fake_project.new({
     path = path or PATH, tracks = tracks, device = extra.device, master_outputs = extra.master_outputs,
   }) })
   local count = 0
@@ -191,6 +191,89 @@ local scenarios = {
   end },
   { "column_not_a_mix", function()
     return bridge({ { name = "Kick", guid = "{K}" } })("cmd=column&mix=%7BK%7D&on=1")
+  end },
+  { "cue_create", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEMs", depth = 1 },
+      { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } }, { name = "IEM_B", guid = "{B}", depth = -1 },
+    })("cmd=cue")
+  end },
+  { "cue_unchanged", function()
+    local call = bridge({
+      { name = "IEMs", depth = 1 }, { name = "IEM_A", guid = "{A}", depth = -1 },
+    })
+    call("cmd=cue")
+    return call("cmd=cue")
+  end },
+  { "state_cue", function()
+    local call = bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEMs", depth = 1 },
+      { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } }, outputs = { { dest = 0 } } },
+      { name = "IEM_B", guid = "{B}", depth = -1, outputs = { { dest = 2 } } },
+    }, nil, { device = { "Output 1", "Output 2", "Output 3", "Output 4" } })
+    call("cmd=cue")
+    call("cmd=output&guid=%7BNEW-1%7D&channel=2&mono=1")
+    return call("cmd=state")
+  end },
+  { "output_cue", function()
+    local call = bridge({ { name = "IEMs", depth = 1 }, { name = "IEM_A", depth = -1 } }, nil,
+      { device = { "Output 1", "Output 2" } })
+    call("cmd=cue")
+    return call("cmd=output&guid=%7BNEW-1%7D&channel=0&mono=1")
+  end },
+  { "cell_cue_not_a_source", function()
+    local call = bridge({ { name = "IEMs", depth = 1 }, { name = "IEM_A", guid = "{A}", depth = -1 } })
+    call("cmd=cue")
+    return call("cmd=cell&source=%7BNEW-1%7D&mix=%7BA%7D&on=1")
+  end },
+  { "snapshots_empty", function() return bridge(band())("cmd=snapshots") end },
+  { "snapshot_save_ok", function() return bridge(band())("cmd=snapshot_save&name=Soundcheck") end },
+  { "snapshots_saved", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    ask("cmd=snapshot_save&name=%20Show%20")
+    return ask("cmd=snapshots")
+  end },
+  { "snapshot_save_overwrite", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_save&name=Soundcheck&overwrite=1")
+  end },
+  { "snapshot_save_duplicate", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_save&name=Soundcheck")
+  end },
+  { "snapshot_save_empty_name", function() return bridge(band())("cmd=snapshot_save&name=%20") end },
+  { "snapshot_save_nothing", function() return bridge({ { name = "Kick" } })("cmd=snapshot_save&name=A") end },
+  { "snapshot_save_not_found", function() return bridge(band())("cmd=snapshot_save&name=A&overwrite=1") end },
+  { "snapshot_delete_ok", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_delete&name=Soundcheck")
+  end },
+  { "snapshot_delete_not_found", function() return bridge(band())("cmd=snapshot_delete&name=Nope") end },
+  { "snapshot_recall_ok", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_recall&name=Soundcheck")
+  end },
+  { "snapshot_recall_mix", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_recall&name=Soundcheck&mix=%7BGUID-8%7D")
+  end },
+  { "snapshot_recall_skipped", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    ask("cmd=cell&source=%7BGUID-2%7D&mix=%7BGUID-8%7D&on=0")
+    return ask("cmd=snapshot_recall&name=Soundcheck")
+  end },
+  { "snapshot_recall_not_found", function() return bridge(band())("cmd=snapshot_recall&name=Nope") end },
+  { "snapshot_recall_track_gone", function()
+    local ask = bridge(band())
+    ask("cmd=snapshot_save&name=Soundcheck")
+    return ask("cmd=snapshot_recall&name=Soundcheck&mix=%7BNOPE%7D")
   end },
   { "unknown_command", function() return bridge({})("cmd=nope") end },
   { "request_truncated", function()

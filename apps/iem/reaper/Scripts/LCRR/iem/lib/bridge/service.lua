@@ -14,7 +14,10 @@
 -- `colour` (colour, `rrggbb`), `move_to_end` (guid of the folder), `delete` (guid of a mix) and
 -- `output` (guid of a mix, channel or `none`, mono) and
 -- `cell` (source and mix GUIDs, `on` 1 or 0), `row` (source GUID, `on`) and
--- `column` (mix GUID, `on`) and `adopt` (guid of a stray mix). Each reply is
+-- `column` (mix GUID, `on`), `adopt` (guid of a stray mix), `cue` (no fields: the cue track and its sends; `output`
+-- also takes the cue track's guid) and, in project ExtState with no undo step,
+-- `snapshots` (list), `snapshot_save` (name, optional `overwrite`) and `snapshot_delete` (name); and
+-- `snapshot_recall` (name, optional `mix`: a mix GUID), which writes sends and is one undo step. Each reply is
 --
 --   { v, command, project = { name, path }, status, ... }
 --
@@ -40,6 +43,11 @@ local output = require("lib.core.output")
 local cell = require("lib.core.cell")
 local bulk = require("lib.core.bulk")
 local adopt = require("lib.core.adopt")
+local cue = require("lib.core.cue")
+local snapshots = require("lib.core.snapshots")
+local snapshot_save = require("lib.core.snapshot_save")
+local snapshot_delete = require("lib.core.snapshot_delete")
+local snapshot_recall = require("lib.core.snapshot_recall")
 
 local service = {}
 
@@ -73,8 +81,17 @@ local function handlers(given)
   h.output = core(output)
   h.cell = core(cell)
   h.adopt = core(adopt)
+  h.cue = core(cue)
   h.row = core(bulk.row)
   h.column = core(bulk.column)
+  -- Snapshots live in project ExtState, which ignores undo: no undo block, no undo step (issue 10).
+  h.snapshots = core(snapshots)
+  h.snapshot_delete = core(snapshot_delete)
+  -- Recall writes the project's sends, so it is one undo step (lib/core/snapshot_recall.lua).
+  h.snapshot_recall = core(snapshot_recall)
+  function h.snapshot_save(fields)
+    return snapshot_save.run({ api = given.api, fields = fields, now = given.now })
+  end
 
   return h
 end
