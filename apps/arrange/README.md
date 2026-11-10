@@ -12,8 +12,9 @@ sounds like the same material in a new sequence.
 The scope is deliberately narrow. This is not a general project-management
 suite; it does regions and markers, and it tries to do them exactly right.
 
-> **Status: private, and used in anger.** Not yet in the suite's ReaPack
-> package or release zip — install it with `scripts/install.ps1`. It runs against real
+> **Status: private, and used in anger.** Ships in the suite's ReaPack package
+> (beta, see the root README; run the action *LCRR: Install startup hook* once so the
+> bridge starts with REAPER) or via `scripts/install.ps1`; not in the release zip. It runs against real
 > projects and the design notes are unusually explicit about what it will and
 > will not do, because the operations are hard to undo by hand.
 

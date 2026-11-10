@@ -9,7 +9,7 @@
   }
 })(this, function () {
   "use strict";
-  var version = "1.0.0";
+  var version = "1.1.0-beta2";
 
   // Adds "v<version>" at the right of the suite footer. A page without the footer (home) is left alone.
   function mount(doc) {

@@ -21,7 +21,7 @@ A set of focused, safe tools rather than one full remote. Zero install on the cl
 
 ## Operating Context
 
-- Served from `%APPDATA%\REAPER\reaper_www_root` by REAPER's web interface; installed with the PowerShell script or via ReaPack (unverified). The home page is meant to be the "Default interface".
+- Served from `%APPDATA%\REAPER\reaper_www_root` by REAPER's web interface; installed via ReaPack (verified on Windows with the 1.1.0 betas) or with the PowerShell script (development and fallback). The home page is meant to be the "Default interface".
 - Windows is the primary host; clients are phone, tablet or desktop browsers on a trusted LAN.
 - Every app polls REAPER's web API and must show an offline state when the server stops responding.
 

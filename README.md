@@ -21,14 +21,16 @@ Remote-control pages for REAPER, served by REAPER's built-in web interface. Open
 
 ## Install and update with ReaPack
 
-Needs [ReaPack](https://reapack.com) (Extensions > ReaPack). **Status: written, not yet verified in a live ReaPack** (see `CONTEXT.md`); until a release has passed the pre-release test below, use `install.ps1`.
+Needs [ReaPack](https://reapack.com) (Extensions > ReaPack). **Status:** install, update, Remove startup hook and uninstall verified in a live ReaPack on Windows (1.1.0-beta1 and beta2); macOS is not verified (see `CONTEXT.md`).
 
-1. Extensions > ReaPack > Import repositories..., paste `https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/main/index.xml`.
+> **Currently beta only (1.1.0-beta2).** No stable release exists yet, and `main` has no `index.xml`. Until the first stable release, import the pre-release index from the `dev` branch and enable pre-releases (step 6). Once a stable release is out, the URL is the `main` one below.
+
+1. Extensions > ReaPack > Import repositories..., paste `https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/dev/index.xml` (beta; stable releases: `.../main/index.xml`).
 2. Extensions > ReaPack > Browse packages, find **lcrr.html**, install. It installs the pages into `reaper_www_root` and the Lua actions under `Scripts/LCRR/Remote/`.
 3. Run the action **LCRR: Install startup hook** once (Actions > Show action list). It adds the lines to `Scripts/__startup.lua` that start the Arrange and IEM Setup bridges with REAPER. Then do the Setup steps above (web interface, Default interface = `lcrr.html`).
 4. Updates: Extensions > ReaPack > Synchronize packages. **Restart REAPER after an update** so the bridges run the new code. The installed version is shown at the right of every page's footer.
 5. Before uninstalling in ReaPack, run **LCRR: Remove startup hook**. If you forget, the stale line does nothing (it only starts a bridge whose file exists); run the action later or delete the marked lines.
-6. Pre-releases (versions like `1.1.0-beta1`) appear only if you enable them in ReaPack's About/Settings (Show pre-releases).
+6. Pre-releases (versions like `1.1.0-beta2`) appear only if you enable them (ReaPack: Extensions > ReaPack > Manage repositories > the LCRR entry > Show pre-releases, or the global option in its Options). Do this before step 2 while only betas exist.
 
 Switching from `install.ps1`: run `.\scripts\install.ps1 -Uninstall` first (it also removes its `__startup.lua` lines), then follow the steps above. ReaPack does not take over files it did not install.
 
@@ -100,4 +102,4 @@ npm run release -- --base-url https://raw.githubusercontent.com/GiorgosKoulouris
 ```
 
 - Writes `dist/lcrr-<version>.zip` (git-ignored): every slice laid over each other plus `lcrr-INSTALL.txt`, to extract into `reaper_www_root` keeping folders. Needs the `zip` CLI. The version comes from the root `package.json`; there is one version for the suite.
-- With `--base-url` (the repo root at a tag or commit) also writes `index.xml` at the repo root: one ReaPack package (index name `LCRR`, category `Remote`, type `webinterface`) holding every web file, with `file` attributes keeping the `lcrr/...` subfolders, plus every Lua file as a per-source `type="script"` (entry scripts `LCRR_*.lua` register as actions). Commit `index.xml`. Not yet verified in a live ReaPack (see `CONTEXT.md`). Missing `CHANGELOG.md` section: the build warns.
+- With `--base-url` (the repo root at a tag or commit) also writes `index.xml` at the repo root: one ReaPack package (index name `LCRR`, category `Remote`, type `webinterface`) holding every web file, with `file` attributes keeping the `lcrr/...` subfolders, plus every Lua file as a per-source `type="script"` (entry scripts `LCRR_*.lua` register as actions). Commit `index.xml`. Install verified in live ReaPack (see `CONTEXT.md`). Missing `CHANGELOG.md` section: the build warns.

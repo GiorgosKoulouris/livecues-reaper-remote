@@ -26,7 +26,7 @@ Arrange (`.scratch/arrange/spec.md`) ships ReaScript actions, which live under R
 
 - An app may also have `apps/<app>/reaper/`: a **reaper slice**, mirroring REAPER's resource path the way `www/` mirrors the web root. It holds only `Scripts/LCRR/<app>/`: the entry scripts `LCRR_<App>_<Verb>.lua` with their `lib/` beside them (scripts find `lib/` through `get_action_context()`).
 - `scripts/install.ps1` lays each `Scripts/LCRR/<part>` folder into `<resource path>\Scripts\LCRR\` (copies, or folder links with `-Link`), and `-Uninstall` removes `Scripts\LCRR`. It refuses anything else in a reaper slice, and two slices shipping the same part.
-- Release (zip) and the ReaPack index don't carry reaper slices yet; that is a later step (per-source `type="script"`, unverified).
+- ~~Release (zip) and the ReaPack index don't carry reaper slices yet.~~ Superseded 2026-11-10: the ReaPack index carries them as per-source `type="script"` (ADR 0002 amendment, verified live). The zip still carries only the web slices.
 - An app with Lua keeps its specs in `apps/<app>/spec/` (busted, `.busted`, `.luacheckrc`); `npm test` and `npm run check` run busted and luacheck in every app that has those configs (`scripts/lua.js`).
 
 ## Amendment (2026-11-09): shared Lua

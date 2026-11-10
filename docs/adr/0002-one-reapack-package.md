@@ -27,4 +27,4 @@ Arrange and IEM Setup ship Lua, and ReaPack cannot edit `__startup.lua`. Decided
 - Updates take effect after a REAPER restart (documented, no self-restart). The version is in the footer (`shared/.../version.js`, kept equal to `package.json` by a test); the ReaPack changelog is the `## <version>` section of `CHANGELOG.md`.
 - Releases go out as a pre-release first, imported in real REAPER by the owner, then promoted. `install.ps1` and the zip stay as development and fallback tools; switching from `install.ps1` means running its `-Uninstall` first.
 - If live ReaPack rejects per-source types, stop and re-discuss (the two-package split was considered, not pre-approved).
-- Unverified until the live test: see `CONTEXT.md`.
+- Live tests (2026-11-10, Windows, 1.1.0-beta1 and beta2): install, subfolders, per-source script types (Lua lands in `Scripts\LCRR\Remote\<part>\`), startup hook, footer, update, Remove startup hook and uninstall all worked; the hook's lines stay after an uninstall by design. macOS remains unverified: see `CONTEXT.md`.

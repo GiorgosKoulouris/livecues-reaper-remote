@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<index version="1" name="LCRR">
+  <category name="Remote">
+    <reapack name="lcrr.html" type="webinterface" desc="LiveCues ReaperRemote: remote pages for REAPER (home + all apps)">
+      <metadata>
+        <description><![CDATA[LiveCues ReaperRemote (LCRR): a suite of remote-control pages for REAPER's web interface, usable from a phone, tablet or desktop browser on the same LAN. After installing, choose lcrr.html as the Default interface in Preferences > Control/OSC/web.]]></description>
+      </metadata>
+      <version name="1.1.0-beta2" author="Giorgos Koulouris" time="2026-11-10T13:26:41Z">
+        <changelog><![CDATA[- Test release to check ReaPack update, Remove startup hook and uninstall; no functional change from beta1 except the version number]]></changelog>
+        <source>https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/home/www/lcrr.html</source>
+        <source file="lcrr-arrange.html">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr-arrange.html</source>
+        <source file="lcrr-iem.html">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr-iem.html</source>
+        <source file="lcrr-iemmix.html">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr-iemmix.html</source>
+        <source file="lcrr-monitor.html">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/monitor/www/lcrr-monitor.html</source>
+        <source file="lcrr-podium.html">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/podium/www/lcrr-podium.html</source>
+        <source file="lcrr/arrange/css/arrange.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/css/arrange.css</source>
+        <source file="lcrr/arrange/js/arrange.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/js/arrange.js</source>
+        <source file="lcrr/arrange/js/client.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/js/client.js</source>
+        <source file="lcrr/arrange/js/editor.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/js/editor.js</source>
+        <source file="lcrr/arrange/js/wire.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/js/wire.js</source>
+        <source file="lcrr/arrange/js/words.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/www/lcrr/arrange/js/words.js</source>
+        <source file="lcrr/home/css/home.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/home/www/lcrr/home/css/home.css</source>
+        <source file="lcrr/home/js/home.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/home/www/lcrr/home/js/home.js</source>
+        <source file="lcrr/home/js/status.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/home/www/lcrr/home/js/status.js</source>
+        <source file="lcrr/iem/css/iem.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/css/iem.css</source>
+        <source file="lcrr/iem/js/client.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/js/client.js</source>
+        <source file="lcrr/iem/js/core.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/js/core.js</source>
+        <source file="lcrr/iem/js/iem.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/js/iem.js</source>
+        <source file="lcrr/iem/js/wire.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/js/wire.js</source>
+        <source file="lcrr/iem/js/words.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/www/lcrr/iem/js/words.js</source>
+        <source file="lcrr/iemmix/css/iemmix.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/css/iemmix.css</source>
+        <source file="lcrr/iemmix/js/bridge.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/bridge.js</source>
+        <source file="lcrr/iemmix/js/core.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/core.js</source>
+        <source file="lcrr/iemmix/js/iemmix.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/iemmix.js</source>
+        <source file="lcrr/iemmix/js/listen.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/listen.js</source>
+        <source file="lcrr/iemmix/js/snapshots.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/snapshots.js</source>
+        <source file="lcrr/iemmix/js/wheel.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iemmix/www/lcrr/iemmix/js/wheel.js</source>
+        <source file="lcrr/monitor/css/monitor.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/monitor/www/lcrr/monitor/css/monitor.css</source>
+        <source file="lcrr/monitor/js/core.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/monitor/www/lcrr/monitor/js/core.js</source>
+        <source file="lcrr/monitor/js/monitor.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/monitor/www/lcrr/monitor/js/monitor.js</source>
+        <source file="lcrr/podium/css/podium.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/podium/www/lcrr/podium/css/podium.css</source>
+        <source file="lcrr/podium/js/core.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/podium/www/lcrr/podium/js/core.js</source>
+        <source file="lcrr/podium/js/podium.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/podium/www/lcrr/podium/js/podium.js</source>
+        <source file="lcrr/shared/css/base.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/css/base.css</source>
+        <source file="lcrr/shared/css/tokens.css">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/css/tokens.css</source>
+        <source file="lcrr/shared/fonts/IBMPlexMono-400.woff2">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/fonts/IBMPlexMono-400.woff2</source>
+        <source file="lcrr/shared/fonts/IBMPlexMono-500.woff2">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/fonts/IBMPlexMono-500.woff2</source>
+        <source file="lcrr/shared/fonts/IBMPlexSans.woff2">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/fonts/IBMPlexSans.woff2</source>
+        <source file="lcrr/shared/fonts/README.txt">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/fonts/README.txt</source>
+        <source file="lcrr/shared/img/apple-touch-icon.png">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/img/apple-touch-icon.png</source>
+        <source file="lcrr/shared/img/icon-32.png">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/img/icon-32.png</source>
+        <source file="lcrr/shared/img/icon.svg">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/img/icon.svg</source>
+        <source file="lcrr/shared/js/bridge-client.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/bridge-client.js</source>
+        <source file="lcrr/shared/js/bridge-wire.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/bridge-wire.js</source>
+        <source file="lcrr/shared/js/fader-core.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/fader-core.js</source>
+        <source file="lcrr/shared/js/fader.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/fader.js</source>
+        <source file="lcrr/shared/js/guard.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/guard.js</source>
+        <source file="lcrr/shared/js/hold.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/hold.js</source>
+        <source file="lcrr/shared/js/poll.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/poll.js</source>
+        <source file="lcrr/shared/js/reaper.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/reaper.js</source>
+        <source file="lcrr/shared/js/version.js">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/www/lcrr/shared/js/version.js</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_Apply.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Apply.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_Bridge.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_Capture.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Capture.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_Check.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Check.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_FindDuplicateRegionNames.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_FindDuplicateRegionNames.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_ShowBarLines.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_ShowBarLines.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_ShowTrackTimebase.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_ShowTrackTimebase.lua</source>
+        <source type="script" main="main" file="arrange/LCRR_Arrange_Verify.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Verify.lua</source>
+        <source type="script" file="arrange/lib/apply.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/apply.lua</source>
+        <source type="script" file="arrange/lib/arrangement_ops.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/arrangement_ops.lua</source>
+        <source type="script" file="arrange/lib/automation_oracle.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/automation_oracle.lua</source>
+        <source type="script" file="arrange/lib/bridge/service.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/bridge/service.lua</source>
+        <source type="script" file="arrange/lib/bridge/tokens.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/bridge/tokens.lua</source>
+        <source type="script" file="arrange/lib/core/apply.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/apply.lua</source>
+        <source type="script" file="arrange/lib/core/capture.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/capture.lua</source>
+        <source type="script" file="arrange/lib/core/check.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/check.lua</source>
+        <source type="script" file="arrange/lib/core/edit.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/edit.lua</source>
+        <source type="script" file="arrange/lib/core/env.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/env.lua</source>
+        <source type="script" file="arrange/lib/core/find_duplicate_region_names.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/find_duplicate_region_names.lua</source>
+        <source type="script" file="arrange/lib/core/show_bar_lines.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/show_bar_lines.lua</source>
+        <source type="script" file="arrange/lib/core/show_track_timebase.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/show_track_timebase.lua</source>
+        <source type="script" file="arrange/lib/core/verify.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/core/verify.lua</source>
+        <source type="script" file="arrange/lib/log.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/log.lua</source>
+        <source type="script" file="arrange/lib/paths.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/paths.lua</source>
+        <source type="script" file="arrange/lib/project.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/project.lua</source>
+        <source type="script" file="arrange/lib/regions.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/regions.lua</source>
+        <source type="script" file="arrange/lib/report.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/report.lua</source>
+        <source type="script" file="arrange/lib/sidecar.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/sidecar.lua</source>
+        <source type="script" file="arrange/lib/tempo_oracle.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/tempo_oracle.lua</source>
+        <source type="script" file="arrange/lib/text/apply.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/apply.lua</source>
+        <source type="script" file="arrange/lib/text/capture.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/capture.lua</source>
+        <source type="script" file="arrange/lib/text/check.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/check.lua</source>
+        <source type="script" file="arrange/lib/text/edit.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/edit.lua</source>
+        <source type="script" file="arrange/lib/text/effects.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/effects.lua</source>
+        <source type="script" file="arrange/lib/text/find_duplicate_region_names.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/find_duplicate_region_names.lua</source>
+        <source type="script" file="arrange/lib/text/refusals.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/refusals.lua</source>
+        <source type="script" file="arrange/lib/text/show_bar_lines.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/show_bar_lines.lua</source>
+        <source type="script" file="arrange/lib/text/show_track_timebase.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/show_track_timebase.lua</source>
+        <source type="script" file="arrange/lib/text/verify.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/text/verify.lua</source>
+        <source type="script" file="arrange/lib/undo.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/undo.lua</source>
+        <source type="script" file="arrange/lib/validate.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/arrange/reaper/Scripts/LCRR/arrange/lib/validate.lua</source>
+        <source type="script" main="main" file="iem/LCRR_IEM_Bridge.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/LCRR_IEM_Bridge.lua</source>
+        <source type="script" file="iem/lib/bridge/service.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/bridge/service.lua</source>
+        <source type="script" file="iem/lib/core/adopt.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/adopt.lua</source>
+        <source type="script" file="iem/lib/core/bulk.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/bulk.lua</source>
+        <source type="script" file="iem/lib/core/cell.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/cell.lua</source>
+        <source type="script" file="iem/lib/core/colour.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/colour.lua</source>
+        <source type="script" file="iem/lib/core/create.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/create.lua</source>
+        <source type="script" file="iem/lib/core/cue.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/cue.lua</source>
+        <source type="script" file="iem/lib/core/delete.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/delete.lua</source>
+        <source type="script" file="iem/lib/core/move_to_end.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/move_to_end.lua</source>
+        <source type="script" file="iem/lib/core/output.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/output.lua</source>
+        <source type="script" file="iem/lib/core/rename.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/rename.lua</source>
+        <source type="script" file="iem/lib/core/snapshot_delete.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/snapshot_delete.lua</source>
+        <source type="script" file="iem/lib/core/snapshot_recall.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/snapshot_recall.lua</source>
+        <source type="script" file="iem/lib/core/snapshot_save.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/snapshot_save.lua</source>
+        <source type="script" file="iem/lib/core/snapshot_store.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/snapshot_store.lua</source>
+        <source type="script" file="iem/lib/core/snapshots.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/snapshots.lua</source>
+        <source type="script" file="iem/lib/core/state.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/state.lua</source>
+        <source type="script" file="iem/lib/core/tracks.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/tracks.lua</source>
+        <source type="script" file="iem/lib/core/undo.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/apps/iem/reaper/Scripts/LCRR/iem/lib/core/undo.lua</source>
+        <source type="script" main="main" file="shared/LCRR_Install_Startup_Hook.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/LCRR_Install_Startup_Hook.lua</source>
+        <source type="script" main="main" file="shared/LCRR_Remove_Startup_Hook.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/LCRR_Remove_Startup_Hook.lua</source>
+        <source type="script" file="shared/bridge/json.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/bridge/json.lua</source>
+        <source type="script" file="shared/bridge/request.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/bridge/request.lua</source>
+        <source type="script" file="shared/bridge/runner.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/bridge/runner.lua</source>
+        <source type="script" file="shared/startup/hook.lua">https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/v1.1.0-beta2/shared/reaper/Scripts/LCRR/shared/startup/hook.lua</source>
+      </version>
+    </reapack>
+  </category>
+</index>

@@ -31,7 +31,7 @@ Decided in a grilling session on 2026-11-07. The Lua engine stays; the web page 
 - Lua lives in a new **reaper slice**: `apps/arrange/reaper/Scripts/LCRR/arrange/{LCRR_Arrange_<Verb>.lua, lib/}`, mirroring REAPER's resource path as `www/` mirrors the web root (amends suite ADR-0001). Specs and fixtures go in `apps/arrange/spec/`.
 - Scripts: `LCRR_Arrange_Apply`, `_Check`, `_Capture`, `_Verify`, `_FindDuplicateRegionNames`, `_ShowBarLines`, `_ShowTrackTimebase`, `_Bridge`. Each `@description` starts with `LCRR Arrange: `.
 - Run log is renamed `<Project>.arrange.log` (old `.tsb.log` files are left alone). The sidecar `<Project>.arrangements.lua` is unchanged.
-- Same ReaPack package (suite ADR-0002), with the Lua carried by per-source `type="script"` (to verify). **Deferred (user, 2026-11-07):** for now the whole suite is delivered only through `scripts/install.ps1` / `install.bat`. The zip and ReaPack delivery will be revisited later.
+- Same ReaPack package (suite ADR-0002), with the Lua carried by per-source `type="script"` (verified live 2026-11-10, ADR 0002 amendment). ~~Deferred (user, 2026-11-07): delivered only through `scripts/install.ps1`.~~ ReaPack now delivers the Lua; the zip still does not.
 - `install.ps1` takes over `tools/sync.ps1` (copies `reaper/` slices, `-Link` for dev). `sync.ps1` is deleted.
 - `npm test` / `npm run check` also run busted and luacheck under **Lua 5.4** (keep the `.busted` `lua = "lua5.4"` pin). The LCRR devcontainer gains lua5.4, busted and luacheck.
 - The ReaperScripts repo had no open issues (checked 2026-11-07), so nothing is ported. It is deleted after the migration.

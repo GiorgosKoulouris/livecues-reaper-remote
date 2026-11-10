@@ -11,8 +11,8 @@
 --   While an Apply is running, REAPER's web interface does not answer: the
 --   page shows "Applying..." until it finishes.
 --
---   install.ps1 adds a line to Scripts/__startup.lua so this starts with
---   REAPER. Run this action by hand to start it otherwise; run it again to
+--   The action "LCRR: Install startup hook" (or install.ps1) adds a line to
+--   Scripts/__startup.lua so this starts with REAPER. Run this action by hand to start it otherwise; run it again to
 --   stop it.
 
 -- The bridge front end over the same cores as the dialog scripts. The request

@@ -7,8 +7,8 @@
 --   in-ear mixes and the tracks that feed them. **Nothing it does opens a
 --   dialog on this computer.**
 --
---   install.ps1 adds a line to Scripts/__startup.lua so this starts with
---   REAPER. Run this action by hand to start it otherwise; run it again to
+--   The action "LCRR: Install startup hook" (or install.ps1) adds a line to
+--   Scripts/__startup.lua so this starts with REAPER. Run this action by hand to start it otherwise; run it again to
 --   stop it.
 
 -- The bridge front end over the headless cores. The request handling is

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0-beta2 (2026-11-10)
+
+- Test release to check ReaPack update, Remove startup hook and uninstall; no functional change from beta1 except the version number
+
+## 1.1.0-beta1 (2026-11-10)
+
+- ReaPack delivery: the index carries the web pages and the Lua (per-source type=script), index name LCRR, category Remote
+- LCRR: Install startup hook and LCRR: Remove startup hook actions manage the bridge lines in Scripts/__startup.lua
+- The suite footer shows the installed version
+- README, CONTEXT.md and ADR 0002 describe the ReaPack path
+
 ## 2026-11-10
 
 - Restructure as the LiveCues ReaperRemote (LCRR) suite (02b0cfb8dc)
