@@ -1,0 +1,5 @@
+state	{"command":"state","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"ok","v":1}
+state_unsaved	{"command":"state","project":{"name":"","path":""},"status":"ok","v":1}
+unknown_command	{"command":"nope","error":{"code":"unknown_command","command":"nope"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+request_truncated	{"error":{"code":"request_truncated","declared":40,"received":7},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
+bad_request	{"error":{"code":"bad_request"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}

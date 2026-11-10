@@ -16,7 +16,7 @@ Read this before you bump a version, build the index, create or push a tag, or t
 
 ## How delivery works (facts)
 
-- Users install through **ReaPack**. One package `lcrr.html` (type `webinterface`), index name `LCRR`, category `Remote`, one version for the whole suite. Web files install into `reaper_www_root` keeping `lcrr/...` subfolders; Lua files are per-source `type="script"` and land in `Scripts/LCRR/Remote/<part>/` (parts: `arrange`, `iem`, `shared`, siblings, so the `..` lookup of `shared` works). Entry scripts `LCRR_*.lua` at the top of a part carry `main="main"` and register as actions.
+- Users install through **ReaPack**. One package `lcrr.html` (type `webinterface`), index name `LCRR`, category `Remote`, one version for the whole suite. Web files install into `reaper_www_root` keeping `lcrr/...` subfolders; Lua files are per-source `type="script"` and land in `Scripts/LCRR/Remote/<part>/` (parts: `arrange`, `iem`, `snapshots`, `shared`, siblings, so the `..` lookup of `shared` works). Entry scripts `LCRR_*.lua` at the top of a part carry `main="main"` and register as actions.
 - ReaPack cannot edit `Scripts/__startup.lua`. The actions **LCRR: Install startup hook** and **LCRR: Remove startup hook** (`shared/reaper/Scripts/LCRR/shared/`) manage the marked bridge lines. The lines are tolerant: after an uninstall they stay but do nothing. Updates need a REAPER restart for the bridges to run new code.
 - `.github/workflows/ci.yml` runs `npm test` and `npm run check` on pushes to `dev` and `main` and on pull requests. There are no branch rulesets yet.
 - `scripts/install.ps1` and the release zip remain as development/fallback tools. The zip carries only the web slices, no Lua. Anyone moving from `install.ps1` to ReaPack must run `install.ps1 -Uninstall` first.
@@ -52,8 +52,8 @@ Tags are immutable once pushed: never move or delete a pushed tag; ship a new ve
 
 Import `.../dev/index.xml` (beta) in ReaPack, enable pre-releases, then:
 
-- **Install:** the `lcrr.html` package installs; pages and the `lcrr/` folder are in `%APPDATA%\REAPER\reaper_www_root`; Lua is in `%APPDATA%\REAPER\Scripts\LCRR\Remote\{arrange,iem,shared}`.
-- **Startup hook:** run action `LCRR: Install startup hook`, restart REAPER; `Scripts/__startup.lua` has one marked line per bridge; the bridges run (Arrange and IEM Setup pages connect).
+- **Install:** the `lcrr.html` package installs; pages and the `lcrr/` folder are in `%APPDATA%\REAPER\reaper_www_root`; Lua is in `%APPDATA%\REAPER\Scripts\LCRR\Remote\{arrange,iem,snapshots,shared}`.
+- **Startup hook:** run action `LCRR: Install startup hook`, restart REAPER; `Scripts/__startup.lua` has one marked line per bridge; the bridges run (Arrange, IEM Setup and Snapshots pages connect).
 - **Footer:** every app page shows `v<version>` at the right of the footer.
 - **Update:** with the previous version installed, Synchronize packages offers the new one; after a restart the footer shows the new version and the bridges still start.
 - **Remove hook:** put a line of their own in `__startup.lua`, run `LCRR: Remove startup hook`: our `LCRR-*-BRIDGE` lines are gone, theirs stays.
@@ -63,7 +63,7 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 
 ## Changing the release machinery
 
-- `install.ps1` and `hook.lua` both manage the marked `__startup.lua` lines and must match them by **bridge id** only (`LCRR-ARRANGE-BRIDGE`, `LCRR-IEM-BRIDGE`), never by the marker's suffix; `test/startup-ids.test.js` guards this. A new bridge goes in both lists.
+- `install.ps1` and `hook.lua` both manage the marked `__startup.lua` lines and must match them by **bridge id** only (`LCRR-ARRANGE-BRIDGE`, `LCRR-IEM-BRIDGE`, `LCRR-SNAPSHOTS-BRIDGE`), never by the marker's suffix; `test/startup-ids.test.js` guards this. A new bridge goes in both lists.
 - Code: `scripts/release-lib.js` (`collectFiles`, `collectLuaFiles`, `buildIndexXml`, `changelogFor`, `changelogProblems`), `scripts/build-release.js`. Tests: `test/release.test.js`. Change tests first.
 - Adding an app with Lua or a new entry script: it appears in the index automatically from `apps/<app>/reaper/Scripts/LCRR/<part>/`. A new bridge must also be added to `hook.bridges` in `shared/reaper/Scripts/LCRR/shared/startup/hook.lua` (with a spec) so the startup hook starts it.
 - Changing the index name, category or per-source layout changes where users' files land: that is a decision for the owner, document it in an ADR amendment, and expect a live test.

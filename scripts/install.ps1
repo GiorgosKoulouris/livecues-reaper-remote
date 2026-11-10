@@ -11,7 +11,7 @@
   Each install replaces the whole lcrr\ and Scripts\LCRR\ trees, so a file deleted or renamed in the repo
   disappears from REAPER too. Re-run to update. Run from a PowerShell prompt on the Windows host:
       .\scripts\install.ps1
-  The bridges (LCRR_Arrange_Bridge.lua, LCRR_IEM_Bridge.lua) start with REAPER through one marked line each in
+  The bridges (LCRR_Arrange_Bridge.lua, LCRR_IEM_Bridge.lua, LCRR_Snapshots_Bridge.lua) start with REAPER through one marked line each in
   Scripts\__startup.lua, which install adds (or replaces) and -Uninstall removes; the rest of that file is left alone.
   New Lua scripts must be loaded once in REAPER (Actions > Show action list > New action > Load ReaScript);
   already-loaded ones pick up changes on their next run.
@@ -66,7 +66,7 @@ function Remove-Entry([string]$p) {
   else { Remove-Item -LiteralPath $p -Recurse -Force }
 }
 
-# The bridges (Arrange, IEM Setup) run in the background from REAPER's start (Scripts\__startup.lua). That file may hold
+# The bridges (Arrange, IEM Setup, Snapshots) run in the background from REAPER's start (Scripts\__startup.lua). That file may hold
 # the user's own lines, so ours are marked lines, one per bridge: each is replaced on every install and removed on
 # uninstall, nothing else is touched. __startup.lua cannot just dofile a bridge, because get_action_context() would then
 # name __startup.lua and the bridge could not find its lib\; it registers the bridge as an action and runs that (same
@@ -74,7 +74,8 @@ function Remove-Entry([string]$p) {
 $startupFile = Join-Path $scripts '__startup.lua'
 $bridges = @(
   @{ Name = 'Arrange'; Id = 'LCRR-ARRANGE-BRIDGE'; Marker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'; Script = 'arrange/LCRR_Arrange_Bridge.lua' },
-  @{ Name = 'IEM Setup'; Id = 'LCRR-IEM-BRIDGE'; Marker = '-- LCRR-IEM-BRIDGE (managed by install.ps1)'; Script = 'iem/LCRR_IEM_Bridge.lua' }
+  @{ Name = 'IEM Setup'; Id = 'LCRR-IEM-BRIDGE'; Marker = '-- LCRR-IEM-BRIDGE (managed by install.ps1)'; Script = 'iem/LCRR_IEM_Bridge.lua' },
+  @{ Name = 'Snapshots'; Id = 'LCRR-SNAPSHOTS-BRIDGE'; Marker = '-- LCRR-SNAPSHOTS-BRIDGE (managed by install.ps1)'; Script = 'snapshots/LCRR_Snapshots_Bridge.lua' }
 )
 foreach ($b in $bridges) {
   $b.Line = 'do local p = reaper.GetResourcePath() .. "/Scripts/LCRR/' + $b.Script + '"; ' +

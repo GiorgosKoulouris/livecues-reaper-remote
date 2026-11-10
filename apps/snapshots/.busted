@@ -1,0 +1,22 @@
+-- Busted configuration. Run from apps/snapshots/ (npm test does this).
+--
+-- The `lua` setting is load-bearing: Debian's lua-busted package installs
+-- lua5.1 as its interpreter, so without this, specs run under 5.1 and any
+-- 5.4-only syntax (integer division, <const>/<close> attributes) fails with a
+-- bare "unexpected symbol" error. REAPER embeds 5.4, so specs must too.
+-- spec/toolchain_spec.lua guards this.
+--
+-- `lpath` puts the scripts' folder on package.path, so `require("lib.x")`
+-- resolves exactly as it does inside REAPER, where each script adds its own
+-- folder (lib/ sits beside the scripts in the reaper/ slice), and each bridge
+-- script adds its parent folder, where `shared` sits (shared/reaper/ slice).
+return {
+  _all = {
+    lua = "lua5.4",
+    lpath = "./reaper/Scripts/LCRR/snapshots/?.lua;../../shared/reaper/Scripts/LCRR/?.lua",
+  },
+  default = {
+    ROOT = { "spec" },
+    verbose = true,
+  },
+}
