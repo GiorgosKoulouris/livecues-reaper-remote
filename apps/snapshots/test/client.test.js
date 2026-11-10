@@ -43,3 +43,13 @@ test("snapshots() and save(name) send their commands; only the name travels with
   assert.ok((await sent((c) => c.snapshots())).endsWith("|cmd=snapshots"));
   assert.ok((await sent((c) => c.save("Verse & Chorus"))).endsWith("|cmd=snapshot_save&name=Verse%20%26%20Chorus"));
 });
+
+test("overwrite(name) saves with overwrite=1 and remove(name) sends snapshot_delete", async () => {
+  async function sent(call) {
+    const { c, urls } = rig((url) => Promise.resolve(url.indexOf("/_/SET/") === 0 ? "" : "EXTSTATE\tLCRR_SNAPSHOTS\tres\tid1|{\"status\":\"ok\"}\n"));
+    await call(c);
+    return decodeURIComponent(urls[0]);
+  }
+  assert.ok((await sent((c) => c.overwrite("Verse"))).endsWith("|cmd=snapshot_save&name=Verse&overwrite=1"));
+  assert.ok((await sent((c) => c.remove("Verse"))).endsWith("|cmd=snapshot_delete&name=Verse"));
+});

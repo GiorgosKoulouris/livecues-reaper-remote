@@ -70,3 +70,21 @@ test("a recorded list is pushed through to its row text", () => {
   clean(words.ui("name"), "name");
   clean(words.ui("save"), "save");
 });
+
+test("every refusal of an overwrite or a delete is worded, matching the recorded replies", () => {
+  const names = Object.keys(replies).filter((n) => /^snapshot_(overwrite|delete)/.test(n) && replies[n].status === "refused");
+  assert.ok(names.length >= 5);
+  names.forEach((name) => {
+    const text = words.error(replies[name].error);
+    clean(text, name);
+    assert.ok(!text.startsWith("Something went wrong"), name + " has no wording for " + replies[name].error.code);
+  });
+  assert.strictEqual(replies.snapshot_overwrite.overwritten, true);
+  assert.strictEqual(replies.snapshot_delete.status, "ok");
+  assert.strictEqual(core.readList(replies.snapshot_delete), null);
+  clean(words.ui("overwrite"), "overwrite");
+  clean(words.ui("delete"), "delete");
+  clean(words.ui("holdLegend"), "hold");
+  clean(words.holdLabel("delete", "Verse"), "delete label");
+  assert.ok(words.holdLabel("overwrite", "Verse").startsWith("Overwrite Verse"));
+});

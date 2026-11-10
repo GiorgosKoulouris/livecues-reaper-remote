@@ -21,6 +21,7 @@
     empty_name: "Give the snapshot a name.",
     bad_name: "A name cannot hold line breaks or other control characters.",
     name_too_long: "That name is too long. Use at most 40 characters.",
+    not_found: "That snapshot is no longer saved. The list has been refreshed.",
     duplicate_name: "A snapshot with that name already exists. Use another name.",
     unreadable: "The saved snapshots in this project could not be read, so nothing was changed.",
     request_too_long: "The request is too long to send.",
@@ -33,7 +34,7 @@
     return ERRORS[code] || ("Something went wrong (" + (code || "unknown") + ").");
   }
 
-  var UI = { title: "Snapshots", unsavedProject: "(unsaved project)", name: "Name", save: "Save", empty: "No snapshots saved yet." };
+  var UI = { title: "Snapshots", unsavedProject: "(unsaved project)", name: "Name", save: "Save", overwrite: "Overwrite", delete: "Delete", holdLegend: "Hold", empty: "No snapshots saved yet." };
   function ui(key) { return UI[key] || ""; }
 
   function chip(phase) { return CHIP[phase] || ""; }
@@ -51,8 +52,11 @@
     return plural(s.tracks, "track", "tracks") + ", " + plural(s.sends, "send", "sends") + (when ? " · " + when : "");
   }
 
+  // A row's key names for a screen reader and its tooltip: what holding it does to which snapshot.
+  function holdLabel(kind, name) { return (kind === "delete" ? "Delete " : "Overwrite ") + name + ", hold to confirm"; }
+
   var NO_SNAPSHOTS = UI.empty;
   var UNDO_NOTE = "Saving a snapshot cannot be undone.";
 
-  return { counts: counts, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
+  return { holdLabel: holdLabel, counts: counts, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
 });

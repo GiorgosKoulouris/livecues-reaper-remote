@@ -58,6 +58,30 @@ local scenarios = {
     ask("cmd=snapshot_save&name=Verse")
     return ask("cmd=snapshot_save&name=Verse")
   end },
+  { "snapshot_overwrite", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_save&name=Verse&overwrite=1")
+  end },
+  { "snapshot_overwrite_not_found", function()
+    return saved_bridge()("cmd=snapshot_save&name=Verse&overwrite=1")
+  end },
+  { "snapshot_delete", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_delete&name=Verse")
+  end },
+  { "snapshot_delete_empty_name", function() return saved_bridge()("cmd=snapshot_delete&name=%20") end },
+  { "snapshot_delete_bad_name", function() return saved_bridge()("cmd=snapshot_delete&name=a%0Ab") end },
+  { "snapshot_delete_name_too_long", function()
+    return saved_bridge()("cmd=snapshot_delete&name=" .. ("x"):rep(41))
+  end },
+  { "snapshot_delete_not_found", function() return saved_bridge()("cmd=snapshot_delete&name=Verse") end },
+  { "snapshot_delete_unreadable", function()
+    local ask, api = saved_bridge()
+    api.ext.LCRR_SNAPSHOTS = { snapshots = "garbage" }
+    return ask("cmd=snapshot_delete&name=Verse")
+  end },
   { "snapshots_unreadable", function()
     local ask, api = saved_bridge()
     api.ext.LCRR_SNAPSHOTS = { snapshots = "garbage" }

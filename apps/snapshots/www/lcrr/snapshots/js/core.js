@@ -52,5 +52,41 @@
   // Do two lists draw the same? An identical reply leaves the rows untouched.
   function sameList(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 
-  return { MAX_NAME: MAX_NAME, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse };
+  // The list is not rebuilt while a press-and-hold is down (the rebuild would replace the key under the finger and
+  // lose its release). `request()` paints now, or once when the last hold ends; `paint` reads the latest list itself.
+  function createGate(paint) {
+    var holds = 0, pending = false;
+    function flush() { if (!holds && pending) { pending = false; paint(); } }
+    return {
+      request: function () { if (holds) pending = true; else { pending = false; paint(); } },
+      begin: function () { holds++; },
+      end: function () { if (holds) holds--; flush(); },
+      active: function () { return holds > 0; }
+    };
+  }
+
+  // One press-and-hold key's logic over LCRR.shared.hold (`createHold` is injected). down() starts a hold and tells
+  // the gate; up() is any release, leave, blur or cancel. Only a hold that runs its full time calls `onComplete`,
+  // once, after the gate has ended (so a deferred rebuild has run); an early release sends nothing.
+  function createPress(opts) {
+    var down = false;
+    function finish() {
+      if (!down) return false;
+      down = false;
+      opts.gate.end();
+      return true;
+    }
+    var hold = opts.createHold({
+      holdMs: opts.holdMs,
+      onCancel: function () { finish(); },
+      onComplete: function () { if (finish()) opts.onComplete(); }
+    });
+    return {
+      down: function () { if (down) return; down = true; opts.gate.begin(); hold.start(); },
+      up: function () { hold.cancel(); finish(); },
+      isDown: function () { return down; }
+    };
+  }
+
+  return { createGate: createGate, createPress: createPress, MAX_NAME: MAX_NAME, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse };
 });

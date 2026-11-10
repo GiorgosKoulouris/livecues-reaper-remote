@@ -3,11 +3,15 @@
 -- mode per send and output. The request carries only the name; the values are read here. In-ear tracks are stored
 -- like any other.
 --
---   snapshot_save.run({ api, fields = { name }, now = function() return os.time() end })
---     -> { status = "ok", name, tracks, sends }
+--   snapshot_save.run({ api, fields = { name, overwrite = "1" }, now = function() return os.time() end })
+--     -> { status = "ok", name, overwritten, tracks, sends }
 --
--- Refusals, all decided before anything is written: `empty_name`, `bad_name`, `name_too_long`, `duplicate_name`,
--- `unreadable` (the stored list cannot be read).
+-- `overwrite` 1 replaces the snapshot of that name: it keeps its name, id and place in the list, and gets fresh
+-- contents, counts, marks and saved time.
+--
+-- Refusals, all decided before anything is written: `empty_name`, `bad_name`, `name_too_long`, `duplicate_name` (the
+-- name is taken and `overwrite` is not 1), `not_found` (`overwrite` on a name that is not saved), `unreadable` (the
+-- stored list cannot be read).
 --
 -- Levels and pans are `D_VOL` and `D_PAN`, never `GetTrackUIVolPan`: those report an envelope's value in Read mode,
 -- while `D_VOL` keeps the stored one (suite CONTEXT.md, measured). The Master is stored under the key `master`. A
@@ -71,15 +75,21 @@ function snapshot_save.run(given)
   if not name then return refusal(code) end
   local list, bad = store.list(api)
   if not list then return refusal(bad) end
-  if store.find(list, name) then return refusal("duplicate_name") end
+  local existing = store.find(list, name)
+  local overwrite = fields.overwrite == "1"
+  if existing and not overwrite then return refusal("duplicate_name") end
+  if overwrite and not existing then return refusal("not_found") end
 
   local contents, tracks, sends, marks = capture(api)
   local now = given.now or os.time
   local entry = {
-    id = store.next_id(list), saved = math.floor(now()), tracks = tracks, sends = sends, marks = marks, name = name,
+    id = existing and existing.id or store.next_id(list), saved = math.floor(now()), tracks = tracks, sends = sends,
+    marks = marks, name = name,
   }
   store.put(api, list, entry, contents)
-  return { status = "ok", name = name, tracks = tracks, sends = sends }
+  return {
+    status = "ok", name = name, overwritten = existing ~= nil, tracks = tracks, sends = sends,
+  }
 end
 
 return snapshot_save

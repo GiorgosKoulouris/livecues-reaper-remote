@@ -78,7 +78,56 @@
     return el;
   }
 
-  // Rebuilt only when the list changed, so a steady 3 s read never touches the rows.
+  // A press-and-hold key (LCRR.shared.hold, 1 s) for Overwrite and Delete. A plain tap must never act, so there is no
+  // click handler. A release is also caught on the document, so a hold ends even if the key was replaced.
+  var HOLD_MS = 1000;
+  var DOC_RELEASE = ["pointerup", "pointercancel"];
+  function holdKey(kind, name, send) {
+    var btn = h("button", "snapshots-key snapshots-hold snapshots-" + kind);
+    btn.type = "button";
+    btn.appendChild(h("span", "snapshots-hold-text", words.ui(kind)));
+    btn.appendChild(h("span", "snapshots-hold-legend", words.ui("holdLegend")));
+    btn.title = words.holdLabel(kind, name);
+    btn.setAttribute("aria-label", btn.title);
+    var press = core.createPress({
+      holdMs: HOLD_MS, createHold: S.hold.createHold, gate: gate,
+      onComplete: function () { btn.classList.remove("holding"); stopDocument(); write(send); }
+    });
+    function stopDocument() { DOC_RELEASE.forEach(function (n) { document.removeEventListener(n, release); }); }
+    function release() { press.up(); btn.classList.remove("holding"); stopDocument(); }
+    function start() {
+      if (btn.disabled || ui.busy || press.isDown()) return;
+      btn.classList.add("holding");
+      DOC_RELEASE.forEach(function (n) { document.addEventListener(n, release); });
+      press.down();
+    }
+    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
+    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
+    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
+    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    btn.addEventListener("keydown", function (e) {
+      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
+    });
+    btn.addEventListener("keyup", release);
+    return btn;
+  }
+
+  // One write at a time; the message of a refusal stays until the next attempt, and the list is read again either way.
+  function write(send) {
+    if (ui.phase !== "ready" || ui.busy) return;
+    ui.busy = true;
+    showMessage("");
+    send().then(function (reply) {
+      if (!reply || reply.status !== "ok") showMessage(words.error(reply && reply.error));
+    }, function (err) { showMessage(words.error(err)); }).then(function () {
+      ui.busy = false;
+      ui.list = null; // a refused write (not_found) may still have changed what the list should show
+      readList();
+    });
+  }
+
+  // Rebuilt only when the list changed, so a steady 3 s read never touches the rows; never while a hold is down.
+  var gate = core.createGate(function () { if (ui.list) renderList(ui.list); });
   function renderList(list) {
     els.empty.textContent = words.ui("empty");
     els.empty.hidden = list.length > 0;
@@ -87,6 +136,10 @@
       var li = h("li", "snapshots-row");
       li.appendChild(h("span", "snapshots-row-name", s.name));
       li.appendChild(h("span", "snapshots-row-meta", words.counts(s, savedText(s.saved))));
+      var keys = h("div", "snapshots-row-keys");
+      keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
+      keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));
+      li.appendChild(keys);
       els.list.appendChild(li);
     });
   }
@@ -100,7 +153,7 @@
       if (!list) { if (reply && reply.status === "refused") showMessage(words.error(reply.error)); return; }
       if (ui.list && core.sameList(ui.list, list)) return;
       ui.list = list;
-      renderList(list);
+      gate.request();
     }, function () { ui.listing = false; });
   }
 

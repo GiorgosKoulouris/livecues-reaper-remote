@@ -162,3 +162,94 @@ describe("snapshot_save and snapshots", function()
     assert.are.equal(600, total)
   end)
 end)
+
+describe("snapshot_save overwrite and snapshot_delete", function()
+  local function names(api)
+    local out = {}
+    for _, e in ipairs(assert(store.list(api))) do out[#out + 1] = e.name end
+    return out
+  end
+
+  it("overwrites keeping name, id and list position, refreshing saved, contents and marks", function()
+    local api = show()
+    local clock = 1000
+    local ask = bridge(api, function() return clock end)
+    ask("cmd=snapshot_save&name=A")
+    ask("cmd=snapshot_save&name=B")
+    ask("cmd=snapshot_save&name=C")
+    api.tracks[1].vol = 0.42
+    api.GetMasterTrack(0).mute = 0
+    clock = 2000
+    local dirty = api.dirty
+    local reply = ask("cmd=snapshot_save&name=B&overwrite=1")
+    assert.is_truthy(reply:find('"status":"ok"', 1, true))
+    assert.is_truthy(reply:find('"overwritten":true', 1, true))
+    assert.are.same({ "A", "B", "C" }, names(api))
+    local list = assert(store.list(api))
+    assert.are.equal(2, list[2].id)
+    assert.are.equal(2000, list[2].saved)
+    assert.are.equal(1000, list[1].saved)
+    assert.are.equal(store.MARK_SOLO, list[2].marks)
+    assert.are.equal(0.42, assert(store.read(api, list[2])).tracks[1].vol)
+    assert.are.equal(0.1, assert(store.read(api, list[1])).tracks[1].vol)
+    assert.are.equal(0, api.undo_blocks)
+    assert.is_true(api.dirty > dirty)
+    assert.is_nil(api.ext[SECTION]["snapshot.4"])
+  end)
+
+  it("a plain save of a taken name is still refused; overwriting an unsaved name is not_found", function()
+    local api = show()
+    local ask = bridge(api)
+    ask("cmd=snapshot_save&name=A")
+    assert.is_truthy(ask("cmd=snapshot_save&name=A"):find('"code":"duplicate_name"', 1, true))
+    local before, dirty = api.ext[SECTION].snapshots, api.dirty
+    assert.is_truthy(ask("cmd=snapshot_save&name=Z&overwrite=1"):find('"code":"not_found"', 1, true))
+    assert.are.equal(before, api.ext[SECTION].snapshots)
+    assert.are.equal(dirty, api.dirty)
+  end)
+
+  it("deletes out of the index first, leaves no contents key, marks dirty and opens no undo block", function()
+    local api = show()
+    local ask = bridge(api)
+    ask("cmd=snapshot_save&name=A")
+    ask("cmd=snapshot_save&name=B")
+    local order, set = {}, api.SetProjExtState
+    api.SetProjExtState = function(p, section, key, value)
+      order[#order + 1] = key
+      return set(p, section, key, value)
+    end
+    local dirty = api.dirty
+    local reply = ask("cmd=snapshot_delete&name=A")
+    assert.is_truthy(reply:find('"status":"ok"', 1, true))
+    assert.are.same({ "snapshots", "snapshot.1" }, order)
+    assert.is_nil(api.ext[SECTION]["snapshot.1"])
+    assert.is_truthy(api.ext[SECTION]["snapshot.2"])
+    assert.are.same({ "B" }, names(api))
+    assert.is_true(api.dirty > dirty)
+    assert.are.equal(0, api.undo_blocks)
+    ask("cmd=snapshot_delete&name=B")
+    assert.are.same({}, names(api))
+    assert.is_nil(api.ext[SECTION]["snapshot.2"])
+  end)
+
+  it("refuses a delete for each bad case without writing", function()
+    local api = show()
+    local ask = bridge(api)
+    ask("cmd=snapshot_save&name=A")
+    local before, dirty = api.ext[SECTION].snapshots, api.dirty
+    for body, code in pairs({
+      ["cmd=snapshot_delete&name="] = "empty_name",
+      ["cmd=snapshot_delete&name=a%0Ab"] = "bad_name",
+      ["cmd=snapshot_delete&name=" .. ("x"):rep(41)] = "name_too_long",
+      ["cmd=snapshot_delete&name=Nope"] = "not_found",
+    }) do
+      assert.is_truthy(ask(body):find('"code":"' .. code .. '"', 1, true), body)
+    end
+    assert.are.equal(before, api.ext[SECTION].snapshots)
+    assert.are.equal(dirty, api.dirty)
+    api.ext[SECTION].snapshots = "garbage"
+    assert.is_truthy(ask("cmd=snapshot_delete&name=A"):find('"code":"unreadable"', 1, true))
+    assert.is_truthy(ask("cmd=snapshot_save&name=A&overwrite=1"):find('"code":"unreadable"', 1, true))
+    assert.are.equal("garbage", api.ext[SECTION].snapshots)
+  end)
+end)
