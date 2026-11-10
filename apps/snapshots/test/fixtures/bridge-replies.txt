@@ -17,6 +17,7 @@ snapshot_delete_not_found	{"command":"snapshot_delete","error":{"code":"not_foun
 snapshot_delete_unreadable	{"command":"snapshot_delete","error":{"code":"unreadable"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 snapshots_unreadable	{"command":"snapshots","error":{"code":"unreadable"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 snapshot_restore	{"command":"snapshot_restore","name":"Verse","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":3,"skipped":0,"status":"ok","tracks":3,"v":1}
+snapshot_restore_in_ears	{"command":"snapshot_restore","name":"Verse","project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"sends":0,"skipped":0,"status":"ok","tracks":0,"v":1}
 snapshot_restore_no_ticks	{"command":"snapshot_restore","error":{"code":"no_ticks"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 snapshot_restore_not_found	{"command":"snapshot_restore","error":{"code":"not_found"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}
 unknown_command	{"command":"nope","error":{"code":"unknown_command","command":"nope"},"project":{"name":"Sunday","path":"C:/Shows/Sunday/Sunday.rpp"},"status":"refused","v":1}

@@ -7,14 +7,16 @@
 --        `bad_ticks` (a letter that is no tick)
 --
 -- `ticks` is a compact string, one letter per tick that is on (any order): L levels, P pans, M mutes, S solos,
--- R polarity, E sends (every send's and hardware output's volume, pan, mute and mode), F FX on/off. The Master follows
--- the same ticks as any track. The In-ears tick comes with issue 07: until then in-ear values are never written.
+-- R polarity, E sends (every send's and hardware output's volume, pan, mute and mode), F FX on/off,
+-- I in-ears. The Master follows the same ticks as any track. With I on, every in-ear value is written whatever the
+-- other ticks say; with I off none is.
 --
 -- Tracks are matched by GUID (the Master by its key), a send by its destination GUID and its order among the sends
 -- of that pair, a hardware output by its order. Anything gone is skipped and counted in `skipped`; tracks and sends
 -- added since the save are left alone; nothing is ever created or removed. `tracks` counts the tracks (Master
 -- included) that had a value written, `sends` the sends and outputs written. In-ear tracks and every send into one
--- are recognised by their current names (`IEM_<name>`, `IEM-Cue`, the first `IEMs`) and left alone, not counted.
+-- are recognised by their current names (`IEM_<name>`, `IEM-Cue`, the first `IEMs`) and, with I off, left alone and
+-- not counted.
 --
 -- Plan first, write afterwards: every refusal comes before the undo block opens, and nothing to write means no undo
 -- step. Levels and pans are written as `D_VOL` and `D_PAN`, never the UI functions. A stored `I_SOLO` of 5 is
@@ -29,7 +31,7 @@ local snapshot_restore = {}
 local SEND_CATEGORY, OUTPUT_CATEGORY = 0, 1
 local IN_EAR_PREFIX, IN_EAR_CUE, IN_EAR_FOLDER = "IEM_", "IEM-Cue", "IEMs"
 
-snapshot_restore.TICKS = "LPMSREF"
+snapshot_restore.TICKS = "LPMSREFI"
 
 -- Track keys each tick writes, with the saved field they come from.
 local TRACK_TICKS = {
@@ -94,11 +96,13 @@ local function plan(api, contents, ticks)
     local entry = now.by_guid[saved.guid]
     if not entry then
       result.skipped = result.skipped + 1 + #saved.sends + #saved.outputs
-    elseif not now.in_ear[saved.guid] then
+    else
+      -- In-ear values (an in-ear track's own, every send into one, their outputs) follow only the In-ears tick.
+      local ear = now.in_ear[saved.guid] or false
       local touched = false
       for letter in snapshot_restore.TICKS:gmatch(".") do
         local keys = TRACK_TICKS[letter]
-        if ticks[letter] and keys then
+        if keys and ((ear and ticks.I) or (not ear and ticks[letter])) then
           for _, key in ipairs(keys) do
             local value = saved[key[2]]
             if key[1] == "I_SOLO" then value = SOLO_WRITE[value] or value end
@@ -107,7 +111,7 @@ local function plan(api, contents, ticks)
           end
         end
       end
-      if ticks.E then
+      if ticks.E or ticks.I then
         local queues = sends_by_dest(api, entry.track)
         local function add(category, index, send)
           for _, key in ipairs(SEND_KEYS) do
@@ -119,8 +123,9 @@ local function plan(api, contents, ticks)
         for _, send in ipairs(saved.sends) do
           local queue = queues[send.dest]
           local index = queue and table.remove(queue, 1)
-          -- A send into an in-ear track is never written and not counted.
-          if not now.in_ear[send.dest] then
+          local wanted
+          if ear or now.in_ear[send.dest] then wanted = ticks.I else wanted = ticks.E end
+          if wanted then
             if index then
               add(SEND_CATEGORY, index, send)
             else
@@ -128,12 +133,14 @@ local function plan(api, contents, ticks)
             end
           end
         end
-        local outputs = api.GetTrackNumSends(entry.track, OUTPUT_CATEGORY)
-        for order, output in ipairs(saved.outputs) do
-          if order <= outputs then
-            add(OUTPUT_CATEGORY, order - 1, output)
-          else
-            result.skipped = result.skipped + 1
+        if ear and ticks.I or not ear and ticks.E then
+          local outputs = api.GetTrackNumSends(entry.track, OUTPUT_CATEGORY)
+          for order, output in ipairs(saved.outputs) do
+            if order <= outputs then
+              add(OUTPUT_CATEGORY, order - 1, output)
+            else
+              result.skipped = result.skipped + 1
+            end
           end
         end
       end

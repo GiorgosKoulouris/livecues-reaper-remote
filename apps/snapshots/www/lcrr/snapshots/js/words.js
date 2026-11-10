@@ -66,9 +66,9 @@
   // A row's key names for a screen reader and its tooltip: what holding it does to which snapshot.
   function holdLabel(kind, name) { return (kind === "delete" ? "Delete " : "Overwrite ") + name + ", hold to confirm"; }
   // The restore's wording: the ticks' labels, the Restore key, and the result note.
-  var TICK_LABELS = { levels: "Levels", pans: "Pans", mutes: "Mutes", solos: "Solos", polarity: "Polarity", sends: "Sends", fx: "FX on/off" };
+  var TICK_LABELS = { levels: "Levels", pans: "Pans", mutes: "Mutes", solos: "Solos", polarity: "Polarity", sends: "Sends", fx: "FX on/off", inears: "In-ears" };
   UI.restore = "Restore";
-  UI.tickNote = "In-ear tracks and the sends into them are never restored here. Restoring a source track’s mute, polarity or FX can still change what the musicians hear.";
+  UI.tickNote = "With In-ears off, in-ear tracks and the sends into them are left alone. Restoring a source track’s mute, polarity or FX can still change what the musicians hear, even with In-ears off.";
   function tick(key) { return TICK_LABELS[key] || ""; }
 
   // The last restore's result: what was written, what was skipped because it is gone.

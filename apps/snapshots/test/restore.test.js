@@ -61,3 +61,18 @@ test("restore(name, ticks) sends the name and the compact ticks", async () => {
   await c.restore("Verse", "LPE");
   assert.ok(decodeURIComponent(urls[0]).endsWith("|cmd=snapshot_restore&name=Verse&ticks=LPE"));
 });
+
+test("In-ears is a tick that starts off, and sends the letter I", () => {
+  const ticks = restore.defaults();
+  assert.strictEqual(ticks.inears, false);
+  assert.strictEqual(restore.field(ticks), "LPMSRE");
+  assert.strictEqual(restore.field({ inears: true }), "I");
+  assert.strictEqual(words.tick("inears"), "In-ears");
+  assert.ok(/even with In-ears off/.test(words.ui("tickNote")));
+});
+
+test("the recorded In-ears restore reply is pushed through to its note", () => {
+  const result = restore.readResult(replies.snapshot_restore_in_ears);
+  assert.ok(result && result.tracks >= 0);
+  assert.ok(words.restoreNote(result).length > 0);
+});

@@ -14,7 +14,8 @@
     { key: "solos", letter: "S", on: true },
     { key: "polarity", letter: "R", on: true },
     { key: "sends", letter: "E", on: true },
-    { key: "fx", letter: "F", on: false }
+    { key: "fx", letter: "F", on: false },
+    { key: "inears", letter: "I", on: false }
   ];
 
   // A fresh set of ticks at their defaults: { levels: true, ..., fx: false }.

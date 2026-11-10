@@ -122,6 +122,45 @@ describe("snapshot_restore", function()
     assert.are.equal(0, reply.skipped)
   end)
 
+  describe("In-ears", function()
+    it("on with every other tick off writes in-ear values and nothing else", function()
+      local reply = run(api, "I")
+      assert.are.same({ 0.4, 1, 0.2 }, { drums.vol, drums.mute, kick.sends[3].vol })
+      assert.are.same({ 0.11, 0 }, { kick.vol, kick.mute })
+      assert.are.equal(0.11, bus.vol)
+      assert.are.equal(0.01, kick.sends[1].vol)
+      assert.are.equal(0.01, kick.outputs[1].vol)
+      assert.are.equal(0.11, master.vol)
+      assert.are.same({ tracks = 1, sends = 1, skipped = 0 },
+        { tracks = reply.tracks, sends = reply.sends, skipped = reply.skipped })
+      assert.are.equal(1, api.undo_blocks)
+    end)
+
+    it("off leaves them alone, with IEM_ mixes, IEM-Cue and the IEMs folder", function()
+      bus.name = "IEMs"
+      run(api, "LPMSREF")
+      assert.are.same({ 0.11, 0, 0.01 }, { drums.vol, drums.mute, kick.sends[3].vol })
+      assert.are.equal(0.11, bus.vol)
+      bus.name = "IEM-Cue"
+      run(api, "LPMSREF")
+      assert.are.equal(0.11, bus.vol)
+    end)
+
+    it("counts a track renamed to IEM_x since the save as in-ear", function()
+      bus.name = "IEM_x"
+      run(api, "L")
+      assert.are.equal(0.11, bus.vol)
+      run(api, "I")
+      assert.are.equal(0.9, bus.vol)
+    end)
+
+    it("restores everything with the other ticks", function()
+      run(api, "LPMSREFI")
+      assert.are.same({ 0.4, 1 }, { drums.vol, drums.mute })
+      assert.are.equal(0.2, kick.sends[3].vol)
+    end)
+  end)
+
   it("recognises the cue and the IEMs folder by their current names", function()
     bus.name, drums.name = "IEM-Cue", "IEMs"
     run(api, "L")
