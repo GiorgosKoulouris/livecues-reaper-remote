@@ -3,17 +3,16 @@
 (function (root, factory) {
   var deps = typeof module === "object" && module.exports ? require("./wire.js") : root.LCRR.snapshots.wire;
   var transport = typeof module === "object" && module.exports ? require("../../../../../../shared/www/lcrr/shared/js/bridge-client.js") : root.LCRR.shared.bridgeClient;
-  var api = factory(deps, transport);
+  var restore = typeof module === "object" && module.exports ? require("./restore.js") : root.LCRR.snapshots.restore;
+  var api = factory(deps, transport, restore);
   if (typeof module === "object" && module.exports) module.exports = api;
   else { var L = root.LCRR = root.LCRR || {}; (L.snapshots = L.snapshots || {}).client = api; }
-})(this, function (wire, transport) {
+})(this, function (wire, transport, restoreTicks) {
   "use strict";
-
-  var CALL_TIMEOUT_MS = transport.CALL_TIMEOUT_MS;
 
   // Longer than any id the page generates (a base-36 clock, "-", a counter), so a name that fits here fits for real.
   var LONGEST_ID = "xxxxxxxxxxxx-xxxxxxxx";
-  var ALL_TICKS = "LPMSREFI";
+  var ALL_TICKS = restoreTicks.field(restoreTicks.TICKS.reduce(function (all, t) { all[t.key] = true; return all; }, {}));
 
   // Will the name fit every request it is ever sent in: Save, Overwrite, and Restore with all eight ticks?
   function nameFits(name) {
@@ -53,5 +52,5 @@
     return { restore: restore, call: call, state: state, snapshots: snapshots, save: save, overwrite: overwrite, remove: remove };
   }
 
-  return { createClient: createClient, nameFits: nameFits, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };
+  return { createClient: createClient, nameFits: nameFits };
 });

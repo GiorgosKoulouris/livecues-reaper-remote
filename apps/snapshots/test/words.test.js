@@ -69,6 +69,10 @@ test("a recorded list is pushed through to its row text", () => {
   clean(words.ui("empty"), "empty");
   clean(words.ui("name"), "name");
   clean(words.ui("save"), "save");
+  clean(words.ui("title"), "title");
+  clean(words.ui("restore"), "restore");
+  clean(words.chip("connecting"), "connecting");
+  assert.deepStrictEqual(words.marks({ solo: true, masterMuted: true }).map((m) => m.text), ["Solo", "Master muted"]);
 });
 
 test("every refusal of an overwrite or a delete is worded, matching the recorded replies", () => {
@@ -89,10 +93,20 @@ test("every refusal of an overwrite or a delete is worded, matching the recorded
   assert.ok(words.holdLabel("overwrite", "Verse").startsWith("Overwrite Verse"));
 });
 
+test("not_found is worded once, without a claim about the list", () => {
+  assert.strictEqual(words.error({ code: "not_found" }), "That snapshot is no longer saved.");
+  const src = require("fs").readFileSync(require.resolve("../www/lcrr/snapshots/js/words.js"), "utf8");
+  assert.strictEqual((src.match(/not_found:/g) || []).length, 1);
+});
+
 test("marks name what a snapshot holds, in words, from the recorded list reply", () => {
   const core = require("../www/lcrr/snapshots/js/core.js");
   const fs = require("fs"), path = require("path");
   const line = fs.readFileSync(path.join(__dirname, "fixtures/bridge-replies.txt"), "utf8").split("\n").find((l) => l.startsWith("snapshots_marks\t"));
   const list = core.readList(JSON.parse(line.slice(line.indexOf("\t") + 1)));
-  assert.deepStrictEqual(list.map((s) => words.marks(s)), [[], ["Solo"], ["Master muted"], ["Solo", "Master muted"]]);
+  assert.deepStrictEqual(list.map((s) => words.marks(s).map((m) => m.key)), [[], ["solo"], ["master"], ["solo", "master"]]);
+});
+
+test("a hold label for an unknown key fails loudly", () => {
+  assert.throws(() => words.holdLabel("rename", "Verse"), /unknown key/);
 });

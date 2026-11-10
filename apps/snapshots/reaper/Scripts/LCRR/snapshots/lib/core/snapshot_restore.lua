@@ -16,9 +16,8 @@
 -- added since the save are left alone; nothing is ever created or removed. `tracks` counts the tracks (Master
 -- included) that had a value written, `sends` the sends and outputs written. In-ear tracks and every send into one
 -- are recognised by their current names (`IEM_<name>`, `IEM-Cue`, the first `IEMs`) and, with I off, left alone and
--- not counted. A track that is gone counts once if any tick that writes a track value is on (L P M S R F I) and its
--- sends and outputs count if E or I is on; a snapshot does not record which tracks were in-ear, so it follows the
--- ticks like any other.
+-- not counted. A track that is gone follows the ticks like any other (`writes_track`, `writes_sends`): a snapshot does
+-- not record which tracks were in-ear.
 --
 -- `automated` counts the written values (track and send volume, pan and mute) with active automation, and
 -- `muted_skipped` the mutes left alone because they would reach a Mute envelope in a writing mode (core `automation`,
@@ -53,16 +52,17 @@ local TRACK_TICKS = {
 local SEND_KEYS = { { "D_VOL", "vol" }, { "D_PAN", "pan" }, { "B_MUTE", "mute" }, { "I_SENDMODE", "mode" } }
 local SOLO_WRITE = { [5] = 1, [6] = 2 }
 
--- Which kinds of value a set of ticks writes. In-ears writes both for the in-ear tracks.
+-- Which kinds of value a set of ticks writes: a track's own values (any tick in TRACK_TICKS, or I) and its sends and
+-- outputs (E or I).
 local function writes_track(ticks)
   for letter in pairs(TRACK_TICKS) do
     if ticks[letter] then return true end
   end
-  return ticks.I or false
+  return ticks.I
 end
 
 local function writes_sends(ticks)
-  return ticks.E or ticks.I or false
+  return ticks.E or ticks.I
 end
 
 local function read_ticks(raw)

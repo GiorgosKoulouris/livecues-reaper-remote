@@ -1,15 +1,12 @@
 // Snapshots: the restore's DOM wiring. The ticks (reset at each page load), the press-and-hold Restore key on a row and
-// the result note, which stays until the next write. Logic is restore.js, sentences are words.js; text is set with
-// textContent only.
+// the result note, which stays until the next write (a restore replaces it; a successful Save, Overwrite or Delete
+// clears it). Logic is restore.js, sentences are words.js; text is set with textContent only.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, restore = N.restore, words = N.words;
-  var HOLD_MS = 1000;
-  var RELEASE = ["pointerup", "pointercancel"];
+  var N = LCRR.snapshots, restore = N.restore, words = N.words, holdKey = N.holdKey;
 
   var ticks = restore.defaults();
-  var ctx = null; // { client, showMessage } from snapshots.js
-  var busy = false;
+  var ctx = null; // { client, showMessage, gate, isBusy, setBusy } from snapshots.js (one request at a time, page-wide)
   var keys = [];
 
   function $(id) { return document.getElementById(id); }
@@ -22,7 +19,11 @@
 
   function syncKeys() {
     var none = !restore.field(ticks);
-    keys.forEach(function (btn) { btn.disabled = none || busy; });
+    keys.forEach(function (btn) { btn.disabled = none || ctx.isBusy(); });
+    // A dimmed Restore key says why, in the line beside the ticks that cause it.
+    var note = $("snapshots-ticks-note");
+    note.textContent = none ? words.error({ code: "no_ticks" }) : words.ui("tickNote");
+    note.classList.toggle("is-warn", none);
   }
 
   // The tick boxes, built once.
@@ -43,56 +44,24 @@
   }
 
   function doRestore(name) {
-    if (busy) return;
-    busy = true;
-    syncKeys();
+    if (ctx.isBusy()) return;
+    ctx.setBusy(true);
     ctx.showMessage("");
     ctx.client.restore(name, restore.field(ticks)).then(function (reply) {
       var result = restore.readResult(reply);
       if (result) setNote(words.restoreNote(result));
       else ctx.showMessage(words.error(reply && reply.error));
     }, function (err) { ctx.showMessage(words.error(err)); }).then(function () {
-      busy = false;
-      syncKeys();
+      ctx.setBusy(false);
     });
-  }
-
-  // A press-and-hold key (LCRR.shared.hold). No click handler on purpose: a plain tap must never act.
-  function holdKey(btn, onComplete) {
-    var down = false;
-    function finish() {
-      if (!down) return;
-      down = false;
-      RELEASE.forEach(function (n) { document.removeEventListener(n, release); });
-      btn.classList.remove("holding");
-    }
-    var hold = S.hold.createHold({ holdMs: HOLD_MS, onCancel: finish, onComplete: function () { finish(); onComplete(); } });
-    function release() { hold.cancel(); finish(); }
-    function start() {
-      if (btn.disabled || down) return;
-      down = true;
-      btn.classList.add("holding");
-      RELEASE.forEach(function (n) { document.addEventListener(n, release); });
-      hold.start();
-    }
-    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
-    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
-    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
-    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    btn.addEventListener("keydown", function (e) {
-      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
-    });
-    btn.addEventListener("keyup", release);
   }
 
   // Add the Restore key to a row; rows are rebuilt with the list, so the old keys are dropped first (resetKeys).
   function addKey(parent, snapshot) {
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "snapshots-key snapshots-hold";
-    btn.textContent = words.ui("restore");
-    btn.disabled = !restore.field(ticks) || busy;
-    holdKey(btn, function () { doRestore(snapshot.name); });
+    var btn = holdKey.build("restore", snapshot.name, {
+      gate: ctx.gate, isBlocked: ctx.isBusy, onComplete: function () { doRestore(snapshot.name); }
+    });
+    btn.disabled = !restore.field(ticks) || ctx.isBusy();
     keys.push(btn);
     parent.appendChild(btn);
   }
@@ -102,8 +71,8 @@
   function init(given) {
     ctx = given;
     buildTicks($("snapshots-ticks"));
-    $("snapshots-ticks-note").textContent = words.ui("tickNote");
+    syncKeys();
   }
 
-  N.restoreUi = { init: init, addKey: addKey, resetKeys: resetKeys };
+  N.restoreUi = { init: init, addKey: addKey, resetKeys: resetKeys, clearNote: function () { setNote(""); }, syncKeys: syncKeys };
 })();

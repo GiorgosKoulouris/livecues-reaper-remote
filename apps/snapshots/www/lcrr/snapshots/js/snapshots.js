@@ -2,7 +2,7 @@
 // words.js. DOM is built with textContent only: project names are user data.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi;
+  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi, holdKey = N.holdKey;
   var REFRESH_MS = 3000; // while connected, re-read the project this often (another project may become the active one)
 
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1000 });
@@ -20,6 +20,13 @@
     form: $("snapshots-form"), name: $("snapshots-name"), save: $("snapshots-save"), empty: $("snapshots-empty"),
     list: $("snapshots-list")
   };
+
+  // The page's fixed labels come from words.js too, so the HTML holds no sentences.
+  $("snapshots-heading").textContent = words.ui("title");
+  $("snapshots-ticks-legend").textContent = words.ui("restore");
+  $("snapshots-name-label").textContent = words.ui("name");
+  els.save.textContent = words.ui("save");
+  els.chipText.textContent = words.chip("connecting");
 
   var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null, list: null, listing: false, busy: false };
 
@@ -78,49 +85,30 @@
     return el;
   }
 
-  // A press-and-hold key (LCRR.shared.hold, 1 s) for Overwrite and Delete. A plain tap must never act, so there is no
-  // click handler. A release is also caught on the document, so a hold ends even if the key was replaced.
-  var HOLD_MS = 1000;
-  var DOC_RELEASE = ["pointerup", "pointercancel"];
-  function holdKey(kind, name, send) {
-    var btn = h("button", "snapshots-key snapshots-hold snapshots-" + kind);
-    btn.type = "button";
-    btn.appendChild(h("span", "snapshots-hold-text", words.ui(kind)));
-    btn.appendChild(h("span", "snapshots-hold-legend", words.ui("holdLegend")));
-    btn.title = words.holdLabel(kind, name);
-    btn.setAttribute("aria-label", btn.title);
-    var press = core.createPress({
-      holdMs: HOLD_MS, createHold: S.hold.createHold, gate: gate,
-      onComplete: function () { btn.classList.remove("holding"); stopDocument(); write(send); }
-    });
-    function stopDocument() { DOC_RELEASE.forEach(function (n) { document.removeEventListener(n, release); }); }
-    function release() { press.up(); btn.classList.remove("holding"); stopDocument(); }
-    function start() {
-      if (btn.disabled || ui.busy || press.isDown()) return;
-      btn.classList.add("holding");
-      DOC_RELEASE.forEach(function (n) { document.addEventListener(n, release); });
-      press.down();
-    }
-    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
-    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
-    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
-    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    btn.addEventListener("keydown", function (e) {
-      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
-    });
-    btn.addEventListener("keyup", release);
-    return btn;
+  // One request at a time, page-wide: Save, Overwrite, Delete and Restore share this flag. While it is set the Save key
+  // and every Restore key are disabled, and Overwrite and Delete ignore a press (isBlocked).
+  function isBusy() { return ui.busy; }
+  function setBusy(busy) {
+    ui.busy = busy;
+    els.save.disabled = busy;
+    restoreUi.syncKeys();
+  }
+
+  // Overwrite and Delete: a hold key (hold-key.js) with the legend, sending once the hold completes.
+  function holdButton(kind, name, send) {
+    return holdKey.build(kind, name, { gate: gate, isBlocked: isBusy, onComplete: function () { write(send); } });
   }
 
   // One write at a time; the message of a refusal stays until the next attempt, and the list is read again either way.
   function write(send) {
     if (ui.phase !== "ready" || ui.busy) return;
-    ui.busy = true;
+    setBusy(true);
     showMessage("");
     send().then(function (reply) {
-      if (!reply || reply.status !== "ok") showMessage(words.error(reply && reply.error));
+      if (core.clearsNote(reply)) restoreUi.clearNote();
+      else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
-      ui.busy = false;
+      setBusy(false);
       ui.list = null; // a refused write (not_found) may still have changed what the list should show
       readList();
     });
@@ -131,6 +119,9 @@
   function renderList(list) {
     els.empty.textContent = words.ui("empty");
     els.empty.hidden = list.length > 0;
+    var hint = document.getElementById("snapshots-hold-hint");
+    hint.textContent = words.ui("holdHint");
+    hint.hidden = list.length === 0;
     els.list.textContent = "";
     restoreUi.resetKeys();
     list.forEach(function (s) {
@@ -140,13 +131,13 @@
       var marks = words.marks(s);
       if (marks.length) {
         var tags = h("div", "snapshots-row-marks");
-        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + (m === "Solo" ? "solo" : "master"), m)); });
+        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + m.key, m.text)); });
         li.appendChild(tags);
       }
       var keys = h("div", "snapshots-row-keys");
-      keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
-      keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));
       restoreUi.addKey(keys, s);
+      keys.appendChild(holdButton("overwrite", s.name, function () { return client.overwrite(s.name); }));
+      keys.appendChild(holdButton("delete", s.name, function () { return client.remove(s.name); }));
       li.appendChild(keys);
       els.list.appendChild(li);
     });
@@ -172,20 +163,18 @@
     var names = (ui.list || []).map(function (s) { return s.name; });
     var check = core.checkName(els.name.value, names, N.client.nameFits);
     if (!check.name) { showMessage(words.error(check)); return; }
-    ui.busy = true;
-    els.save.disabled = true;
+    setBusy(true);
     showMessage("");
     client.save(check.name).then(function (reply) {
-      if (reply && reply.status === "ok") els.name.value = "";
+      if (core.clearsNote(reply)) { els.name.value = ""; restoreUi.clearNote(); }
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
-      ui.busy = false;
-      els.save.disabled = false;
+      setBusy(false);
       readList();
     });
   });
 
-  restoreUi.init({ client: client, showMessage: showMessage });
+  restoreUi.init({ client: client, showMessage: showMessage, gate: gate, isBusy: isBusy, setBusy: setBusy });
 
   setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();

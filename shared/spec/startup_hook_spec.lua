@@ -39,6 +39,7 @@ describe("shared/startup/hook.lua", function()
       assert.are.equal(#hook.bridges, n)
       assert.is_truthy(out:find("LCRR-ARRANGE-BRIDGE", 1, true))
       assert.is_truthy(out:find("LCRR-IEM-BRIDGE", 1, true))
+      assert.is_truthy(out:find("LCRR-SNAPSHOTS-BRIDGE", 1, true))
       assert.is_truthy(out:sub(-1) == "\n")
     end)
 
@@ -91,6 +92,17 @@ describe("shared/startup/hook.lua", function()
       local w = world({ files = { ["/R/Scripts/LCRR/Remote/arrange/LCRR_Arrange_Bridge.lua"] = true } })
       run_line(w, hook.line(arrange))
       assert.are.equal("/R/Scripts/LCRR/Remote/arrange/LCRR_Arrange_Bridge.lua", w.added[1][3])
+      assert.are.equal(1, #w.ran)
+    end)
+
+    it("starts the Snapshots bridge from the ReaPack location", function()
+      local snapshots
+      for _, b in ipairs(hook.bridges) do if b.id == "LCRR-SNAPSHOTS-BRIDGE" then snapshots = b end end
+      assert.is_table(snapshots)
+      local path = "/R/Scripts/LCRR/Remote/snapshots/LCRR_Snapshots_Bridge.lua"
+      local w = world({ files = { [path] = true } })
+      run_line(w, hook.line(snapshots))
+      assert.are.equal(path, w.added[1][3])
       assert.are.equal(1, #w.ran)
     end)
 

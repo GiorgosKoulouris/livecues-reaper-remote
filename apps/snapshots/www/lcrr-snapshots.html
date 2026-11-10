@@ -14,31 +14,32 @@
 <body data-state="connecting">
 <header class="snapshots-bar">
   <div class="snapshots-bar-inner">
-    <h1 class="snapshots-title">Snapshots</h1>
+    <h1 id="snapshots-heading" class="snapshots-title"></h1>
     <span id="snapshots-project-name" class="snapshots-project-name"></span>
-    <span id="snapshots-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="snapshots-shape" aria-hidden="true"></i><span id="snapshots-state-text">Connecting&hellip;</span></span>
+    <span id="snapshots-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="snapshots-shape" aria-hidden="true"></i><span id="snapshots-state-text"></span></span>
   </div>
   <div id="snapshots-banner" role="alert" hidden></div>
   <p id="snapshots-message" class="snapshots-message" role="alert" hidden></p>
+  <p id="snapshots-note" class="snapshots-note" role="status" hidden></p>
 </header>
 
 <main>
   <!-- Everything that acts on the project lives in here; it stays hidden while the bridge is not running. -->
   <div id="snapshots-controls" hidden>
     <fieldset class="snapshots-ticks-box">
-      <legend class="snapshots-label">Restore</legend>
+      <legend id="snapshots-ticks-legend" class="snapshots-label"></legend>
       <div id="snapshots-ticks" class="snapshots-ticks"></div>
       <p id="snapshots-ticks-note" class="snapshots-hint"></p>
     </fieldset>
     <form id="snapshots-form" class="snapshots-form" autocomplete="off">
       <label class="snapshots-field">
-        <span class="snapshots-label">Name</span>
+        <span id="snapshots-name-label" class="snapshots-label"></span>
         <input id="snapshots-name" type="text" spellcheck="false">
       </label>
-      <button id="snapshots-save" class="snapshots-key" type="submit">Save</button>
+      <button id="snapshots-save" class="snapshots-key snapshots-primary" type="submit"></button>
     </form>
-    <p id="snapshots-note" class="snapshots-note" role="status" hidden></p>
     <p id="snapshots-empty" class="snapshots-hint" hidden></p>
+    <p id="snapshots-hold-hint" class="snapshots-hint" hidden></p>
     <ul id="snapshots-list" class="snapshots-list"></ul>
   </div>
 </main>
@@ -57,10 +58,11 @@
 <script src="lcrr/shared/js/bridge-wire.js"></script>
 <script src="lcrr/shared/js/bridge-client.js"></script>
 <script src="lcrr/snapshots/js/wire.js"></script>
+<script src="lcrr/snapshots/js/restore.js"></script>
 <script src="lcrr/snapshots/js/client.js"></script>
 <script src="lcrr/snapshots/js/core.js"></script>
 <script src="lcrr/snapshots/js/words.js"></script>
-<script src="lcrr/snapshots/js/restore.js"></script>
+<script src="lcrr/snapshots/js/hold-key.js"></script>
 <script src="lcrr/snapshots/js/restore-ui.js"></script>
 <script src="lcrr/snapshots/js/snapshots.js"></script>
 </body>
