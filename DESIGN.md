@@ -298,7 +298,8 @@ Square by default. **Keys** (every button that acts) have one chamfered corner, 
 ### Home page
 - Sticky Bar: the suite name ("LiveCues" in Legend, "ReaperRemote" in Signal; the second word hidden below 480px) and a connection state on the right.
 - **Connection state:** the same drawn shape and word as the other bars. Connected = LED Green disc ("REAPER connected"); unreachable = Warn Amber ring ("REAPER unreachable"); connecting = ring at 70%.
-- **App keys:** Key faces with the larger 12px chamfer, min 5rem tall: the app name in key-label caps, a 2–3 word description in Legend Dim ("Cues and transport", "In ear mixes", "Reorder project regions", "Create and route in ear mixes"), and a Signal triangle at the right. Grid that fills columns of at least 16rem (one column on phones). Pressed inverts.
+- **Groups:** the keys sit in three sections by where the device is used, each under a Legend Dim label with a Line rule and no description: **Stage** (Monitor, Podium), **Desk** (IEM Mix, Snapshots) and **Utilities** (IEM Setup, Arrange). Stage first, because performers' phones land on this page.
+- **App keys:** Key faces with the larger 12px chamfer, min 5rem tall: the app name in key-label caps, a 2–3 word description in Legend Dim ("Musician IEM mixes", "Cues and transport", "Balance all mixes", "Save and restore project states"), and a Signal triangle at the right. Grid that fills columns of at least 16rem (one column on phones). Pressed inverts. **Stage keys** are one per row, 6.5rem tall with a 1.5rem name, the ones hit in the dark. **Utility keys** are quieter than live tools: 3.25rem tall, Bar face on an Edge line, no chamfer, a Legend Dim triangle, a 1rem name.
 
 ## Do's and Don'ts
 
