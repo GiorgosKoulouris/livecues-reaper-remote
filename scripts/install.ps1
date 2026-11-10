@@ -73,19 +73,21 @@ function Remove-Entry([string]$p) {
 # command id each start).
 $startupFile = Join-Path $scripts '__startup.lua'
 $bridges = @(
-  @{ Name = 'Arrange'; Marker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'; Script = 'arrange/LCRR_Arrange_Bridge.lua' },
-  @{ Name = 'IEM Setup'; Marker = '-- LCRR-IEM-BRIDGE (managed by install.ps1)'; Script = 'iem/LCRR_IEM_Bridge.lua' }
+  @{ Name = 'Arrange'; Id = 'LCRR-ARRANGE-BRIDGE'; Marker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'; Script = 'arrange/LCRR_Arrange_Bridge.lua' },
+  @{ Name = 'IEM Setup'; Id = 'LCRR-IEM-BRIDGE'; Marker = '-- LCRR-IEM-BRIDGE (managed by install.ps1)'; Script = 'iem/LCRR_IEM_Bridge.lua' }
 )
 foreach ($b in $bridges) {
   $b.Line = 'do local p = reaper.GetResourcePath() .. "/Scripts/LCRR/' + $b.Script + '"; ' +
     'local id = reaper.AddRemoveReaScript(true, 0, p, true); if id ~= 0 then reaper.Main_OnCommand(id, 0) end end ' + $b.Marker
 }
 
+# Lines are matched by the bridge Id only, so lines written by the ReaPack action "LCRR: Install startup hook"
+# (shared/startup/hook.lua, a different marker suffix) are replaced and removed too (test/startup-ids.test.js).
 # Present: the bridge's line is (re)written. Absent: it is removed. Other bridges' lines and the user's lines are kept.
 function Set-StartupLine($bridge, [bool]$present) {
   $kept = @()
   if (Test-Path -LiteralPath $startupFile) {
-    $kept = @(Get-Content -LiteralPath $startupFile | Where-Object { $_ -notlike "*$($bridge.Marker)*" })
+    $kept = @(Get-Content -LiteralPath $startupFile | Where-Object { $_ -notlike "*$($bridge.Id)*" })
   }
   if ($present) { $kept += $bridge.Line }
   if ($kept.Count -eq 0) {

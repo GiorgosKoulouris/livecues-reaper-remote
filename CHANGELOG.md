@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- install.ps1 -Uninstall (and a re-install) now also remove or replace the __startup.lua lines written by the LCRR: Install startup hook action; both match on the bridge id (test/startup-ids.test.js)
+
 ## 1.1.0-beta2 (2026-11-10)
 
 - Test release to check ReaPack update, Remove startup hook and uninstall; no functional change from beta1 except the version number

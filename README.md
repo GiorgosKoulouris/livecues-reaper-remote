@@ -32,7 +32,7 @@ Needs [ReaPack](https://reapack.com) (Extensions > ReaPack). **Status:** install
 5. Before uninstalling in ReaPack, run **LCRR: Remove startup hook**. If you forget, the stale line does nothing (it only starts a bridge whose file exists); run the action later or delete the marked lines.
 6. Pre-releases (versions like `1.1.0-beta2`) appear only if you enable them (ReaPack: Extensions > ReaPack > Manage repositories > the LCRR entry > Show pre-releases, or the global option in its Options). Do this before step 2 while only betas exist.
 
-Switching from `install.ps1`: run `.\scripts\install.ps1 -Uninstall` first (it also removes its `__startup.lua` lines), then follow the steps above. ReaPack does not take over files it did not install.
+Switching from `install.ps1`: run `.\scripts\install.ps1 -Uninstall` first (it also removes the LCRR lines from `Scripts\__startup.lua`, including those written by the ReaPack startup-hook action; your own lines are kept, and if nothing else is left the file is deleted), then follow the steps above. ReaPack does not take over files it did not install.
 
 ## Install / update with install.ps1 (development and fallback)
 

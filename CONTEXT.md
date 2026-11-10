@@ -58,6 +58,8 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 
 ## Still unverified (suite)
 
+- `install.ps1 -Uninstall` and re-install removing/replacing `__startup.lua` lines written by the ReaPack hook action (fixed 2026-11-10 after the owner saw the lines survive an uninstall: the filter matched the marker's `(managed by install.ps1)` suffix; it now matches the bridge id, like `hook.lua`). Guarded only by `test/startup-ids.test.js` (reads the script as text, no PowerShell here); needs a run on Windows.
+
 - ReaPack on macOS (and anything but Windows): unverified. If per-source types ever fail on another ReaPack version: stop and re-discuss with the owner.
 - After a ReaPack uninstall with the startup hook still installed, a restart with the stale lines: the owner saw the lines remain (by design) and reported no problem; no error text was recorded.
 - `scripts/install.ps1` after the restructure (slices, folder symlinks with `-Link`, uninstall removing links without touching their targets): written in the devcontainer, which has no PowerShell. The same goes for its reaper-slice part (`-Resource`, `Scripts\LCRR\`), added 2026-11-07. Also the shared Lua slice (`shared/reaper/` laid in as `Scripts\LCRR\shared`, added 2026-11-09, IEM Setup issue 02), including `-Link`, where each bridge script's `<script folder>\..\shared` must resolve through the folder links.

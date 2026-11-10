@@ -54,6 +54,7 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 
 ## Changing the release machinery
 
+- `install.ps1` and `hook.lua` both manage the marked `__startup.lua` lines and must match them by **bridge id** only (`LCRR-ARRANGE-BRIDGE`, `LCRR-IEM-BRIDGE`), never by the marker's suffix; `test/startup-ids.test.js` guards this. A new bridge goes in both lists.
 - Code: `scripts/release-lib.js` (`collectFiles`, `collectLuaFiles`, `buildIndexXml`, `changelogFor`), `scripts/build-release.js`. Tests: `test/release.test.js`. Change tests first.
 - Adding an app with Lua or a new entry script: it appears in the index automatically from `apps/<app>/reaper/Scripts/LCRR/<part>/`. A new bridge must also be added to `hook.bridges` in `shared/reaper/Scripts/LCRR/shared/startup/hook.lua` (with a spec) so the startup hook starts it.
 - Changing the index name, category or per-source layout changes where users' files land: that is a decision for the owner, document it in an ADR amendment, and expect a live test.
