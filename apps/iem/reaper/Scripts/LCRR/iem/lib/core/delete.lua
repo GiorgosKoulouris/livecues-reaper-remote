@@ -23,10 +23,6 @@ local undo = require("lib.core.undo")
 
 local delete = {}
 
-local function add_depth(api, entry, extra)
-  api.SetMediaTrackInfo_Value(entry.track, "I_FOLDERDEPTH", entry.depth + extra)
-end
-
 function delete.run(given)
   local api = given.api
   local list = tracks.scan(api)
@@ -34,21 +30,8 @@ function delete.run(given)
   local target, code = tracks.find_mix(list, (given.fields or {}).guid)
   if not target then return tracks.refusal(code) end
 
-  local position = target.index + 1
-
   undo.run(api, "IEM Setup: delete mix", function()
-    if target.depth < 0 and position > 1 then
-      add_depth(api, list[position - 1], target.depth)
-    elseif target.depth > 0 then
-      local level = target.depth
-      for next_position = position + 1, #list do
-        level = level + list[next_position].depth
-        if level <= 0 then
-          add_depth(api, list[next_position], target.depth)
-          break
-        end
-      end
-    end
+    tracks.repair_depth(api, list, target)
     api.DeleteTrack(target.track)
   end)
   return { status = "ok" }

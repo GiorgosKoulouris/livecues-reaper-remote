@@ -34,6 +34,7 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 - `InsertTrackAtIndex` at the end of the list puts the new track **outside** a closed folder. To extend the folder, set the old last child's `I_FOLDERDEPTH` to 0 and the new one's to -1.
 - `DeleteTrack` **does not repair folder depth**: deleting the last child (-1) leaves the previous child at 0, so the folder stays open. A folder left at depth 1 with no children **swallows the next track** added after it.
 - `ReorderSelectedTracks(CountTracks, 0)` moves a selected folder and its children to the end, keeping depths, sends and GUIDs. With `makePrevFolder` 2 a track moved after a folder's last child joins the folder, and REAPER fixes the depths.
+- `ReorderSelectedTracks` **rewrites folder depths around the track it moves, even when the move changes nothing** (measured 2026-11-09, IEM Setup issue 11): a no-op move put a closing depth of -1 on the track after it, and handed back a depth the caller had just set on the previous track. Skip a move that changes nothing, and write any depth you need *after* the reorder, not before.
 - `CreateTrackSend(tr, dest)` defaults here: `I_SENDMODE` 0 (post-fader), `D_VOL` 1, `D_PAN` 0, unmuted, channels 0. `CreateTrackSend(tr, nil)` creates a hardware output.
 - `RemoveTrackSend` category is -1 receive, 0 send, 1 hardware output, the same as the other send functions. Its help text ("category is 0 for hardware outputs") is wrong.
 - `GetTrackSendInfo_Value(..., "P_SRCTRACK")` and `"P_DESTTRACK"` return a usable `MediaTrack` userdata in Lua.

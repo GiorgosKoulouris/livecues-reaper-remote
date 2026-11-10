@@ -20,6 +20,7 @@
     internal: "The bridge hit a problem with the project.",
     empty_name: "Give the mix a name.",
     duplicate_name: "Another mix already has that name. Monitor can’t open two mixes with one name.",
+    not_a_stray: "That mix is already in the IEMs folder. The page has been refreshed.",
     track_gone: "That track is no longer in the project. The page has been refreshed; try again.",
     not_a_mix: "That track isn’t a mix any more. The page has been refreshed; try again.",
     not_the_folder: "That isn’t the IEMs folder any more. The page has been refreshed; try again.",
@@ -27,6 +28,7 @@
     multiple_outputs: "That mix has more than one hardware output, so it is read-only here. Change it in REAPER.",
     bad_channel: "That output channel is not on the audio device. The page has been refreshed; pick again.",
     no_device: "The audio device is closed, so its channels are not known. Open it in REAPER to pick an output.",
+    not_a_source: "That track can’t feed a mix. The page has been refreshed; try again.",
     bad_colour: "That colour could not be used.",
     request_too_long: "The request is too long to send.",
     unreachable: "REAPER did not take the request.",
@@ -41,21 +43,37 @@
   // Labels and hints for the editing controls.
   var UI = {
     unlock: "Unlock", lock: "Lock",
-    unlockHint: "Locked: unlock to create or rename mixes.", unlockedHint: "Unlocked: changes go straight into REAPER, one undo step each.",
+    unlockHint: "Locked: unlock to change mixes and routing.", unlockedHint: "Unlocked: changes go straight into REAPER, one undo step each.",
     newMix: "New mix", newMixName: "Name", create: "Create", rename: "Rename", save: "Save", cancel: "Cancel",
+    copyFrom: "Copy from", copyFromNone: "Nothing (empty mix)",
+    copyFromHint: "Start the new mix with the same sources, levels, pans, mutes and signal points as this mix. Its output is not copied.",
     colour: "Colour", moveToEnd: "Move to end",
     moveToEndHint: "Tracks sit after the IEMs folder. Move the folder and its mixes to the end of the track list.",
     colourHint: "The colour of the IEMs folder and every mix in it.",
     output: "Output", outputNone: "No output",
     deviceClosed: "Audio device closed: channels unknown",
     outputReadOnly: "Several outputs: change in REAPER",
+    allOn: "All on", allOff: "All off",
+    allOnHint: "Switch on every send that is missing. Sends already on are left as they are.",
+    allOffHint: "Press and hold to remove every send in this row or column. REAPER undo brings them back.",
+    adopt: "Adopt",
+    adoptHint: "Move this mix into the IEMs folder, turn its master send off, give it the shared colour and make its sends post-FX pre-fader. This can change what a musician hears. REAPER undo brings it back.",
     delete: "Delete", deleteHint: "Press and hold to delete this mix and its sends. REAPER undo brings it back."
   };
 
   function ui(key) { return UI[key] || ""; }
 
   function renameLabel(name) { return "Rename mix " + name; }
+  function adoptLabel(name) { return "Adopt mix " + name + " into the IEMs folder"; }
   function deleteLabel(name) { return "Delete mix " + name + " (press and hold)"; }
+
+  // Row and column toggles: `kind` is "row" (one source to every mix) or "column" (every source to one mix).
+  var BULK_TARGET = {
+    row: function (name) { return name + " to every mix"; },
+    column: function (name) { return "every track to " + name; },
+  };
+  function allOnLabel(kind, name) { return "Switch on " + BULK_TARGET[kind](name); }
+  function allOffLabel(kind, name) { return "Switch off " + BULK_TARGET[kind](name) + " (press and hold)"; }
 
   function chip(phase) { return CHIP[phase] || ""; }
   function banner(phase) { return BANNER[phase] || ""; }
@@ -110,6 +128,11 @@
       + (cell.doubleFeed ? ", double feed" : "");
   }
 
+  // The name of a cell's key while unlocked: what a tap will do.
+  function cellAction(row, header, cell) {
+    return (cell ? "Switch off " : "Switch on ") + row.name + " to " + header.name;
+  }
+
   function headerFlags(header) {
     var flags = [];
     if (header.stray) flags.push({ code: "stray", text: "Not in IEMs folder" });
@@ -130,7 +153,7 @@
 
   function noMatch(filter) { return "No track matches “" + filter + "”."; }
 
-  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, clashText: clashText, modeText: modeText, modeTag: modeTag,
-    modeNote: modeNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, headerFlags: headerFlags,
+  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, allOnLabel: allOnLabel, allOffLabel: allOffLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, clashText: clashText, modeText: modeText, modeTag: modeTag,
+    modeNote: modeNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, cellAction: cellAction, headerFlags: headerFlags,
     emptyMatrix: emptyMatrix, noMatch: noMatch };
 });

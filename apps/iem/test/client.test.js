@@ -14,6 +14,25 @@ function rig(handler) {
   return { c, urls };
 }
 
+test("cell sends the pair by GUID and the wanted state", async () => {
+  const { c, urls } = rig(() => Promise.resolve(""));
+  await c.cell("{K}", "{A}", true).catch(() => {});
+  const url = decodeURIComponent(urls[0]);
+  assert.ok(/cmd=cell/.test(url) && /source=%7BK%7D/.test(url) && /mix=%7BA%7D/.test(url) && /on=1/.test(url), url);
+  await c.cell("{K}", "{A}", false).catch(() => {});
+  assert.ok(/on=0/.test(decodeURIComponent(urls.filter((u) => u.indexOf("SET/") !== -1).pop())));
+});
+
+test("row and column send only the ID and the wanted state", async () => {
+  const { c, urls } = rig(() => Promise.resolve(""));
+  await c.row("{K}", true).catch(() => {});
+  let url = decodeURIComponent(urls[0]);
+  assert.ok(/cmd=row/.test(url) && /source=%7BK%7D/.test(url) && /on=1/.test(url) && !/mix=/.test(url), url);
+  await c.column("{A}", false).catch(() => {});
+  url = decodeURIComponent(urls.filter((u) => u.indexOf("SET/") !== -1).pop());
+  assert.ok(/cmd=column/.test(url) && /mix=%7BA%7D/.test(url) && /on=0/.test(url) && !/source=/.test(url), url);
+});
+
 test("state() writes the request, then reads the reply that carries its id", async () => {
   const { c, urls } = rig((url, seen) => {
     if (url.indexOf("/_/SET/") === 0) return Promise.resolve("");
@@ -41,10 +60,12 @@ function sentRequest(urls) { return decodeURIComponent(urls[0].split("/req/")[1]
 test("each write sends its command with its fields, by GUID, and stays short", async () => {
   const cases = [
     [(c) => c.create("Lead & Keys"), "cmd=create&name=Lead%20%26%20Keys"],
+    [(c) => c.create("Bass", "{AB-1}"), "cmd=create&name=Bass&copy=%7BAB-1%7D"],
     [(c) => c.rename("{AB-1}", "Bass"), "cmd=rename&guid=%7BAB-1%7D&name=Bass"],
     [(c) => c.colour("ff8000"), "cmd=colour&colour=ff8000"],
     [(c) => c.moveToEnd("{AB-1}"), "cmd=move_to_end&guid=%7BAB-1%7D"],
-    [(c) => c.deleteMix("{AB-1}"), "cmd=delete&guid=%7BAB-1%7D"]
+    [(c) => c.deleteMix("{AB-1}"), "cmd=delete&guid=%7BAB-1%7D"],
+    [(c) => c.adopt("{AB-1}"), "cmd=adopt&guid=%7BAB-1%7D"]
   ];
   for (const [call, body] of cases) {
     const { c, urls } = rig((url) => Promise.resolve(url.indexOf("/_/SET/") === 0 ? "" : 'EXTSTATE\tLCRR_IEM\tres\tid1|{"status":"ok"}\n'));

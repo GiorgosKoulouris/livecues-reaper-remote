@@ -1,6 +1,6 @@
 # IEM Setup: create and route the in-ear mixes from a page
 
-Status: ready-for-agent (grilled 2026-11-09; nothing built yet)
+Status: built and checked on real REAPER 2026-11-09 (issues 01-11, since deleted; see `apps/iem/CONTEXT.md`, "Issue history")
 
 An engineer's admin page for the IEM mixes that Monitor plays. Monitor is how a musician balances their own mix from a phone; IEM Setup is how those mixes come to exist and what feeds them. Page `lcrr-iem.html`, app folder `apps/iem/`, CSS and IDs `iem-`, JS `LCRR.iem`.
 
@@ -89,4 +89,4 @@ Adopting can change what a musician hears (step 4), and that was accepted.
 
 Issue 01 settled the design's unknowns; the measured facts are in the suite `CONTEXT.md`. A mono output is a true downmix, and one undo block covers a whole operation, so every project change must be inside one.
 
-Still unseen: channel names on a multi-output interface (the test machine had two outputs, named "Output 1" and "Output 2"). Issue 11 covers it.
+Issue 11 walked the whole page on real REAPER. Still unseen: channel names on a multi-output interface; see `apps/iem/CONTEXT.md`, "Still unseen".

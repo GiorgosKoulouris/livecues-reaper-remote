@@ -1,6 +1,6 @@
 // IEM Setup: UI wiring. Talks to the Lua bridge through client.js; the logic is core.js and every sentence comes from
 // words.js. DOM is built with textContent only: track and mix names are user data.
-// Writes (create, rename, colour, move to end, delete) go through `write()`, which is the one place that checks the lock
+// Writes (create, rename, colour, move to end, delete, output, matrix cell) go through `write()`, which is the one place that checks the lock
 // (core.canEdit); each command adds its keys and calls it the same way.
 (function () {
   "use strict";
@@ -32,6 +32,7 @@
     chip: $("iem-state"), chipText: $("iem-state-text"), banner: $("iem-banner"),
     project: $("iem-project"), projectName: $("iem-project-name"), filter: $("iem-filter"),
     lock: $("iem-lock"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
+    createCopy: $("iem-create-copy"), createCopyLabel: $("iem-create-copy-label"),
     createGo: $("iem-create-go"), colourBox: $("iem-colour-box"), colourLabel: $("iem-colour-label"), colour: $("iem-colour"),
     move: $("iem-move"),
     message: $("iem-message"), empty: $("iem-empty"), scroll: $("iem-scroll"), head: $("iem-head"), body: $("iem-body")
@@ -53,6 +54,30 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   // ---- the lock and the editing controls ------------------------------------------------------------------------------
   els.createLabel.textContent = words.ui("newMix");
   els.createGo.textContent = words.ui("create");
+  els.createCopyLabel.textContent = words.ui("copyFrom");
+  els.createCopy.title = words.ui("copyFromHint");
+
+  // The copy-from choice: none, then each mix. Rebuilt only when the list changes (so an open list is not closed by a
+  // refresh), and a mix that has gone falls back to none.
+  var copyKey = null;
+  function updateCopyOptions() {
+    var mixes = ui.state ? ui.state.mixes : [];
+    var key = JSON.stringify(mixes.map(function (m) { return [m.guid, m.name]; }));
+    if (key === copyKey) return;
+    copyKey = key;
+    var chosen = els.createCopy.value;
+    clear(els.createCopy);
+    var none = h("option", null, words.ui("copyFromNone"));
+    none.value = "";
+    els.createCopy.appendChild(none);
+    mixes.forEach(function (m) {
+      var option = h("option", null, m.name);
+      option.value = m.guid;
+      els.createCopy.appendChild(option);
+    });
+    els.createCopy.value = chosen;
+    if (els.createCopy.value !== chosen) els.createCopy.value = "";
+  }
   els.colourLabel.textContent = words.ui("colour");
   els.move.textContent = words.ui("moveToEnd");
   els.move.title = words.ui("moveToEndHint");
@@ -69,7 +94,9 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     els.lock.setAttribute("aria-pressed", ui.unlocked ? "true" : "false");
     els.create.hidden = !ui.state;
     els.colourBox.hidden = !ui.state;
+    updateCopyOptions();
     els.createName.disabled = !ok;
+    els.createCopy.disabled = !ok;
     els.createGo.disabled = !ok;
     els.colour.disabled = !ok;
     els.move.hidden = !(offer && offer.moveToEnd);
@@ -101,6 +128,9 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       ui.note = note;
       showMessage(note);
       updateControls();
+      // A refresh that landed while the write was out painted every key disabled, and updateControls does not reach
+      // them; with nothing changed in REAPER the next read would not repaint either, so repaint here.
+      if (ui.paintedBusy) { ui.paintedBusy = false; render(); }
       readState(true);
       return !note;
     });
@@ -118,7 +148,10 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     if (!ui.state || !editable()) return;
     var check = core.checkMixName(ui.state, els.createName.value, null);
     if (!check.ok) { refuse(check.code); return; }
-    write(function () { return client.create(check.name); }).then(function (ok) { if (ok) els.createName.value = ""; });
+    var copyFrom = els.createCopy.value;
+    write(function () { return client.create(check.name, copyFrom); }).then(function (ok) {
+      if (ok) { els.createName.value = ""; els.createCopy.value = ""; }
+    });
   });
 
   els.colour.addEventListener("change", function () {
@@ -232,7 +265,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     return box;
   }
 
-  // A press-and-hold key (LCRR.shared.hold), for Delete (and bulk off, issue 08). It owns the listeners and tells the render
+  // A press-and-hold key (LCRR.shared.hold), for Delete and bulk off (issue 08). It owns the listeners and tells the render
   // gate a hold is active. A release is caught on the document as well as on the key, so it cancels an unfinished hold
   // even if the key has been replaced. There is no click handler on purpose: a plain tap must never act.
   // `onComplete` is called once, after the hold ends and any deferred rebuild has run; it should go through write().
@@ -280,6 +313,46 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     btn.title = words.ui("deleteHint");
     btn.setAttribute("aria-label", words.deleteLabel(col.name));
     return holdKey(btn, function () { write(function () { return client.deleteMix(col.guid); }); });
+  }
+
+  // Adopt, shown only on a stray, through write() like every change.
+  function adoptKey(col) {
+    var btn = h("button", "iem-quiet iem-adopt", words.ui("adopt"));
+    btn.type = "button";
+    btn.disabled = ui.busy;
+    btn.title = words.ui("adoptHint");
+    btn.setAttribute("aria-label", words.adoptLabel(col.name));
+    btn.addEventListener("click", function () { write(function () { return client.adopt(col.guid); }); });
+    return btn;
+  }
+
+  // Row and column toggles, shown only while unlocked: All on is one tap (it adds what is missing and leaves existing
+  // sends alone), All off is press-and-hold (it removes every send of the row or column). Both go through write() and
+  // send only the ID; the bridge works out the rest. `kind` is "row" or "column".
+  function bulkKeys(kind, item) {
+    var box = h("div", "iem-bulk");
+    var on = h("button", "iem-quiet iem-bulk-on", words.ui("allOn"));
+    on.type = "button";
+    on.disabled = ui.busy;
+    on.title = words.ui("allOnHint");
+    on.setAttribute("aria-label", words.allOnLabel(kind, item.name));
+    on.addEventListener("click", function () { bulkWrite(kind, item, true); });
+    var off = h("button", "iem-quiet iem-bulk-off", words.ui("allOff"));
+    off.type = "button";
+    off.disabled = ui.busy;
+    off.title = words.ui("allOffHint");
+    off.setAttribute("aria-label", words.allOffLabel(kind, item.name));
+    holdKey(off, function () { bulkWrite(kind, item, false); });
+    box.appendChild(on);
+    box.appendChild(off);
+    return box;
+  }
+  var BULK_SEND = {
+    row: function (item, on) { var r = core.rowRequest(item, on); return client.row(r.source, r.on); },
+    column: function (item, on) { var c = core.columnRequest(item, on); return client.column(c.mix, c.on); },
+  };
+  function bulkWrite(kind, item, on) {
+    write(function () { return BULK_SEND[kind](item, on); });
   }
 
   // The output picker of one mix, shown only while unlocked and never for a mix with several outputs (read-only: the
@@ -334,8 +407,12 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
         rename.disabled = ui.busy;
         rename.setAttribute("aria-label", words.renameLabel(col.name));
         rename.addEventListener("click", function () { ui.renaming = { guid: col.guid, value: col.name, focus: true }; render(); });
-        th.appendChild(rename);
-        th.appendChild(deleteKey(col));
+        var keys = h("div", "iem-mix-keys");
+        keys.appendChild(rename);
+        if (col.stray) keys.appendChild(adoptKey(col));
+        keys.appendChild(deleteKey(col));
+        keys.appendChild(bulkKeys("column", col));
+        th.appendChild(keys);
       }
     }
     if (core.canEdit(ui.phase, ui.unlocked) && !col.readOnlyOutput) th.appendChild(outputPicker(col));
@@ -349,11 +426,28 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     return th;
   }
 
+  // While unlocked a cell is a key: one tap switches it on, or off (every send of the pair, no warning). It goes
+  // through write(), so a second tap while one is out is ignored (the key is disabled while busy).
+  function cellKey(row, col, cell) {
+    var btn = h("button", "iem-cell-key");
+    btn.type = "button";
+    btn.disabled = ui.busy;
+    btn.setAttribute("aria-label", words.cellLabel(row, col, cell) + ". " + words.cellAction(row, col, cell));
+    btn.title = words.cellAction(row, col, cell);
+    btn.addEventListener("click", function () {
+      var ask = core.cellRequest(row, col, cell);
+      write(function () { return client.cell(ask.source, ask.mix, ask.on); });
+    });
+    return btn;
+  }
+
   function dataCell(row, col, cell) {
     var td = h("td", "iem-cell");
-    td.appendChild(h("span", "lcrr-sr", words.cellLabel(row, col, cell)));
+    var keyed = core.canEdit(ui.phase, ui.unlocked);
+    if (!keyed) td.appendChild(h("span", "lcrr-sr", words.cellLabel(row, col, cell)));
+    if (cell) td.className += " is-on" + (cell.muted ? " is-muted" : "");
+    if (keyed) td.appendChild(cellKey(row, col, cell));
     if (!cell) return td;
-    td.className += " is-on" + (cell.muted ? " is-muted" : "");
     var inner = h("span", "iem-cell-inner");
     inner.setAttribute("aria-hidden", "true");
     inner.appendChild(h("span", "iem-db", cell.db));
@@ -367,6 +461,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       dbl.title = words.doubleFeedNote(cell.doubleFeed);
       inner.appendChild(dbl);
     }
+    if (keyed) { td.firstChild.appendChild(inner); return td; }
     td.appendChild(inner);
     return td;
   }
@@ -379,6 +474,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   function paint() {
     var state = ui.state;
     if (!state) return;
+    ui.paintedBusy = ui.busy; // keys built now are disabled while a write is out; write() repaints once it is done
     var hadFocus = !!ui.renaming && !!document.activeElement && document.activeElement.id === "iem-rename-input";
     var filter = els.filter.value;
     var matrix = core.buildMatrix(state, filter);
@@ -404,6 +500,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       var name = h("span", "iem-row-name", row.name);
       name.style.paddingLeft = (0.75 + row.depth * 1.25) + "rem";
       th.appendChild(name);
+      if (core.canEdit(ui.phase, ui.unlocked)) th.appendChild(bulkKeys("row", row));
       r.appendChild(th);
       row.cells.forEach(function (cell, i) { r.appendChild(dataCell(row, matrix.columns[i], cell)); });
       els.body.appendChild(r);

@@ -78,6 +78,21 @@ local scenarios = {
   { "create_later", function()
     return bridge({ { name = "IEMs", depth = 1 }, { name = "IEM_A", depth = -1 } })("cmd=create&name=Singer")
   end },
+  { "create_copy", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" },
+      { name = "IEMs", depth = 1 },
+      { name = "IEM_A", depth = -1, guid = "{A}", receives = { { from = "Kick", vol = 0.5, mode = 3 } } },
+    })("cmd=create&name=Singer&copy=%7BA%7D")
+  end },
+  { "create_copy_gone", function() return bridge({})("cmd=create&name=Singer&copy=%7BA%7D") end },
+  { "adopt_ok", function()
+    return bridge({ { name = "IEM_A", guid = "{A}" }, { name = "Kick" } })("cmd=adopt&guid=%7BA%7D")
+  end },
+  { "adopt_not_a_stray", function()
+    return bridge({ { name = "IEMs", depth = 1 }, { name = "IEM_A", depth = -1, guid = "{A}" } })(
+      "cmd=adopt&guid=%7BA%7D")
+  end },
   { "create_empty_name", function() return bridge({})("cmd=create&name=%20") end },
   { "create_duplicate_name", function() return bridge({ { name = "IEM_A" } })("cmd=create&name=A") end },
   { "rename_ok", function()
@@ -128,6 +143,55 @@ local scenarios = {
       "cmd=output&guid=%7BA%7D&channel=9&mono=0")
   end },
   { "output_gone", function() return bridge({})("cmd=output&guid=%7BA%7D&channel=none") end },
+  { "cell_on", function()
+    return bridge({ { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}" } })(
+      "cmd=cell&source=%7BK%7D&mix=%7BA%7D&on=1")
+  end },
+  { "cell_off", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } },
+    })(
+      "cmd=cell&source=%7BK%7D&mix=%7BA%7D&on=0")
+  end },
+  { "cell_unchanged", function()
+    return bridge({ { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}" } })(
+      "cmd=cell&source=%7BK%7D&mix=%7BA%7D&on=0")
+  end },
+  { "cell_gone", function()
+    return bridge({ { name = "IEM_A", guid = "{A}" } })("cmd=cell&source=%7BK%7D&mix=%7BA%7D&on=1")
+  end },
+  { "cell_not_a_source", function()
+    return bridge({ { name = "IEM_B", guid = "{B}" }, { name = "IEM_A", guid = "{A}" } })(
+      "cmd=cell&source=%7BB%7D&mix=%7BA%7D&on=1")
+  end },
+  { "row_on", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } },
+      { name = "IEM_B", guid = "{B}" },
+    })("cmd=row&source=%7BK%7D&on=1")
+  end },
+  { "row_off", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } },
+    })("cmd=row&source=%7BK%7D&on=0")
+  end },
+  { "row_not_a_source", function()
+    return bridge({ { name = "IEM_A", guid = "{A}" } })("cmd=row&source=%7BA%7D&on=1")
+  end },
+  { "column_on", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "Snare", guid = "{S}" },
+      { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } },
+    })("cmd=column&mix=%7BA%7D&on=1")
+  end },
+  { "column_off", function()
+    return bridge({
+      { name = "Kick", guid = "{K}" }, { name = "IEM_A", guid = "{A}", receives = { { from = "Kick" } } },
+    })("cmd=column&mix=%7BA%7D&on=0")
+  end },
+  { "column_not_a_mix", function()
+    return bridge({ { name = "Kick", guid = "{K}" } })("cmd=column&mix=%7BK%7D&on=1")
+  end },
   { "unknown_command", function() return bridge({})("cmd=nope") end },
   { "request_truncated", function()
     local handler = service.new({ api = fake_project.new({ path = PATH }) })

@@ -215,6 +215,16 @@
     return m ? m[1].toLowerCase() : null;
   }
 
+  // What a tap on a cell asks for: an off cell is switched on, an on cell off (every send of the pair). The bridge takes
+  // the desired state, not a toggle, so a stale page cannot flip a cell that changed meanwhile: it just finds it as asked.
+  function cellRequest(row, col, cell) {
+    return { source: row.guid, mix: col.guid, on: !cell };
+  }
+
+  // Row and column toggles: the bridge needs only the ID of the source or the mix and the wanted state.
+  function rowRequest(row, on) { return { source: row.guid, on: on }; }
+  function columnRequest(col, on) { return { mix: col.guid, on: on }; }
+
   // Rebuilding the grid replaces the buttons under a finger, so a press-and-hold in progress would lose its release
   // events. The gate defers the rebuild while any hold is active and paints once, with the latest state, when the last
   // one ends. `paint` is the page's rebuild; `request()` is what the page calls instead of painting.
@@ -241,7 +251,7 @@
     };
   }
 
-  return { createRenderGate: createRenderGate, createPickerGuard: createPickerGuard, outputChannels: outputChannels, outputClashes: outputClashes,
+  return { cellRequest: cellRequest, rowRequest: rowRequest, columnRequest: columnRequest, createRenderGate: createRenderGate, createPickerGuard: createPickerGuard, outputChannels: outputChannels, outputClashes: outputClashes,
     outputPicker: outputPicker, parseOutputChoice: parseOutputChoice, STANDARD_MODE: STANDARD_MODE, dbText: dbText, connectionPhase: connectionPhase, readState: readState,
     mixHeaders: mixHeaders, buildMatrix: buildMatrix, canEdit: canEdit, stillUnlocked: stillUnlocked,
     checkMixName: checkMixName, folderOffer: folderOffer, colourField: colourField };

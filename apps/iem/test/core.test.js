@@ -310,3 +310,16 @@ test("an open picker and a hold key keep the grid still together", () => {
   gate.end();
   assert.strictEqual(paints, 1);
 });
+
+// ---- row and column toggles (issue 08) ---------------------------------------------------------------------------------
+test("a row or column toggle carries only the ID and the wanted state", () => {
+  assert.deepStrictEqual(core.rowRequest({ guid: "{K}", name: "Kick" }, true), { source: "{K}", on: true });
+  assert.deepStrictEqual(core.columnRequest({ guid: "{A}", name: "Drummer" }, false), { mix: "{A}", on: false });
+});
+
+// ---- matrix cells (issue 07) -------------------------------------------------------------------------------------------
+test("a tap asks for the opposite of what the cell shows, by GUID, as a state rather than a toggle", () => {
+  const row = { guid: "{K}" }, col = { guid: "{A}" };
+  assert.deepStrictEqual(core.cellRequest(row, col, null), { source: "{K}", mix: "{A}", on: true });
+  assert.deepStrictEqual(core.cellRequest(row, col, { on: true }), { source: "{K}", mix: "{A}", on: false });
+});

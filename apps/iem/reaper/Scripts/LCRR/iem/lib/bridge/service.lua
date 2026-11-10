@@ -9,9 +9,12 @@
 -- This module owns no ExtState and no loop (LCRR_IEM_Bridge.lua has those), so
 -- the whole of it runs under busted.
 --
--- **What the page can ask for** (`cmd`): `state`, `create` (name), `rename` (guid, name),
+-- **What the page can ask for** (`cmd`): `state`, `create` (name, optional `copy`: a mix GUID),
+-- `rename` (guid, name),
 -- `colour` (colour, `rrggbb`), `move_to_end` (guid of the folder), `delete` (guid of a mix) and
--- `output` (guid of a mix, channel or `none`, mono). Each reply is
+-- `output` (guid of a mix, channel or `none`, mono) and
+-- `cell` (source and mix GUIDs, `on` 1 or 0), `row` (source GUID, `on`) and
+-- `column` (mix GUID, `on`) and `adopt` (guid of a stray mix). Each reply is
 --
 --   { v, command, project = { name, path }, status, ... }
 --
@@ -34,6 +37,9 @@ local colour = require("lib.core.colour")
 local move_to_end = require("lib.core.move_to_end")
 local delete = require("lib.core.delete")
 local output = require("lib.core.output")
+local cell = require("lib.core.cell")
+local bulk = require("lib.core.bulk")
+local adopt = require("lib.core.adopt")
 
 local service = {}
 
@@ -65,6 +71,10 @@ local function handlers(given)
   h.move_to_end = core(move_to_end)
   h.delete = core(delete)
   h.output = core(output)
+  h.cell = core(cell)
+  h.adopt = core(adopt)
+  h.row = core(bulk.row)
+  h.column = core(bulk.column)
 
   return h
 end

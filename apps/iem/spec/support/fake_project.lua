@@ -44,6 +44,19 @@ function fake_project.new(spec)
     error("fake_project: no track named " .. tostring(name))
   end
 
+  -- Every receive is also a send of its source (category 0 on the source), listed in project order of the receivers.
+  for _, track in ipairs(tracks) do
+    track.sends = track.sends or {}
+  end
+  for _, track in ipairs(tracks) do
+    for _, receive in ipairs(track.receives) do
+      receive.dest = track
+      local source = by_name(receive.from)
+      receive.src_track = source
+      source.sends[#source.sends + 1] = receive
+    end
+  end
+
   -- The master track (its hardware outputs only) and the audio device: `device` lists the output channel names,
   -- empty (the default) is a closed device.
   local master = { name = "MASTER", guid = "{MASTER}", outputs = spec.master_outputs or {}, receives = {} }
@@ -84,7 +97,7 @@ function fake_project.new(spec)
     inserted = inserted + 1
     table.insert(tracks, index + 1, {
       name = "", guid = ("{NEW-%d}"):format(inserted), depth = 0, main_send = 1, colour = 0, selected = false,
-      outputs = {}, receives = {},
+      outputs = {}, receives = {}, sends = {},
     })
   end
 
@@ -97,7 +110,10 @@ function fake_project.new(spec)
     end
     for _, other in ipairs(tracks) do
       for index = #other.receives, 1, -1 do
-        if other.receives[index].from == track.name then table.remove(other.receives, index) end
+        if other.receives[index].src_track == track then table.remove(other.receives, index) end
+      end
+      for index = #other.sends, 1, -1 do
+        if other.sends[index].dest == track then table.remove(other.sends, index) end
       end
     end
   end
@@ -108,19 +124,41 @@ function fake_project.new(spec)
 
   function api.CreateTrackSend(track, dest)
     changing("create send")
-    assert(dest == nil, "fake_project: only hardware outputs")
+    if dest then
+      -- A send to another track: new sends default to post-fader, 0 dB, as REAPER's own do (suite CONTEXT.md).
+      local receive = { from = track.name, src_track = track, dest = dest, vol = 1.0, mode = 0 }
+      dest.receives[#dest.receives + 1] = receive
+      track.sends[#track.sends + 1] = receive
+      return #track.sends - 1
+    end
     track.outputs[#track.outputs + 1] = { dest = 0, src = 0 }
     return #track.outputs - 1
   end
   function api.RemoveTrackSend(track, category, index)
     changing("remove send")
-    assert(category == 1, "fake_project: only hardware outputs")
+    if category == 0 then
+      local receive = table.remove(track.sends, index + 1)
+      for position, candidate in ipairs(receive.dest.receives) do
+        if candidate == receive then table.remove(receive.dest.receives, position) break end
+      end
+      return true
+    end
+    assert(category == 1, "fake_project: only sends and hardware outputs")
     table.remove(track.outputs, index + 1)
     return true
   end
   function api.SetTrackSendInfo_Value(track, category, index, key, value)
     changing("set send " .. key)
-    assert(category == 1, "fake_project: only hardware outputs")
+    if category == 0 then
+      local receive = track.sends[index + 1]
+      if key == "I_SENDMODE" then receive.mode = value
+      elseif key == "D_VOL" then receive.vol = value
+      elseif key == "D_PAN" then receive.pan = value
+      elseif key == "B_MUTE" then receive.muted = value ~= 0
+      else error("fake_project: unmodelled send key " .. key) end
+      return true
+    end
+    assert(category == 1, "fake_project: only sends and hardware outputs")
     local out = track.outputs[index + 1]
     if key == "I_DSTCHAN" then out.dest = value
     elseif key == "I_SRCCHAN" then out.src = value
@@ -136,18 +174,24 @@ function fake_project.new(spec)
     track.selected = selected and true or false
   end
 
-  -- Selected tracks go to the end in their order; depths travel with them
-  -- (makePrevFolder 0), as measured in the issue 01 spike.
+  -- Selected tracks go before the track at index `before` (CountTracks: the end) in their order; depths travel with
+  -- them (makePrevFolder 0), as measured in the issue 01 spike.
   function api.ReorderSelectedTracks(before, make_prev_folder)
     changing("reorder")
-    assert(before == #tracks and make_prev_folder == 0, "fake_project: only 'to the end, keep depths'")
-    local kept, moved = {}, {}
-    for _, track in ipairs(tracks) do
-      table.insert(track.selected and moved or kept, track)
+    assert(make_prev_folder == 0, "fake_project: only 'keep depths'")
+    local kept, moved, position = {}, {}, nil
+    for index, track in ipairs(tracks) do
+      if track.selected then table.insert(moved, track)
+      else
+        if index - 1 >= before and not position then position = #kept + 1 end
+        table.insert(kept, track)
+      end
     end
+    position = position or #kept + 1
     for index = #tracks, 1, -1 do tracks[index] = nil end
-    for _, track in ipairs(kept) do tracks[#tracks + 1] = track end
+    for index = 1, position - 1 do tracks[#tracks + 1] = kept[index] end
     for _, track in ipairs(moved) do tracks[#tracks + 1] = track end
+    for index = position, #kept do tracks[#tracks + 1] = kept[index] end
   end
 
   function api.GetProjExtState(_, section, key)
@@ -181,11 +225,16 @@ function fake_project.new(spec)
   function api.GetTrackNumSends(track, category)
     if category == -1 then return #track.receives end
     if category == 1 then return #track.outputs end
-    if category == 0 then return 0 end
+    if category == 0 then return #track.sends end
     error("fake_project: bad category " .. tostring(category))
   end
 
   function api.GetTrackSendInfo_Value(track, category, index, key)
+    if category == 0 then
+      local send = track.sends[index + 1]
+      if key == "P_DESTTRACK" then return send.dest end
+      error("fake_project: unmodelled send key " .. key)
+    end
     if category == 1 then
       local output = track.outputs[index + 1]
       if key == "I_DSTCHAN" then return output.dest end
@@ -194,8 +243,9 @@ function fake_project.new(spec)
     end
     assert(category == -1, "fake_project: only receives and outputs")
     local receive = track.receives[index + 1]
-    if key == "P_SRCTRACK" then return by_name(receive.from) end
+    if key == "P_SRCTRACK" then return receive.src_track end
     if key == "D_VOL" then return receive.vol or 1.0 end
+    if key == "D_PAN" then return receive.pan or 0.0 end
     if key == "B_MUTE" then return receive.muted and 1 or 0 end
     if key == "I_SENDMODE" then return receive.mode or 3 end
     error("fake_project: unmodelled send key " .. key)

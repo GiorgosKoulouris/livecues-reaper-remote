@@ -59,19 +59,34 @@
 
     // Writes. Each names its targets by GUID and is one undo step in REAPER; the reply is `ok` or `refused` + a code.
     // One method per write command.
-    function create(name) { return call("create", { name: name }); }
+    // `copyFrom` (optional): the GUID of a mix whose sends the new mix starts with.
+    function create(name, copyFrom) {
+      return call("create", copyFrom ? { name: name, copy: copyFrom } : { name: name });
+    }
     function rename(guid, name) { return call("rename", { guid: guid, name: name }); }
     function colour(hex) { return call("colour", { colour: hex }); }   // "rrggbb"
     function moveToEnd(guid) { return call("move_to_end", { guid: guid }); }
+    function adopt(guid) { return call("adopt", { guid: guid }); }
     function deleteMix(guid) { return call("delete", { guid: guid }); }
+    // The wire form of a boolean: "1" or "0".
+    function flag(on) { return on ? "1" : "0"; }
+
     // `choice` is core.parseOutputChoice's result: { none: true } clears, { channel, mono } sets or replaces.
     function setOutput(guid, choice) {
       return call("output", choice.none ? { guid: guid, channel: "none" }
-        : { guid: guid, channel: String(choice.channel), mono: choice.mono ? "1" : "0" });
+        : { guid: guid, channel: String(choice.channel), mono: flag(choice.mono) });
     }
 
-    return { call: call, state: state, create: create, rename: rename, colour: colour, moveToEnd: moveToEnd,
-      deleteMix: deleteMix, setOutput: setOutput };
+    // A matrix cell: `on` true creates the send, false deletes every send from the source to the mix.
+    function cell(source, mix, on) { return call("cell", { source: source, mix: mix, on: flag(on) }); }
+
+    // A whole row (one source, every mix) or column (one mix, every source): only the ID travels, the bridge works out
+    // the rest. On adds the missing sends; off removes every send of each pair.
+    function row(source, on) { return call("row", { source: source, on: flag(on) }); }
+    function column(mix, on) { return call("column", { mix: mix, on: flag(on) }); }
+
+    return { call: call, cell: cell, row: row, column: column, state: state, create: create, rename: rename, colour: colour, moveToEnd: moveToEnd,
+      deleteMix: deleteMix, adopt: adopt, setOutput: setOutput };
   }
 
   return { createClient: createClient, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };

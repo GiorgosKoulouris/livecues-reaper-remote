@@ -70,6 +70,13 @@ function tracks.find_by_guid(list, guid)
   return nil
 end
 
+--- Whether the entry is a source: any track that is not a mix and not the IEMs folder (a second track named `IEMs`
+--- is an ordinary source).
+function tracks.is_source(list, entry)
+  local folder = tracks.find_folder(list)
+  return not tracks.is_mix_name(entry.name) and not (folder and folder.entry == entry)
+end
+
 --- A refusal reply: a code and nothing else (wording is the page's).
 function tracks.refusal(code)
   return { status = "refused", error = { code = code } }
@@ -127,6 +134,67 @@ end
 function tracks.set_colour(api, track, hex)
   local r, g, b = tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16)
   api.SetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR", api.ColorToNative(r, g, b) | 0x1000000)
+end
+
+function tracks.new_track(api, at, name, depth, colour)
+  api.InsertTrackAtIndex(at, false)
+  local track = api.GetTrack(0, at)
+  api.GetSetMediaTrackInfo_String(track, "P_NAME", name, true)
+  api.SetMediaTrackInfo_Value(track, "I_FOLDERDEPTH", depth)
+  api.SetMediaTrackInfo_Value(track, "B_MAINSEND", 0)
+  tracks.set_colour(api, track, colour)
+  return track
+end
+
+--- Make room for one more mix at the end of the IEMs folder, creating the folder when there is none (`folder` is
+--- `tracks.find_folder(list)`). Edits the depths around the slot; returns the 0-based index the mix takes (a track
+--- inserted there, or an existing one moved before it, lands in the folder) and the depth it needs. Call inside an
+--- undo block. Used by `create` and `adopt`.
+function tracks.open_slot(api, list, folder, colour)
+  local at, depth
+  if not folder then
+    -- At the end of the list, so nothing is swallowed; the mix follows it.
+    tracks.new_track(api, #list, tracks.FOLDER_NAME, 1, colour)
+    at, depth = #list + 1, -1
+  elseif folder.open and folder.last > folder.index then
+    -- The old last member closed the folder (and maybe parents of it): the
+    -- new one takes over that closing.
+    local last = list[folder.last + 1]
+    depth = math.min(last.depth, -1)
+    api.SetMediaTrackInfo_Value(last.track, "I_FOLDERDEPTH", 0)
+    at = folder.last + 1
+  elseif folder.open then
+    at, depth = folder.index + 1, -1 -- an open folder with nothing in it
+  else
+    -- An emptied folder is a plain track: open it, and let the mix close it
+    -- along with whatever the folder itself used to close.
+    depth = folder.depth - 1
+    api.SetMediaTrackInfo_Value(folder.entry.track, "I_FOLDERDEPTH", 1)
+    at = folder.index + 1
+  end
+  return at, depth
+end
+
+--- Repair the folder depths around a track that is about to leave its place (deleted or moved), as REAPER does not
+--- (suite CONTEXT.md): what it closed (depth < 0) goes to the track before it, what it opened (depth > 0) to the
+--- track that closed it. `list` is `tracks.scan` from before the change; the track's own depth is left alone.
+--- Shared by `delete` and `adopt`.
+function tracks.repair_depth(api, list, target)
+  local position = target.index + 1
+  if target.depth < 0 and position > 1 then
+    local before = list[position - 1]
+    api.SetMediaTrackInfo_Value(before.track, "I_FOLDERDEPTH", before.depth + target.depth)
+  elseif target.depth > 0 then
+    local level = target.depth
+    for next_position = position + 1, #list do
+      level = level + list[next_position].depth
+      if level <= 0 then
+        local closer = list[next_position]
+        api.SetMediaTrackInfo_Value(closer.track, "I_FOLDERDEPTH", closer.depth + target.depth)
+        break
+      end
+    end
+  end
 end
 
 return tracks

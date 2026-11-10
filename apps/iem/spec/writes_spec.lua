@@ -137,6 +137,108 @@ describe("create", function()
     end)
   end)
 
+  describe("copy from a mix (issue 09)", function()
+    local function band()
+      return project({
+        { name = "Kick", guid = "{K}" },
+        { name = "Snare", guid = "{S}" },
+        { name = "Vox", guid = "{V}" },
+        { name = "IEMs", guid = "{F}", depth = 1 },
+        { name = "IEM_A", guid = "{A}", depth = -1, outputs = { { dest = 2, src = 0 } },
+          receives = {
+            { from = "Kick", vol = 0.5, pan = -0.25, muted = true, mode = 0 },
+            { from = "Snare", vol = 0.8, pan = 0.5, mode = 3 },
+            { from = "IEMs", vol = 0.3, mode = 3 },
+          } },
+      })
+    end
+    local function copy(api, guid)
+      return run(create, api, { name = "B", copy = guid })
+    end
+
+    it("gives the new mix the same sources with their level, pan, mute and signal point", function()
+      local api = band()
+      local reply = copy(api, "{A}")
+      assert.are.equal("ok", reply.status)
+      local new = api.tracks[6]
+      assert.are.equal("IEM_B", new.name)
+      assert.are.equal(2, #new.receives)
+      local kick, snare = new.receives[1], new.receives[2]
+      assert.are.equal(api.tracks[1], kick.src_track)
+      assert.are.same({ 0.5, -0.25, true, 0 }, { kick.vol, kick.pan, kick.muted, kick.mode })
+      assert.are.equal(api.tracks[2], snare.src_track)
+      assert.are.same({ 0.8, 0.5, false, 3 }, { snare.vol, snare.pan, snare.muted or false, snare.mode })
+    end)
+
+    it("leaves the source mix's sends alone", function()
+      local api = band()
+      copy(api, "{A}")
+      assert.are.equal(3, #api.tracks[5].receives)
+      assert.are.equal(0.5, api.tracks[5].receives[1].vol)
+    end)
+
+    it("does not copy a send that comes from the IEMs folder or another mix", function()
+      local api = band()
+      copy(api, "{A}")
+      for _, receive in ipairs(api.tracks[6].receives) do
+        assert.are_not.equal(api.tracks[4], receive.src_track)
+      end
+    end)
+
+    it("leaves the new mix without an output", function()
+      local api = band()
+      copy(api, "{A}")
+      assert.are.same({}, api.tracks[6].outputs)
+      assert.are.equal(1, #api.tracks[5].outputs)
+    end)
+
+    it("is one undo step with the creation", function()
+      local api = band()
+      copy(api, "{A}")
+      assert_one_undo_step(api, "IEM Setup: create mix")
+    end)
+
+    it("without a copy creates no sends", function()
+      local api = band()
+      run(create, api, { name = "B" })
+      assert.are.same({}, api.tracks[6].receives)
+    end)
+
+    it("refuses a source mix that has gone, before anything changes", function()
+      local api = band()
+      local reply = copy(api, "{GONE}")
+      assert.are.same({ status = "refused", error = { code = "track_gone" } }, reply)
+      assert.are.equal(6 - 1, #api.tracks)
+      assert.are.same({}, api.undo_steps)
+      assert.are.same({}, api.outside_block)
+    end)
+
+    it("refuses a copy from a track that is not a mix", function()
+      local api = band()
+      local reply = copy(api, "{K}")
+      assert.are.same({ status = "refused", error = { code = "not_a_mix" } }, reply)
+      assert.are.same({}, api.undo_steps)
+    end)
+
+    it("still checks the name first", function()
+      local api = band()
+      local reply = run(create, api, { name = "A", copy = "{GONE}" })
+      assert.are.equal("duplicate_name", reply.error.code)
+    end)
+
+    it("copies into a first-ever folder too", function()
+      local api = project({
+        { name = "Kick", guid = "{K}" },
+        { name = "IEM_A", guid = "{A}", receives = { { from = "Kick", vol = 0.4, mode = 3 } } },
+      })
+      local reply = copy(api, "{A}")
+      assert.are.equal("ok", reply.status)
+      local new = api.tracks[#api.tracks]
+      assert.are.equal("IEM_B", new.name)
+      assert.are.equal(0.4, new.receives[1].vol)
+    end)
+  end)
+
   describe("names", function()
     it("trims the name and never takes the prefix from the page", function()
       local api = project({})

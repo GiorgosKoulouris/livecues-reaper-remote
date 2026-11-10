@@ -76,20 +76,34 @@ test("empty states and the filter miss say what to do", () => {
 });
 
 test("every refusal a write can answer with has its own wording", () => {
-  ["empty_name", "duplicate_name", "track_gone", "not_a_mix", "not_the_folder", "nothing_to_move", "bad_colour", "multiple_outputs", "bad_channel", "no_device"].forEach((code) => {
+  ["empty_name", "duplicate_name", "track_gone", "not_a_mix", "not_the_folder", "nothing_to_move", "not_a_source", "not_a_stray", "bad_colour", "multiple_outputs", "bad_channel", "no_device"].forEach((code) => {
     const text = words.error({ code });
     clean(text, code);
     assert.ok(!text.startsWith("Something went wrong"), code);
   });
-  const written = Object.keys(replies).filter((n) => /^(create|rename|colour|move_to_end|delete|output)_/.test(n));
-  assert.ok(written.length >= 17, "the write scenarios are recorded");
+  const written = Object.keys(replies).filter((n) => /^(adopt|create|rename|colour|move_to_end|delete|output|cell|row|column)_/.test(n));
+  assert.ok(written.length >= 28, "the write scenarios are recorded");
 });
 
 test("the editing controls have labels", () => {
   ["unlock", "lock", "unlockHint", "unlockedHint", "newMix", "create", "rename", "save", "cancel", "colour", "moveToEnd",
-    "moveToEndHint", "colourHint", "delete", "deleteHint"].forEach((key) => clean(words.ui(key), key));
+    "moveToEndHint", "copyFrom", "copyFromNone", "copyFromHint", "adopt", "adoptHint", "colourHint", "delete", "deleteHint", "allOn", "allOff", "allOnHint", "allOffHint"].forEach((key) => clean(words.ui(key), key));
   assert.match(words.renameLabel("Drums"), /Drums/);
   assert.match(words.deleteLabel("Drums"), /Drums.*hold/);
+  assert.match(words.adoptLabel("Drums"), /Drums.*IEMs folder/);
+});
+
+test("row and column toggle wording names what it touches and the off key says hold", () => {
+  assert.match(words.allOnLabel("row", "Kick"), /Kick.*every mix/);
+  assert.match(words.allOnLabel("column", "Drummer"), /every track.*Drummer/);
+  assert.match(words.allOffLabel("row", "Kick"), /Kick.*hold/);
+  assert.match(words.allOffLabel("column", "Drummer"), /Drummer.*hold/);
+});
+
+test("cell wording says what a tap will do", () => {
+  const row = { name: "Kick" }, col = { name: "Drummer" };
+  assert.strictEqual(words.cellAction(row, col, null), "Switch on Kick to Drummer");
+  assert.strictEqual(words.cellAction(row, col, { db: "0.0" }), "Switch off Kick to Drummer");
 });
 
 test("picker wording: named channels, numbers when there is no name, and the flags", () => {

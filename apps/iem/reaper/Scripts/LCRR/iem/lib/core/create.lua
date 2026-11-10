@@ -5,23 +5,37 @@
 -- repair it, suite CONTEXT.md): the old last member stops closing the folder
 -- and the new mix closes it. All of it is one undo step.
 --
---   create.run({ api, fields = { name } })
+-- `copy` (optional, the GUID of a mix) gives the new mix the same sends as that mix, in the same undo step: the
+-- source, level, pan, mute and signal point of each. Not its output. A send from another mix or from the IEMs
+-- folder is not copied (those are not sources). The copied mix is checked before the block opens.
+--
+--   create.run({ api, fields = { name, copy? } })
 --     -> { status = "ok", guid, folder_created }
---      | { status = "refused", error = { code = "empty_name" | "duplicate_name" } }
+--      | { status = "refused", error = { code = "empty_name" | "duplicate_name" | "track_gone" | "not_a_mix" } }
 
 local tracks = require("lib.core.tracks")
 local undo = require("lib.core.undo")
+local cell = require("lib.core.cell")
 
 local create = {}
 
-local function new_track(api, at, name, depth, colour)
-  api.InsertTrackAtIndex(at, false)
-  local track = api.GetTrack(0, at)
-  api.GetSetMediaTrackInfo_String(track, "P_NAME", name, true)
-  api.SetMediaTrackInfo_Value(track, "I_FOLDERDEPTH", depth)
-  api.SetMediaTrackInfo_Value(track, "B_MAINSEND", 0)
-  tracks.set_colour(api, track, colour)
-  return track
+--- The sends of the mix to copy that come from a source, as { track, vol, pan, muted, mode }.
+local function sends_to_copy(api, list, from)
+  local found = {}
+  for index = 0, api.GetTrackNumSends(from.track, -1) - 1 do
+    local track = api.GetTrackSendInfo_Value(from.track, -1, index, "P_SRCTRACK")
+    local entry = tracks.find_by_guid(list, api.GetTrackGUID(track))
+    if entry and tracks.is_source(list, entry) then
+      found[#found + 1] = {
+        track = track,
+        vol = api.GetTrackSendInfo_Value(from.track, -1, index, "D_VOL"),
+        pan = api.GetTrackSendInfo_Value(from.track, -1, index, "D_PAN"),
+        muted = api.GetTrackSendInfo_Value(from.track, -1, index, "B_MUTE"),
+        mode = api.GetTrackSendInfo_Value(from.track, -1, index, "I_SENDMODE"),
+      }
+    end
+  end
+  return found
 end
 
 function create.run(given)
@@ -32,34 +46,25 @@ function create.run(given)
     return tracks.refusal(code)
   end
 
+  local copies = {}
+  local copy_guid = (given.fields or {}).copy
+  if copy_guid and copy_guid ~= "" then
+    local from, why = tracks.find_mix(list, copy_guid)
+    if not from then return tracks.refusal(why) end
+    copies = sends_to_copy(api, list, from)
+  end
+
   local colour = tracks.colour(api)
   local folder = tracks.find_folder(list)
   local result = { status = "ok", folder_created = folder == nil }
 
   undo.run(api, "IEM Setup: create mix", function()
-    local at, depth
-    if not folder then
-      -- At the end of the list, so nothing is swallowed; the mix follows it.
-      new_track(api, #list, tracks.FOLDER_NAME, 1, colour)
-      at, depth = #list + 1, -1
-    elseif folder.open and folder.last > folder.index then
-      -- The old last member closed the folder (and maybe parents of it): the
-      -- new one takes over that closing.
-      local last = list[folder.last + 1]
-      depth = math.min(last.depth, -1)
-      api.SetMediaTrackInfo_Value(last.track, "I_FOLDERDEPTH", 0)
-      at = folder.last + 1
-    elseif folder.open then
-      at, depth = folder.index + 1, -1 -- an open folder with nothing in it
-    else
-      -- An emptied folder is a plain track: open it, and let the mix close it
-      -- along with whatever the folder itself used to close.
-      depth = folder.depth - 1
-      api.SetMediaTrackInfo_Value(folder.entry.track, "I_FOLDERDEPTH", 1)
-      at = folder.index + 1
-    end
-    local mix = new_track(api, at, tracks.MIX_PREFIX .. name, depth, colour)
+    local at, depth = tracks.open_slot(api, list, folder, colour)
+    local mix = tracks.new_track(api, at, tracks.MIX_PREFIX .. name, depth, colour)
     result.guid = api.GetTrackGUID(mix)
+    for _, send in ipairs(copies) do
+      cell.copy_send(api, send.track, mix, send)
+    end
   end)
 
   return result
