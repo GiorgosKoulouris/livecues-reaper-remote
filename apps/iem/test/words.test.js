@@ -87,18 +87,11 @@ test("every refusal a write can answer with has its own wording", () => {
 });
 
 test("the editing controls have labels", () => {
-  ["unlock", "lock", "unlockHint", "unlockedHint", "newMix", "create", "rename", "save", "cancel", "colour", "moveToEnd",
-    "moveToEndHint", "copyFrom", "copyFromNone", "copyFromHint", "adopt", "adoptHint", "colourHint", "delete", "deleteHint", "allOn", "allOff", "allOnHint", "allOffHint"].forEach((key) => clean(words.ui(key), key));
+  ["newMix", "create", "rename", "save", "cancel", "colour", "moveToEnd",
+    "moveToEndHint", "copyFrom", "copyFromNone", "copyFromHint", "adopt", "adoptHint", "colourHint", "delete", "deleteHint", "undoNote"].forEach((key) => clean(words.ui(key), key));
   assert.match(words.renameLabel("Drums"), /Drums/);
   assert.match(words.deleteLabel("Drums"), /Drums.*hold/);
-  assert.match(words.adoptLabel("Drums"), /Drums.*IEMs folder/);
-});
-
-test("row and column toggle wording names what it touches and the off key says hold", () => {
-  assert.match(words.allOnLabel("row", "Kick"), /Kick.*every mix/);
-  assert.match(words.allOnLabel("column", "Drummer"), /every track.*Drummer/);
-  assert.match(words.allOffLabel("row", "Kick"), /Kick.*hold/);
-  assert.match(words.allOffLabel("column", "Drummer"), /Drummer.*hold/);
+  assert.match(words.adoptLabel("Drums"), /Drums.*IEMs folder.*hold/);
 });
 
 test("cell wording says what a tap will do", () => {
@@ -125,6 +118,34 @@ test("picker wording: named channels, numbers when there is no name, and the fla
 });
 
 test("the cue track's keys have words", () => {
-  ["createCue", "addCueSends", "cueOutput", "createCueHint", "addCueSendsHint", "cueOutputHint"].forEach((k) => clean(words.ui(k), k));
+  ["createCue", "repairCue", "cueOutput", "cueOutputNeeded", "createCueHint", "repairCueHint", "cueOutputHint", "cueOutputNeededHint"].forEach((k) => clean(words.ui(k), k));
   clean(words.cuePickerLabel, "cue picker");
+});
+
+test("the panels, the hold legend, the cue and folder sentences and the tag legend have words", () => {
+  ["adoptNote", "holdLegend", "more", "less", "moreHint", "panelMixes", "panelFolder", "panelCue", "applying", "tracks", "unsavedProject", "cueReady"].forEach((k) => clean(words.ui(k), k));
+  assert.match(words.cueStatus({ exists: false }), /No cue track/);
+  assert.match(words.cueStatus({ exists: true, action: "repair" }), /send to the cue track|solo defeat/);
+  assert.match(words.cueStatus({ exists: true, action: null, needsOutput: true }), /headphones/);
+  assert.match(words.cueStatus({ exists: true, action: null, needsOutput: false }), /ready/);
+  assert.ok(!/Move the folder/.test(words.folderNote({ moveToEnd: false })));
+  assert.match(words.folderNote({ moveToEnd: true }), /Move the folder/);
+  [0, 1, 3].forEach((m) => clean(words.modeLegend(m), "mode " + m));
+  clean(words.doubleLegend, "double");
+});
+
+test("the summary line and the done lines have words", () => {
+  assert.strictEqual(words.mixesStatus(0), "None yet");
+  assert.strictEqual(words.mixesStatus(1), "1 mix");
+  assert.strictEqual(words.mixesStatus(3), "3 mixes");
+  assert.strictEqual(words.folderStatus({ exists: false }), "None yet");
+  assert.strictEqual(words.folderStatus({ exists: true, moveToEnd: true }), "Tracks after it");
+  assert.strictEqual(words.folderStatus({ exists: true, moveToEnd: false }), "Ready");
+  assert.strictEqual(words.cueSummary(null), "Not made yet");
+  assert.strictEqual(words.cueSummary({ exists: true, action: "repair" }), "Needs repair");
+  assert.strictEqual(words.cueSummary({ exists: true, action: null, needsOutput: true }), "Choose output");
+  assert.strictEqual(words.cueSummary({ exists: true, action: null, needsOutput: false }), "Ready");
+  ["create", "rename", "colour", "move", "delete", "adopt", "cue", "output", "cellOn", "cellOff"].forEach((k) => clean(words.done(k, "A", "B"), k));
+  assert.strictEqual(words.done("cellOn", "Kick", "Drummer"), "Switched on Kick to Drummer.");
+  assert.match(words.emptyMatrix({ sources: [{}], mixes: [] }), /Mixes above/);
 });

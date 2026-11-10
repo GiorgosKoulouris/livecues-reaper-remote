@@ -5,12 +5,13 @@
 -- command, which accepts this track as well as a mix.
 --
 --   cue.run({ api })
---     -> { status = "ok", changed, created, guid, added }
+--     -> { status = "ok", changed, created, guid, added, protected }
 --
 -- One undo step ("IEM Setup: create cue"): the track when it is missing (placed with `tracks.open_slot`, as `create`
--- places a mix), then a send from every mix that has none to it. Running it again adds only what is missing; with
--- nothing missing it is `changed: false` and leaves no undo step. `create` and `adopt` use `cue.add_send` to give a new
--- mix its send in their own step.
+-- places a mix), then a send from every mix that has none to it, and solo defeat on the cue track and every mix
+-- (`protected` counts the tracks it was turned on for). Running it again adds only what is missing; with nothing
+-- missing it is `changed: false` and leaves no undo step. `create` and `adopt` use `cue.join` to set up the cue track
+-- (when there is none) and give a new mix its send and solo defeat in their own step.
 
 local tracks = require("lib.core.tracks")
 local undo = require("lib.core.undo")
@@ -46,30 +47,82 @@ function cue.missing(api, list, cue_entry)
   return found
 end
 
+--- Solo defeat (REAPER's `B_SOLO_DEFEAT`): a soloed source elsewhere in the project does not silence the track. Every
+--- mix and the cue track have it, so the engineer's solo cannot cut what a musician hears or what Listen plays.
+--- Unverified on a real host (CONTEXT.md, "Still unverified"): this one name is the place to correct.
+cue.SOLO_DEFEAT = "B_SOLO_DEFEAT"
+
+function cue.is_protected(api, track)
+  return api.GetMediaTrackInfo_Value(track, cue.SOLO_DEFEAT) == 1
+end
+
+--- Turn solo defeat on. Returns whether it changed anything.
+function cue.protect(api, track)
+  if cue.is_protected(api, track) then return false end
+  api.SetMediaTrackInfo_Value(track, cue.SOLO_DEFEAT, 1)
+  return true
+end
+
+--- Inside an open undo block: the cue track (made last in the IEMs folder when missing), a send from every mix that has
+--- none to it, and solo defeat on the cue track and every mix. Returns the track, the sends added, the tracks changed
+--- by solo defeat and whether the track was created.
+function cue.ensure(api, colour)
+  local list = tracks.scan(api)
+  local existing = tracks.find_cue(list)
+  local track = existing and existing.track
+  if not existing then
+    local at, depth = tracks.open_slot(api, list, tracks.find_folder(list), colour)
+    track = tracks.new_track(api, at, tracks.CUE_NAME, depth, colour)
+    list = tracks.scan(api)
+  end
+  local have, added, protected = cue.senders(api, track), 0, 0
+  if cue.protect(api, track) then protected = protected + 1 end
+  for _, entry in ipairs(list) do
+    if tracks.is_mix_name(entry.name) then
+      if not have[entry.guid] then
+        cue.add_send(api, entry.track, track)
+        added = added + 1
+      end
+      if cue.protect(api, entry.track) then protected = protected + 1 end
+    end
+  end
+  return track, added, protected, existing == nil
+end
+
+--- Inside an open undo block, for `create` and `adopt`: the new mix gets solo defeat and its send to the cue track.
+--- With no cue track one is made (cue.ensure), so the first mix of a project sets up the whole cue.
+function cue.join(api, mix_track, colour)
+  local existing = tracks.find_cue(tracks.scan(api))
+  if not existing then
+    cue.ensure(api, colour)
+    return
+  end
+  if not cue.senders(api, existing.track)[api.GetTrackGUID(mix_track)] then
+    cue.add_send(api, mix_track, existing.track)
+  end
+  cue.protect(api, mix_track)
+end
+
 function cue.run(given)
   local api = given.api
   local list = tracks.scan(api)
   local existing = tracks.find_cue(list)
-  local missing = existing and cue.missing(api, list, existing) or nil
-  if existing and #missing == 0 then
-    return { status = "ok", changed = false, created = false, guid = existing.guid, added = 0 }
+  if existing then
+    local todo = #cue.missing(api, list, existing) > 0 or not cue.is_protected(api, existing.track)
+    for _, entry in ipairs(list) do
+      if tracks.is_mix_name(entry.name) and not cue.is_protected(api, entry.track) then todo = true end
+    end
+    if not todo then
+      return { status = "ok", changed = false, created = false, guid = existing.guid, added = 0, protected = 0 }
+    end
   end
 
-  local result = { status = "ok", changed = true, created = existing == nil }
+  local result = { status = "ok", changed = true }
   local colour = tracks.colour(api)
   undo.run(api, "IEM Setup: create cue", function()
-    local track = existing and existing.track
-    if not existing then
-      local at, depth = tracks.open_slot(api, list, tracks.find_folder(list), colour)
-      track = tracks.new_track(api, at, tracks.CUE_NAME, depth, colour)
-      missing = {}
-      for _, entry in ipairs(list) do
-        if tracks.is_mix_name(entry.name) then missing[#missing + 1] = entry end
-      end
-    end
-    result.guid = api.GetTrackGUID(track)
-    for _, entry in ipairs(missing) do cue.add_send(api, entry.track, track) end
-    result.added = #missing
+    local track, added, protected, created = cue.ensure(api, colour)
+    result.created, result.guid = created, api.GetTrackGUID(track)
+    result.added, result.protected = added, protected
   end)
   return result
 end

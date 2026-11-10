@@ -5,8 +5,9 @@
 //   - the poller asks NTRACK;TRACK every 250 ms; each complete reply updates the model (`onTracks`);
 //   - `sweep()` reads every receive of every listed mix once a second (SWEEP_MS), and at once when the layout changes;
 //   - `panelRead()` reads the docked panel's visible sends (and a mix's master) on every poll, faster than the grid;
-//   - `render()` paints the model's grid and the panel; it is cheap, runs after every poll and read, and rebuilds the
-//     table only when what it would show changed.
+//   - `render()` paints the model's grid and the panel; it is cheap and runs after every poll and read. The table is
+//     rebuilt only when its shape changes (`core.gridShape`); levels and the selection are painted into it in place,
+//     because a wheel gesture stays on the element it began on and would end if that element went away.
 //
 // Writes: every control writes through `canWrite(target)`, which is core.writeAllowed on the latest reads plus the
 // one `editable()` gate (the lock). It is the shared fader's `check`, so it runs when each request would go out.
@@ -34,12 +35,12 @@
   var els = {
     chip: $("iemmix-state"), chipText: $("iemmix-state-text"), banner: $("iemmix-banner"), filter: $("iemmix-filter"),
     empty: $("iemmix-empty"), scroll: $("iemmix-scroll"), head: $("iemmix-head"), body: $("iemmix-body"),
-    lock: $("iemmix-lock"), panel: $("iemmix-panel"), panelTitle: $("iemmix-panel-title"), panelFlag: $("iemmix-panel-flag"),
+    lock: $("iemmix-lock"), panes: document.querySelector(".iemmix-panes"), panel: $("iemmix-panel"), panelTitle: $("iemmix-panel-title"), panelFlag: $("iemmix-panel-flag"),
     panelHint: $("iemmix-panel-hint"), panelLockHint: $("iemmix-panel-lock"), panelList: $("iemmix-panel-list"),
     snapsNote: $("iemmix-snaps-note"), snapsForm: $("iemmix-snaps-form"), snapsName: $("iemmix-snaps-name"),
     snapsSave: $("iemmix-snaps-save"), snapsEmpty: $("iemmix-snaps-empty"), snapsList: $("iemmix-snaps-list")
   };
-  var ui = { listed: false, shown: null, sweeping: false, phase: "connecting", unlocked: false, sel: null,
+  var ui = { listed: false, shown: null, cells: {}, selShown: null, sweeping: false, phase: "connecting", unlocked: false, sel: null,
     panelKey: null, rows: {}, panelReading: false, focusShown: null, claim: null, unlocking: false, lockNote: "" };
   var LOCK_HINT = "Locked. Press Unlock to change levels.";
   var LOCK_NOTES = {
@@ -78,6 +79,14 @@
     Object.keys(ui.rows).forEach(function (k) {
       var parts = ui.rows[k].parts;
       Object.keys(parts).forEach(function (f) { parts[f].cancel(); });
+    });
+  }
+  // The panel's rows are going away. A drag ends with no write, but a wheel burst or a reset is finished: its value has been written,
+  // so it still gets its `e` (the undo entry), which the old fader sends on its own after its row has gone.
+  function dropRows() {
+    Object.keys(ui.rows).forEach(function (k) {
+      var parts = ui.rows[k].parts;
+      Object.keys(parts).forEach(function (f) { if (!parts[f].finishWheel || !parts[f].finishWheel()) parts[f].cancel(); });
     });
   }
   function updateLock() {
@@ -241,7 +250,7 @@
       keys.push({ kind: "overwrite", run: function () { snapWrite(function () { return snapClient.save(s.name, true); }); } },
         { kind: "delete", run: function () { snapWrite(function () { return snapClient.remove(s.name); }); } });
       keys.forEach(function (k) {
-        var b = holdKey(h("button", "iemmix-key iemmix-hold"), snaps.keyLabel(k.kind, mixName), k.run);
+        var b = holdKey(h("button", "iemmix-key iemmix-hold" + (k.kind === "recallMix" ? " is-one-mix" : "")), snaps.keyLabel(k.kind, mixName), k.run);
         b.type = "button";
         b.disabled = !ok;
         b.title = snaps.holdTitle(k.kind, mixName, s.name);
@@ -279,24 +288,111 @@
     updateSnaps();
   });
 
+  // ---- the Source column's width ------------------------------------------------------------------------------------
+  // A handle on the corner header's right edge: drag it, use the arrow keys, or double-click for the automatic width. The
+  // width is a convenience kept per browser. The one handle element is put back in the corner whenever the table is rebuilt.
+  var SOURCE_WIDTH_KEY = "lcrr.iemmix.sourceWidth", SOURCE_KEY_STEP = 16;
+  function saveSourceWidth(w) {
+    try { if (w === null) localStorage.removeItem(SOURCE_WIDTH_KEY); else localStorage.setItem(SOURCE_WIDTH_KEY, String(w)); } catch (e) { /* the width just isn't remembered */ }
+  }
+  function setSourceWidth(px) {
+    var w = core.sourceWidth(px, els.scroll.clientWidth);
+    if (w === null) { els.scroll.removeAttribute("data-sized"); els.scroll.style.removeProperty("--iemmix-src"); resizer.removeAttribute("aria-valuenow"); }
+    else { els.scroll.setAttribute("data-sized", ""); els.scroll.style.setProperty("--iemmix-src", w + "px"); resizer.setAttribute("aria-valuenow", String(w)); }
+    return w;
+  }
+  function sourceColumnPx() { return resizer.parentNode.getBoundingClientRect().width; }
+  var resizer = h("div", "iemmix-col-resize");
+  resizer.setAttribute("role", "separator");
+  resizer.setAttribute("aria-orientation", "vertical");
+  resizer.setAttribute("aria-label", "Source column width");
+  resizer.tabIndex = 0;
+  resizer.title = "Drag to set this column's width. Double-click for the automatic width.";
+  var resize = null; // { id, x, w, last } while a drag is on
+  function endResize() {
+    if (!resize) return;
+    var w = resize.last;
+    resize = null;
+    resizer.classList.remove("dragging");
+    if (w !== null) saveSourceWidth(w);
+  }
+  resizer.addEventListener("pointerdown", function (ev) {
+    if (resize || (ev.pointerType === "mouse" && ev.button !== 0)) return;
+    resize = { id: ev.pointerId, x: ev.clientX, w: sourceColumnPx(), last: null };
+    resizer.classList.add("dragging");
+    try { resizer.setPointerCapture(ev.pointerId); } catch (e) { /* the drag still works while the pointer is over the handle */ }
+    ev.preventDefault();
+  });
+  resizer.addEventListener("pointermove", function (ev) {
+    if (resize && ev.pointerId === resize.id) resize.last = setSourceWidth(resize.w + ev.clientX - resize.x);
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (n) { resizer.addEventListener(n, endResize); });
+  resizer.addEventListener("dblclick", function () { setSourceWidth(null); saveSourceWidth(null); });
+  resizer.addEventListener("keydown", function (ev) {
+    var dir = ev.key === "ArrowRight" ? 1 : (ev.key === "ArrowLeft" ? -1 : 0);
+    if (!dir) return;
+    ev.preventDefault();
+    saveSourceWidth(setSourceWidth(sourceColumnPx() + dir * SOURCE_KEY_STEP));
+  });
+  try { var savedWidth = localStorage.getItem(SOURCE_WIDTH_KEY); if (savedWidth) setSourceWidth(Number(savedWidth)); } catch (e) { /* the automatic width */ }
+
   // ---- painting --------------------------------------------------------------------------------------------------
-  function cellEl(cell, mixNumber, label) {
+  // A send's cell is a look-only slider (fill, 0 dB tick, handle, the number on the left, DESIGN.md): it takes no drags.
+  // Each part is kept in ui.cells under the panel row's key, and paintCell writes the level into it.
+  function cellEl(cell, source, mixNumber, label) {
     var td = h("td", "iemmix-cell");
     if (!cell) return td; // inert
     td.classList.add("is-on");
-    if (cell.muted) td.classList.add("is-muted");
     var inner = h("button", "iemmix-cell-inner");
     inner.type = "button";
     inner.setAttribute("data-mix", String(mixNumber));
-    inner.setAttribute("aria-label", label + ": " + cell.db + " dB" + (cell.muted ? ", muted" : ""));
-    inner.appendChild(h("span", "iemmix-db", cell.db));
+    if (!cell.readOnly) inner.setAttribute("data-wheel", "1");
+    ["fill", "mark", "handle"].forEach(function (p) { inner.appendChild(h("span", "iemmix-cell-" + p)); });
+    var text = h("span", "iemmix-cell-text"), flip = h("span", "iemmix-cell-text on-handle");
+    var db = text.appendChild(h("span", "iemmix-db")), dbFlip = flip.appendChild(h("span", "iemmix-db"));
+    flip.setAttribute("aria-hidden", "true"); // the second copy, clipped to the handle so a digit it crosses stays readable
+    inner.appendChild(text);
+    inner.appendChild(flip);
     if (cell.tag) {
       var tag = h("span", "iemmix-tag", cell.tag);
       tag.title = "More than one send from this source to this mix. Shown: the first.";
       inner.appendChild(tag);
     }
     td.appendChild(inner);
+    ui.cells[mixNumber + ":" + source] = { td: td, inner: inner, db: db, dbFlip: dbFlip, label: label, vol: cell.vol, shown: null };
     return td;
+  }
+  function paintCell(e, cell) {
+    e.vol = cell.vol;
+    var shown = cell.vol + "|" + cell.db + "|" + cell.muted;
+    if (shown === e.shown) return;
+    e.shown = shown;
+    e.td.classList.toggle("is-muted", !!cell.muted);
+    e.td.classList.toggle("over", cell.vol > faderCore.CAP);
+    e.inner.style.setProperty("--pos", String(faderCore.faderPos(cell.vol)));
+    e.db.textContent = e.dbFlip.textContent = cell.db;
+    e.inner.setAttribute("aria-label", e.label + ": " + cell.db + " dB" + (cell.muted ? ", muted" : ""));
+  }
+  function paintCells(grid) {
+    grid.rows.forEach(function (row) {
+      row.cells.forEach(function (c, i) {
+        var e = c && ui.cells[grid.mixes[i].number + ":" + row.source];
+        if (e) paintCell(e, c);
+      });
+    });
+  }
+  // The selection marks: the source's row, the mix's column and the highlighted cell.
+  function paintSelection() {
+    var sel = ui.sel, shown = JSON.stringify(sel && [sel.kind, sel.number, sel.focus]);
+    if (shown === ui.selShown) return;
+    ui.selShown = shown;
+    Array.prototype.forEach.call(els.head.querySelectorAll(".is-selected"), function (e) { e.classList.remove("is-selected"); });
+    Array.prototype.forEach.call(els.body.querySelectorAll(".is-selected, .is-focused"), function (e) { e.classList.remove("is-selected", "is-focused"); });
+    if (!sel) return;
+    var marked = sel.kind === "mix" ? els.head.querySelector('[data-track="' + sel.number + '"]') : els.body.querySelector('[data-source="' + sel.number + '"]');
+    if (marked) marked.classList.add("is-selected");
+    var cell = sel.focus && ui.cells[sel.focus.mix + ":" + sel.focus.source];
+    if (cell) cell.td.classList.add("is-focused");
   }
   function pickButton(kind, text, hint) {
     var b = h("button", "iemmix-pick", text);
@@ -308,13 +404,19 @@
   function paint(grid) {
     clear(els.head);
     clear(els.body);
+    ui.cells = {};
+    ui.selShown = null;
+    crossTd = null;
+    crossed = [];
+    els.body.style.setProperty("--mark", String(faderCore.faderPos(1)));
     var tr = h("tr");
-    tr.appendChild(h("th", "iemmix-corner", "Source"));
+    var corner = h("th", "iemmix-corner", "Source");
+    corner.appendChild(resizer);
+    tr.appendChild(corner);
     grid.mixes.forEach(function (m) {
       var th = h("th", "iemmix-mix");
       th.scope = "col";
       th.setAttribute("data-track", String(m.number));
-      if (ui.sel && ui.sel.kind === "mix" && ui.sel.number === m.number) th.classList.add("is-selected");
       var pick = pickButton("mix", m.name, "Show this mix's sources and master level in the panel.");
       pick.classList.add("iemmix-mix-name");
       th.appendChild(pick);
@@ -331,12 +433,11 @@
     grid.rows.forEach(function (row) {
       var r = h("tr", "iemmix-row");
       r.setAttribute("data-source", String(row.source));
-      if (ui.sel && ui.sel.kind === "source" && ui.sel.number === row.source) r.classList.add("is-selected");
       var th = h("th", "iemmix-row-th");
       th.scope = "row";
       var head = h("div", "iemmix-row-head");
       var css = reaper.colorToCss(row.color);
-      if (css) { var sw = h("span", "iemmix-swatch"); sw.style.background = css; head.appendChild(sw); }
+      if (css) { th.classList.add("is-tinted"); th.style.setProperty("--c", css); }
       var rp = pickButton("source", row.name, "Show this source's send in every mix in the panel.");
       rp.classList.add("iemmix-row-name");
       head.appendChild(rp);
@@ -347,27 +448,30 @@
       }
       th.appendChild(head);
       r.appendChild(th);
-      row.cells.forEach(function (c, i) { r.appendChild(cellEl(c, grid.mixes[i].number, row.name + " in " + grid.mixes[i].name)); });
+      row.cells.forEach(function (c, i) { r.appendChild(cellEl(c, row.source, grid.mixes[i].number, row.name + " in " + grid.mixes[i].name)); });
       els.body.appendChild(r);
     });
   }
-  // Keeps the table across polls unless its content changed, and keeps the last grid while the model has no usable
+  // Keeps the table across polls unless its shape changed, and keeps the last grid while the model has no usable
   // read for a new layout.
   function render() {
     var grid = model.grid(els.filter.value);
     if (!grid) return;
     renderPanel();
-    var key = JSON.stringify([grid, ui.sel && [ui.sel.kind, ui.sel.number]]);
     els.filter.disabled = false;
-    if (key === ui.shown) return;
-    ui.shown = key;
-    var any = grid.mixes.length > 0;
-    els.empty.hidden = any && grid.rows.length > 0;
-    els.scroll.hidden = !any || grid.totalRows === 0;
-    if (!any) els.empty.textContent = "No mixes yet. A mix is a track named IEM_<name> with a receive and a hardware output; set them up in IEM Setup.";
-    else if (!grid.totalRows) els.empty.textContent = "No source feeds a mix yet.";
-    else if (!grid.rows.length) els.empty.textContent = "No source matches “" + els.filter.value.trim() + "”.";
-    paint(grid);
+    var key = core.gridShape(grid);
+    if (key !== ui.shown) {
+      ui.shown = key;
+      var any = grid.mixes.length > 0;
+      els.empty.hidden = any && grid.rows.length > 0;
+      els.scroll.hidden = !any || grid.totalRows === 0;
+      if (!any) els.empty.textContent = "No mixes yet. A mix is a track named IEM_<name> with a receive and a hardware output; set them up in IEM Setup.";
+      else if (!grid.totalRows) els.empty.textContent = "No source feeds a mix yet.";
+      else if (!grid.rows.length) els.empty.textContent = "No source matches “" + els.filter.value.trim() + "”.";
+      paint(grid);
+    }
+    paintCells(grid);
+    paintSelection();
   }
 
   // ---- the docked panel ------------------------------------------------------------------------------------------
@@ -428,6 +532,7 @@
     function show() {
       el.style.setProperty("--pos", String(core.panPos(pan)));
       text.textContent = core.panText(pan);
+      el.setAttribute("data-side", pan < 0 ? "left" : "right"); // the readout sits on the side the handle is not
     }
     var pointer = S.fader.bindThumb({
       el: el, thumb: thumb, thumbPx: PAN_THUMB_PX, drag: drag, getTarget: ref.target, check: canWrite,
@@ -444,6 +549,17 @@
       thumb: thumb,
       setValue: function (v) { if (drag.active() || v === pan || typeof v !== "number") return; pan = v; show(); },
       setEnabled: function (on) { if (on === enabled) return; enabled = on; el.setAttribute("data-disabled", on ? "false" : "true"); },
+      // Alt-click: back to the centre, as one write and one undo entry.
+      reset: function () {
+        var t = ref.target();
+        if (!t || pan === null || pan === 0 || drag.active() || !drag.nudge(t, 0)) return;
+        pan = 0;
+        show();
+        model.setLocal(t.track, t.y, { pan: 0 });
+        render();
+        drag.finishWheel();
+      },
+      finishWheel: drag.finishWheel,
       cancel: pointer.cancel,
       readToken: drag.readToken,
       canApply: drag.canApply
@@ -475,16 +591,6 @@
         }
       });
       ref.parts.vol = ref.fader;
-      // The wheel over the level fader nudges it by 0.5 dB. Non-passive, and prevents the page scroll only when
-      // wheel.decide says it is acting on a fader: a locked page scrolls as normal. A drag in progress is left alone.
-      ref.fader.el.addEventListener("wheel", function (ev) {
-        if (ref.fader.active()) return;
-        var r = wheel.decide({ locked: !editable(), deltaY: ev.deltaY, deltaMode: ev.deltaMode, vol: ref.fader.level(), now: Date.now(), state: ref.wheel });
-        ref.wheel = r.state;
-        if (!r.act) return;
-        ev.preventDefault();
-        if (r.value !== null) ref.fader.nudge(r.value);
-      }, { passive: false });
       ref.main.appendChild(ref.fader.el);
       if (!isMaster) { // the master has a level only; a repeated pair is a static row with none of these
         ref.pan = createPan(ref);
@@ -536,7 +642,7 @@
   }
   function renderPanel() {
     var p = ui.sel ? model.panel(ui.sel) : null;
-    if (ui.sel && !p) { ui.sel = null; ui.shown = null; updateSnaps(); } // the track moved or went: never show another track's panel
+    if (ui.sel && !p) { ui.sel = null; updateSnaps(); } // the track moved or went: never show another track's panel
     var list = [];
     if (p) {
       if (p.master) list.push({ d: p.master, master: true });
@@ -550,7 +656,7 @@
     els.panelFlag.hidden = !flag;
     var key = list.map(function (x) { return x.d.key + (x.d.readOnly ? "s" : "f"); }).join(",") + "|" + (p ? p.kind + ":" + ui.sel.number : "");
     if (key !== ui.panelKey) { // different rows: rebuild them (a drag on an old one ends with no write)
-      cancelAll();
+      dropRows();
       ui.panelKey = key;
       ui.rows = {};
       clear(els.panelList);
@@ -572,10 +678,13 @@
     if (!sel) return;
     ui.sel = sel;
     ui.focusShown = null;
-    ui.shown = null; // repaint the grid's selection marks
     render();
     panelRead();
     updateSnaps(); // the one-mix recall key follows the selected mix
+  }
+  function selectCellAt(source, mixNumber) {
+    var next = core.selectCell(model.tracks(), ui.sel, source, mixNumber);
+    if (next !== ui.sel) select(next); // the cell already highlighted: nothing to do
   }
   function onGridClick(ev) {
     var tracks = model.tracks();
@@ -584,12 +693,95 @@
       if (pick.getAttribute("data-pick") === "mix") select(core.selectMix(tracks, parseInt(pick.closest("th").getAttribute("data-track"), 10)));
       else select(core.selectSource(tracks, parseInt(pick.closest("tr").getAttribute("data-source"), 10)));
     } else if (cell) {
-      var next = core.selectCell(ui.sel, parseInt(cell.closest("tr").getAttribute("data-source"), 10), parseInt(cell.getAttribute("data-mix"), 10));
-      if (next !== ui.sel) select(next); // a cell no open panel holds does nothing
+      selectCellAt(parseInt(cell.closest("tr").getAttribute("data-source"), 10), parseInt(cell.getAttribute("data-mix"), 10));
     }
   }
   els.head.addEventListener("click", onGridClick);
   els.body.addEventListener("click", onGridClick);
+
+  // ---- hover: the cell's row and column ----------------------------------------------------------------------------
+  var crossTd = null, crossed = [];
+  function setCross(td) {
+    if (td === crossTd) return;
+    crossTd = td;
+    crossed.forEach(function (e) { e.classList.remove("is-cross"); });
+    crossed = [];
+    if (!td) return;
+    var col = td.cellIndex;
+    crossed = Array.prototype.slice.call(td.parentNode.cells);
+    Array.prototype.forEach.call(els.body.rows, function (r) { crossed.push(r.cells[col]); });
+    crossed.push(els.head.rows[0].cells[col]);
+    crossed.forEach(function (e) { e.classList.add("is-cross"); });
+  }
+  els.body.addEventListener("mouseover", function (ev) { setCross(ev.target.closest("td.iemmix-cell")); });
+  els.body.addEventListener("mouseleave", function () { setCross(null); });
+
+  // ---- the wheel ---------------------------------------------------------------------------------------------------
+  // Over a panel fader or an editable grid cell the wheel nudges the level by 0.5 dB; a cell's step first selects it as a
+  // click does, then goes through that row's fader, so there is one write path. One listener for grid and panel, non-passive:
+  // it prevents the scroll only when wheel.decide says it is acting. One gesture stays on what it began on (wheel.createWheelLatch).
+  var wheelLatch = wheel.createWheelLatch(), wheelStates = {}; // what each send's wheel has gathered, by row key
+  // What the pointer is over: { key, cell } or null when a new gesture there should scroll. The pointer's position, not
+  // ev.target: browsers keep a wheel gesture's target on the element it began on.
+  function wheelTarget(ev) {
+    if (!editable()) return null;
+    var at = document.elementFromPoint(ev.clientX, ev.clientY) || ev.target;
+    var faderEl = at.closest(".iemmix-fader"), btn = at.closest("button[data-wheel]");
+    var key = null, cell = null;
+    if (faderEl) Object.keys(ui.rows).forEach(function (k) { if (ui.rows[k].fader && ui.rows[k].fader.el === faderEl) key = k; });
+    else if (btn) {
+      cell = { source: parseInt(btn.closest("tr").getAttribute("data-source"), 10), mix: parseInt(btn.getAttribute("data-mix"), 10) };
+      key = cell.mix + ":" + cell.source;
+    }
+    return key === null ? null : { key: key, cell: cell };
+  }
+  // The level a gesture steps from, or null when it cannot act now (the row is being dragged or has gone).
+  function wheelLevel(t) {
+    var ref = ui.rows[t.key];
+    if (ref) return ref.fader && !ref.fader.active() ? ref.fader.level() : null;
+    return t.cell && ui.cells[t.key] ? ui.cells[t.key].vol : null;
+  }
+  els.panes.addEventListener("wheel", function (ev) {
+    var now = Date.now(), t = wheelLatch.route(now, wheelTarget(ev));
+    if (!t) return;
+    var r = wheel.decide({ locked: !editable(), deltaY: ev.deltaY, deltaMode: ev.deltaMode, vol: wheelLevel(t), now: now, state: wheelStates[t.key] });
+    wheelStates[t.key] = r.state;
+    if (!r.act) { wheelLatch.scrolled(now); return; }
+    ev.preventDefault();
+    if (r.value === null) return; // still gathering, or nothing to write: the panel does not move for it
+    if (t.cell) selectCellAt(t.cell.source, t.cell.mix);
+    var ref = ui.rows[t.key];
+    if (ref && ref.fader) ref.fader.nudge(r.value);
+  }, { passive: false });
+
+  // ---- Alt-click: reset ---------------------------------------------------------------------------------------------
+  // Alt-click on a cell or a panel fader sets the level to 0 dB; on a pan control, the centre. Unlocked only; through each
+  // control's normal write path, as one undo entry, and on release, like a click. A cell comes up highlighted first, as
+  // a click does. The press is stopped before it reaches the thumb, so an Alt-click can never start a drag.
+  var RESET_LEVEL = 1; // 0 dB
+  function rowOwning(prop, el) {
+    var found = null;
+    Object.keys(ui.rows).forEach(function (k) { var part = ui.rows[k][prop]; if (part && part.el === el) found = ui.rows[k]; });
+    return found;
+  }
+  function resetLevel(ref) {
+    if (!ref || !ref.fader || ref.fader.active() || ref.fader.level() === RESET_LEVEL) return;
+    if (ref.fader.nudge(RESET_LEVEL)) ref.fader.finishWheel();
+  }
+  els.panes.addEventListener("pointerdown", function (ev) {
+    if (ev.altKey && ev.target.closest(".iemmix-fader, .iemmix-pan")) ev.stopPropagation();
+  }, true);
+  els.panes.addEventListener("click", function (ev) {
+    if (!ev.altKey || !editable()) return;
+    var panEl = ev.target.closest(".iemmix-pan"), faderEl = ev.target.closest(".iemmix-fader"), btn = ev.target.closest("button[data-wheel]");
+    if (panEl) { var panRow = rowOwning("pan", panEl); if (panRow) panRow.pan.reset(); }
+    else if (faderEl) resetLevel(rowOwning("fader", faderEl));
+    else if (btn) {
+      var source = parseInt(btn.closest("tr").getAttribute("data-source"), 10), mix = parseInt(btn.getAttribute("data-mix"), 10);
+      selectCellAt(source, mix);
+      resetLevel(ui.rows[mix + ":" + source]);
+    }
+  }, true);
 
   // ---- holds -----------------------------------------------------------------------------------------------------
   // Taken when a read is sent: for each panel row and field, the token of its control. A reply is applied to a field

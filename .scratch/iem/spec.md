@@ -76,7 +76,7 @@ Adopting can change what a musician hears (step 4), and that was accepted.
 
 ### Guarding against accidents
 
-- **The page opens locked**, read-only. One Unlock tap enables editing, with no per-cell prompts after that.
+- **No lock** (changed from "opens locked, one Unlock tap"; see `apps/iem/docs/adr/0001`). Delete and Adopt are press-and-hold; a cell tap is a single tap with no prompt.
 - Each operation is one REAPER undo step.
 
 ### On the wire

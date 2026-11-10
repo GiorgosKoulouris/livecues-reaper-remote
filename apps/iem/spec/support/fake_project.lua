@@ -89,6 +89,7 @@ function fake_project.new(spec)
     if key == "I_FOLDERDEPTH" then track.depth = value
     elseif key == "B_MAINSEND" then track.main_send = value
     elseif key == "I_CUSTOMCOLOR" then track.colour = value
+    elseif key == "B_SOLO_DEFEAT" then track.solo_defeat = value
     else error("fake_project: unmodelled track key " .. key) end
     return true
   end
@@ -169,6 +170,7 @@ function fake_project.new(spec)
   end
 
   function api.ColorToNative(r, g, b) return r + g * 256 + b * 65536 end
+  function api.ColorFromNative(c) return c % 256, (c // 256) % 256, (c // 65536) % 256 end
 
   function api.IsTrackSelected(track) return track.selected end
   function api.SetTrackSelected(track, selected)
@@ -222,6 +224,7 @@ function fake_project.new(spec)
     if key == "I_FOLDERDEPTH" then return track.depth end
     if key == "B_MAINSEND" then return track.main_send end
     if key == "I_CUSTOMCOLOR" then return track.colour end
+    if key == "B_SOLO_DEFEAT" then return track.solo_defeat or 0 end
     error("fake_project: unmodelled track key " .. key)
   end
 

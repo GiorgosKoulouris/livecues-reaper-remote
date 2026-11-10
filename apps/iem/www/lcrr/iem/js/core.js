@@ -105,16 +105,20 @@
   }
 
   // What the page offers about the cue track (IEM Mix's Listen): `action` is "create" (no cue track yet), "repair"
-  // (it exists but some mixes have no send to it: the same command adds them) or null (nothing to do); `picker` is
-  // its output picker, null until the track exists. Reads the state's `cue` ({ guid, outputs, missing }, absent when
-  // there is no cue track).
+  // (it exists but a mix has no send to it, or a mix or the cue track lacks solo defeat: the same command fixes both)
+  // or null (nothing to do); `picker` is its output picker, null until the track exists; `needsOutput` is true while
+  // the engineer has not chosen the headphone output. Reads the state's `cue` ({ guid, outputs, missing, unprotected },
+  // absent when there is no cue track).
   function cueOffer(state) {
     var cue = state.cue || null;
+    var gap = cue ? cue.missing > 0 || cue.unprotected > 0 : false;
     return {
       exists: !!cue,
       guid: cue ? cue.guid : null,
       missing: cue ? cue.missing : 0,
-      action: !cue ? "create" : cue.missing > 0 ? "repair" : null,
+      unprotected: cue ? cue.unprotected || 0 : 0,
+      action: !cue ? "create" : gap ? "repair" : null,
+      needsOutput: !!cue && cue.outputs.length === 0,
       picker: cue ? outputPicker(state, { outputs: cue.outputs }) : null
     };
   }
@@ -150,7 +154,7 @@
     });
 
     var rows = state.sources.map(function (s) {
-      return { guid: s.guid, name: s.name, depth: s.depth, isFolder: s.is_folder, cells: state.mixes.map(function () { return null; }) };
+      return { guid: s.guid, name: s.name, depth: s.depth, isFolder: s.is_folder, tint: /^[0-9a-f]{6}$/i.test(s.tint || "") ? "#" + s.tint.toLowerCase() : null, cells: state.mixes.map(function () { return null; }) };
     });
 
     state.mixes.forEach(function (mix, col) {
@@ -180,18 +184,10 @@
     return { columns: columns, rows: shown, totalRows: rows.length };
   }
 
-  // ---- editing: the lock, and what a write may be asked --------------------------------------------------------------
-  // The page opens locked and one Unlock tap enables editing (spec: "Guarding against accidents"). `canEdit` is the one
-  // gate every write goes through: the buttons that change the project are enabled by it, and later issues (delete,
-  // outputs, matrix cells) reuse it as it is.
-  function canEdit(phase, unlocked) { return phase === "ready" && !!unlocked; }
-
-  // The lock holds only while it is the same project on a live bridge: it closes again when the bridge goes away or
-  // another project becomes the active one (an Unlock is for one project, not a standing licence).
-  function stillUnlocked(unlocked, phase, projectBefore, projectNow) {
-    if (!unlocked || phase !== "ready") return false;
-    return projectBefore === null || projectBefore === undefined || projectBefore === projectNow;
-  }
+  // ---- editing: what a write may be asked --------------------------------------------------------------------------
+  // The page has no lock (apps/iem/docs/adr/0001): the destructive keys (Delete, All off, Adopt) need a press and hold
+  // instead. `canEdit` is the one gate every write goes through: it is open while the bridge is live.
+  function canEdit(phase) { return phase === "ready"; }
 
   // A mix name as typed, checked the way the bridge will check it (it checks again, and has the last word): trimmed,
   // never empty, and not the name of another mix. `ownGuid` is the mix being renamed, which may keep its own name.
@@ -230,6 +226,23 @@
     return { source: row.guid, mix: col.guid, on: !cell };
   }
 
+  // Arrow-key travel in the grid: where focus goes from (row, col) in a grid of rows x cols cells. Arrows step one cell
+  // and stop at the edge; Home and End go to the ends of the row, Ctrl+Home and Ctrl+End to the corners. Returns
+  // [row, col], or null for a key that does not move.
+  function gridMove(key, row, col, rows, cols, ctrl) {
+    var last = { r: rows - 1, c: cols - 1 };
+    function clamp(v, max) { return Math.max(0, Math.min(max, v)); }
+    switch (key) {
+      case "ArrowRight": return [row, clamp(col + 1, last.c)];
+      case "ArrowLeft": return [row, clamp(col - 1, last.c)];
+      case "ArrowDown": return [clamp(row + 1, last.r), col];
+      case "ArrowUp": return [clamp(row - 1, last.r), col];
+      case "Home": return ctrl ? [0, 0] : [row, 0];
+      case "End": return ctrl ? [last.r, last.c] : [row, last.c];
+      default: return null;
+    }
+  }
+
   // Row and column toggles: the bridge needs only the ID of the source or the mix and the wanted state.
   function rowRequest(row, on) { return { source: row.guid, on: on }; }
   function columnRequest(col, on) { return { mix: col.guid, on: on }; }
@@ -260,8 +273,8 @@
     };
   }
 
-  return { cellRequest: cellRequest, rowRequest: rowRequest, columnRequest: columnRequest, createRenderGate: createRenderGate, createPickerGuard: createPickerGuard, outputChannels: outputChannels, outputClashes: outputClashes,
+  return { gridMove: gridMove, cellRequest: cellRequest, rowRequest: rowRequest, columnRequest: columnRequest, createRenderGate: createRenderGate, createPickerGuard: createPickerGuard, outputChannels: outputChannels, outputClashes: outputClashes,
     outputPicker: outputPicker, cueOffer: cueOffer, parseOutputChoice: parseOutputChoice, STANDARD_MODE: STANDARD_MODE, dbText: dbText, connectionPhase: connectionPhase, readState: readState,
-    mixHeaders: mixHeaders, buildMatrix: buildMatrix, canEdit: canEdit, stillUnlocked: stillUnlocked,
+    mixHeaders: mixHeaders, buildMatrix: buildMatrix, canEdit: canEdit,
     checkMixName: checkMixName, folderOffer: folderOffer, colourField: colourField };
 });

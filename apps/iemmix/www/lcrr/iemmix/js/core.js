@@ -230,10 +230,34 @@
     var m = mixByNumber(tracks, sel.number);
     return m ? m.name : null;
   }
-  // A tap on a cell highlights its row in the panel that already holds it. Otherwise nothing changes: `sel` comes back as it was.
-  function selectCell(sel, source, mixNumber) {
+  // A click on a cell (or the wheel's first step on it) brings up its fader, highlighted. The open panel stays if it
+  // holds the cell; otherwise a panel of the same kind opens for the cell's source or mix, and with none open the
+  // cell's mix. The cell already highlighted, or a track that is gone: `sel` comes back as it was.
+  function selectCell(tracks, sel, source, mixNumber) {
+    var focus = { mix: mixNumber, source: source };
+    if (sel && sel.focus && sel.focus.mix === mixNumber && sel.focus.source === source) return sel;
     var held = sel && ((sel.kind === "source" && sel.number === source) || (sel.kind === "mix" && sel.number === mixNumber));
-    return held ? { kind: sel.kind, number: sel.number, name: sel.name, focus: { mix: mixNumber, source: source } } : sel;
+    var next = held ? { kind: sel.kind, number: sel.number, name: sel.name } : (sel && sel.kind === "source" ? selectSource(tracks, source) : selectMix(tracks, mixNumber));
+    if (!next) return sel;
+    next.focus = focus;
+    return next;
+  }
+
+  // The Source column's width in px, kept usable: at least 120, at most 480 and never so wide that no mix column fits in
+  // `box` (the grid's width, 0 while it is hidden). Null when `px` is not a number (nothing saved).
+  var SOURCE_MIN_PX = 120, SOURCE_MAX_PX = 480, SOURCE_ROOM_PX = 96;
+  function sourceWidth(px, box) {
+    if (typeof px !== "number" || !isFinite(px)) return null;
+    var max = box > 0 ? Math.max(SOURCE_MIN_PX, Math.min(SOURCE_MAX_PX, box - SOURCE_ROOM_PX)) : SOURCE_MAX_PX;
+    return Math.round(Math.min(max, Math.max(SOURCE_MIN_PX, px)));
+  }
+
+  // What the grid's DOM is built from: everything but the levels and mutes, which are painted into the cells in place.
+  // A wheel gesture stays on the element it began on, so rebuilding the table under one would end the gesture.
+  function gridShape(grid) {
+    return JSON.stringify([grid.totalRows, grid.mixes.map(function (m) { return [m.number, m.name, !!m.duplicate]; }), grid.rows.map(function (r) {
+      return [r.source, r.name, r.color, r.trackMuted, r.cells.map(function (c) { return c ? [c.tag, !!c.readOnly] : 0; })];
+    })]);
   }
 
   // One send as a panel row. `key` stays the same while the row's source and mix do, so the DOM row persists when
@@ -376,5 +400,5 @@
     buildReadRequests: buildReadRequests, layoutKey: layoutKey, buildGrid: buildGrid, createGridModel: createGridModel,
     canEdit: canEdit, markerReadCommand: markerReadCommand, markerWriteCommand: markerWriteCommand, parseMarker: parseMarker, newProjectId: newProjectId,
     claimProject: claimProject, markerHolds: markerHolds, writeAllowed: writeAllowed, selectSource: selectSource,
-    selectMix: selectMix, selectedMixName: selectedMixName, selectCell: selectCell, buildPanel: buildPanel, buildPanelRequests: buildPanelRequests, holdSlot: holdSlot };
+    selectMix: selectMix, selectedMixName: selectedMixName, selectCell: selectCell, gridShape: gridShape, sourceWidth: sourceWidth, buildPanel: buildPanel, buildPanelRequests: buildPanelRequests, holdSlot: holdSlot };
 });

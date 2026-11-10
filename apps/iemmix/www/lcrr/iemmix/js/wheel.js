@@ -1,4 +1,4 @@
-// IEM Mix: the mouse wheel's step on a panel fader (pure, no DOM). Works in browsers and in node tests.
+// IEM Mix: the mouse wheel's step on a panel fader or grid cell (pure, no DOM). Works in browsers and in node tests.
 // decide() says whether the wheel acts on a fader at all and, if so, the level to write. The page prevents
 // scrolling exactly when `act` is true and sends `value` through the fader's normal write path when it is not null.
 (function (root, factory) {
@@ -74,5 +74,21 @@
     return { act: true, value: whole ? steps(o.vol, up, whole) : null, state: { carry: carry, at: now } };
   }
 
-  return { STEP_DB: STEP_DB, MIN_DB: MIN_DB, MIN_VALUE: MIN_VALUE, decide: decide };
+  // Keeps one wheel gesture on one thing, until the wheel has been idle for WHEEL_IDLE_MS. route(now, target) takes what
+  // is under the pointer (null: nothing editable) and returns what this event acts on: the control the gesture began on,
+  // wherever the pointer has gone since, or null while the gesture is a scroll, so rows sliding under the pointer are
+  // never edited. scrolled(now) turns the gesture into a scroll (an event that could not act after all).
+  function createWheelLatch() {
+    var at = null, held = null;
+    return {
+      route: function (now, target) {
+        if (at === null || now - at >= faderCore.WHEEL_IDLE_MS) held = target || null;
+        at = now;
+        return held;
+      },
+      scrolled: function (now) { at = now; held = null; }
+    };
+  }
+
+  return { STEP_DB: STEP_DB, MIN_DB: MIN_DB, MIN_VALUE: MIN_VALUE, decide: decide, createWheelLatch: createWheelLatch };
 });

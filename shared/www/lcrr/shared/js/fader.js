@@ -150,6 +150,8 @@
         if (opts.onLevel) opts.onLevel(level);
         return true;
       },
+      // Ends a wheel burst now; true while its `e` is still to go out (createFaderDrag.finishWheel).
+      finishWheel: drag.finishWheel,
       active: drag.active,
       readToken: drag.readToken,
       canApply: drag.canApply

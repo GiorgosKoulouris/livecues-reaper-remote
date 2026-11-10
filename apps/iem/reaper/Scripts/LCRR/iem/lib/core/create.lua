@@ -3,7 +3,8 @@
 -- the folder's last member. Master send is off on the folder and the mix, both
 -- take the shared colour, and REAPER's folder depth is set by hand (it does not
 -- repair it, suite CONTEXT.md): the old last member stops closing the folder
--- and the new mix closes it. All of it is one undo step.
+-- and the new mix closes it. All of it is one undo step, with the cue track (made when the project has none), the
+-- mix's send to it and its solo defeat (cue.lua).
 --
 -- `copy` (optional, the GUID of a mix) gives the new mix the same sends as that mix, in the same undo step: the
 -- source, level, pan, mute and signal point of each. Not its output. A send from another mix or from the IEMs
@@ -66,9 +67,8 @@ function create.run(given)
     for _, send in ipairs(copies) do
       cell.copy_send(api, send.track, mix, send)
     end
-    -- A cue track already in the project gets the new mix's send, in this same step.
-    local cue_entry = tracks.find_cue(list)
-    if cue_entry then cue.add_send(api, mix, cue_entry.track) end
+    -- The cue track (made here when the project has none), the mix's send to it and its solo defeat, in this same step.
+    cue.join(api, mix, colour)
   end)
 
   return result

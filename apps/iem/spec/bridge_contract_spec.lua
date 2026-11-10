@@ -38,7 +38,7 @@ end
 local function band()
   return {
     { name = "Drums", depth = 1 },
-    { name = "Kick" },
+    { name = "Kick", colour = 0x1000000 + 0xFF + 0x20 * 256 + 0x30 * 65536 },
     { name = "Snare", depth = -1 },
     { name = "Bass" },
     { name = "Vocals" },

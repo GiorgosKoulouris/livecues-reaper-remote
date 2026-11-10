@@ -349,6 +349,30 @@ test("injected functions: a failed stale check writes nothing", () => {
 });
 
 // ---- the wheel burst (nudge) ----
+test("finishWheel: sends the e now, and says so while it is still waiting on a write", async () => {
+  const h = host();
+  h.drag.nudge(T, 0.5);
+  assert.strictEqual(h.drag.finishWheel(), true);  // the step is in flight, so the e is still to go out
+  assert.deepStrictEqual(h.sent, [vol(0.5)]);
+  await h.land();
+  assert.deepStrictEqual(h.sent, [vol(0.5), vole(0.5)]);
+  assert.strictEqual(h.drag.finishWheel(), false);
+  await h.land();
+  h.advance(1000);
+  assert.strictEqual(h.sent.length, 2);            // the idle wait was cleared: no second e
+});
+
+test("finishWheel: no burst, nothing to send; a stale row sends no e", async () => {
+  const h = host();
+  assert.strictEqual(h.drag.finishWheel(), false);
+  assert.deepStrictEqual(h.sent, []);
+  h.drag.nudge(T, 0.5);
+  h.drag.finishWheel();
+  h.allow = false;
+  await h.land();
+  assert.deepStrictEqual(h.sent, [vol(0.5)]);
+});
+
 test("nudge: steps are written like a drag, and one e goes out after the wheel has been idle", async () => {
   const h = host();
   assert.strictEqual(h.drag.nudge(T, 0.5), true);

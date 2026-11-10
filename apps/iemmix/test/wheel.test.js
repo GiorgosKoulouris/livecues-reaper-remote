@@ -166,3 +166,34 @@ test("small events keep the -60 dB rule: up from silence and down to silence", (
   const down = run(lin(-60), [{ deltaY: 60 }, { deltaY: 60 }]);
   assert.strictEqual(down[1].value, 0);
 });
+
+const CELL_A = { key: "a" }, CELL_B = { key: "b" };
+
+test("wheel latch: a gesture acts on the control under the pointer when it begins", () => {
+  const l = wheel.createWheelLatch();
+  assert.strictEqual(l.route(1000, CELL_A), CELL_A);
+});
+
+test("wheel latch: an edit stays on the cell it began on, wherever the pointer goes, until the wheel is idle", () => {
+  const l = wheel.createWheelLatch();
+  l.route(1000, CELL_A);
+  assert.strictEqual(l.route(1100, CELL_B), CELL_A); // the next cell under the pointer is left alone
+  assert.strictEqual(l.route(1400, null), CELL_A);   // nor does leaving the cells turn it into a scroll
+  assert.strictEqual(l.route(1700, CELL_B), CELL_A); // each event renews the wait
+  assert.strictEqual(l.route(1700 + fc.WHEEL_IDLE_MS, CELL_B), CELL_B);
+});
+
+test("wheel latch: a movement that began as a scroll stays one until the wheel is idle", () => {
+  const l = wheel.createWheelLatch();
+  assert.strictEqual(l.route(1000, null), null);
+  assert.strictEqual(l.route(1300, CELL_A), null);   // rows slid under the pointer
+  assert.strictEqual(l.route(1600, CELL_A), null);
+  assert.strictEqual(l.route(1600 + fc.WHEEL_IDLE_MS, CELL_A), CELL_A);
+});
+
+test("wheel latch: an event that could not act turns the gesture into a scroll", () => {
+  const l = wheel.createWheelLatch();
+  l.route(1000, CELL_A);
+  l.scrolled(1000);
+  assert.strictEqual(l.route(1100, CELL_A), null);
+});

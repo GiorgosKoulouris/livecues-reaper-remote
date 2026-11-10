@@ -15,50 +15,64 @@
 <header class="iem-bar">
   <div class="iem-bar-inner">
     <h1 class="iem-title">IEM Setup</h1>
+    <span id="iem-project-name" class="iem-project-name"></span>
     <span id="iem-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="iem-shape" aria-hidden="true"></i><span id="iem-state-text">Connecting&hellip;</span></span>
   </div>
   <div id="iem-banner" role="alert" hidden></div>
+  <p id="iem-message" class="iem-message" role="alert" hidden></p>
+  <p id="iem-done" class="iem-done" role="status" hidden></p>
 </header>
 
 <main>
-  <div class="iem-tools">
-    <div id="iem-project" class="iem-project" hidden>
-      <span class="iem-label">Project</span>
-      <strong id="iem-project-name"></strong>
+  <!-- The strip above the grid: the filter, the tag legend and one disclosure key per setup job. A panel opens on demand; an empty project opens Mixes by itself. -->
+  <div id="iem-setup" class="iem-setup" hidden>
+    <input id="iem-filter" class="iem-filter" type="text" placeholder="Filter tracks" aria-label="Filter tracks" autocomplete="off" spellcheck="false" disabled>
+    <p id="iem-legend" class="iem-legend" hidden></p>
+    <div class="iem-toggles">
+      <button id="iem-tog-mixes" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-mixes"><span class="iem-toggle-name">Mixes</span><span class="iem-toggle-status" id="iem-status-mixes"></span></button>
+      <button id="iem-tog-folder" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-folder"><span class="iem-toggle-name">Folder</span><span class="iem-toggle-status" id="iem-status-folder"></span></button>
+      <button id="iem-tog-cue" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-cue"><span class="iem-toggle-name">Cue</span><span class="iem-toggle-status" id="iem-status-cue"></span></button>
     </div>
-    <label class="iem-filter">
-      <span class="iem-label">Filter tracks</span>
-      <input id="iem-filter" type="text" autocomplete="off" spellcheck="false" disabled>
-    </label>
-    <!-- Every label is set from words.js. Each command's keys live here and gate on the lock. -->
-    <div id="iem-actions" class="iem-actions">
-      <form id="iem-create" class="iem-create" autocomplete="off" hidden>
-        <label class="iem-filter">
+  </div>
+
+  <!-- Every label is set from words.js. One panel open at a time, one job each. -->
+  <div id="iem-panels" class="iem-panels">
+    <section class="iem-panel" id="iem-panel-mixes" role="region" aria-labelledby="iem-tog-mixes" hidden>
+      <form id="iem-create" class="iem-create" autocomplete="off">
+        <label class="iem-field">
           <span class="iem-label" id="iem-create-label"></span>
           <input id="iem-create-name" type="text" spellcheck="false">
         </label>
-        <label class="iem-copy-from">
+        <label class="iem-field">
           <span class="iem-label" id="iem-create-copy-label"></span>
           <select id="iem-create-copy"></select>
         </label>
         <button id="iem-create-go" class="iem-primary" type="submit"></button>
       </form>
-      <label class="iem-colour" id="iem-colour-box" hidden>
-        <span class="iem-label" id="iem-colour-label"></span>
-        <input id="iem-colour" type="color">
-      </label>
-      <button id="iem-move" type="button" hidden></button>
-      <button id="iem-cue" type="button" hidden></button>
-      <label class="iem-cue-out" id="iem-cue-out-box" hidden>
-        <span class="iem-label" id="iem-cue-out-label"></span>
-        <select id="iem-cue-out"></select>
-      </label>
-      <button id="iem-lock" type="button" aria-pressed="false" disabled></button>
-    </div>
+    </section>
+    <section class="iem-panel" id="iem-panel-folder" role="region" aria-labelledby="iem-tog-folder" hidden>
+      <div class="iem-panel-row">
+        <label class="iem-field iem-colour" id="iem-colour-box">
+          <span class="iem-label" id="iem-colour-label"></span>
+          <input id="iem-colour" type="color">
+        </label>
+        <button id="iem-move" type="button"></button>
+      </div>
+      <p id="iem-folder-note" class="iem-note"></p>
+    </section>
+    <section class="iem-panel" id="iem-panel-cue" role="region" aria-labelledby="iem-tog-cue" hidden>
+      <div class="iem-panel-row">
+        <button id="iem-cue" type="button" hidden></button>
+        <label class="iem-field iem-cue-out" id="iem-cue-out-box" hidden>
+          <span class="iem-label" id="iem-cue-out-label"></span>
+          <select id="iem-cue-out"></select>
+        </label>
+      </div>
+      <p id="iem-cue-note" class="iem-note"></p>
+    </section>
   </div>
 
-  <p id="iem-message" class="iem-message" role="status" hidden></p>
-  <p id="iem-empty" class="iem-message" hidden></p>
+  <p id="iem-empty" class="iem-notice" hidden></p>
 
   <div id="iem-scroll" class="iem-scroll" tabindex="0" role="region" aria-label="Which tracks feed which mix" hidden>
     <table id="iem-grid" class="iem-grid">

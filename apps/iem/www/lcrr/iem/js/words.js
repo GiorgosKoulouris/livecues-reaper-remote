@@ -42,8 +42,6 @@
 
   // Labels and hints for the editing controls.
   var UI = {
-    unlock: "Unlock", lock: "Lock",
-    unlockHint: "Locked: unlock to change mixes and routing.", unlockedHint: "Unlocked: changes go straight into REAPER, one undo step each.",
     newMix: "New mix", newMixName: "Name", create: "Create", rename: "Rename", save: "Save", cancel: "Cancel",
     copyFrom: "Copy from", copyFromNone: "Nothing (empty mix)",
     copyFromHint: "Start the new mix with the same sources, levels, pans, mutes and signal points as this mix. Its output is not copied.",
@@ -53,31 +51,28 @@
     output: "Output", outputNone: "No output",
     deviceClosed: "Audio device closed: channels unknown",
     outputReadOnly: "Several outputs: change in REAPER",
-    allOn: "All on", allOff: "All off",
-    allOnHint: "Switch on every send that is missing. Sends already on are left as they are.",
-    allOffHint: "Press and hold to remove every send in this row or column. REAPER undo brings them back.",
-    createCue: "Create cue", addCueSends: "Add missing cue sends", cueOutput: "Cue output",
-    createCueHint: "Make the IEM-Cue track in the IEMs folder, with a send at level 0 from every mix. IEM Mix listens through it. REAPER undo brings it back.",
-    addCueSendsHint: "Some mixes have no send to the cue track. Add the missing ones at level 0.",
+    undoNote: "Every change is one undo step in REAPER (Ctrl+Z).",
+    createCue: "Create cue", repairCue: "Repair cue", cueOutput: "Cue output", cueOutputNeeded: "Cue output: choose the headphones",
+    createCueHint: "Make the IEM-Cue track in the IEMs folder, with a send at level 0 from every mix, and turn solo defeat on for it and every mix. IEM Mix listens through it. REAPER undo brings it back.",
+    repairCueHint: "A mix has no send to the cue track, or a mix or the cue track has no solo defeat. Add the missing sends at level 0 and turn solo defeat on.",
     cueOutputHint: "The hardware output of the cue track: the engineer’s headphones.",
+    cueOutputNeededHint: "The cue track has no hardware output yet. Choose the output the engineer’s headphones are on, or Listen is silent.",
     adopt: "Adopt",
-    adoptHint: "Move this mix into the IEMs folder, turn its master send off, give it the shared colour and make its sends post-FX pre-fader. This can change what a musician hears. REAPER undo brings it back.",
-    delete: "Delete", deleteHint: "Press and hold to delete this mix and its sends. REAPER undo brings it back."
+    adoptHint: "Press and hold to move this mix into the IEMs folder, turn its master send off, give it the shared colour and make its sends post-FX pre-fader. This can change what a musician hears. REAPER undo brings it back.",
+    adoptNote: "Moves into the IEMs folder, master send off, sends post-FX pre-fader. Can change what a musician hears.",
+    delete: "Delete", deleteHint: "Press and hold to delete this mix and its sends. REAPER undo brings it back.",
+    holdLegend: "Hold", more: "More", less: "Less",
+    moreHint: "Rename, Adopt and Delete. Adopt and Delete act only on a press and hold.",
+    panelMixes: "Mixes", panelFolder: "Folder", panelCue: "Cue",
+    applying: "Applying…", tracks: "Tracks", unsavedProject: "(unsaved project)",
+    cueReady: "The cue track is ready."
   };
 
   function ui(key) { return UI[key] || ""; }
 
   function renameLabel(name) { return "Rename mix " + name; }
-  function adoptLabel(name) { return "Adopt mix " + name + " into the IEMs folder"; }
+  function adoptLabel(name) { return "Adopt mix " + name + " into the IEMs folder (press and hold)"; }
   function deleteLabel(name) { return "Delete mix " + name + " (press and hold)"; }
-
-  // Row and column toggles: `kind` is "row" (one source to every mix) or "column" (every source to one mix).
-  var BULK_TARGET = {
-    row: function (name) { return name + " to every mix"; },
-    column: function (name) { return "every track to " + name; },
-  };
-  function allOnLabel(kind, name) { return "Switch on " + BULK_TARGET[kind](name); }
-  function allOffLabel(kind, name) { return "Switch off " + BULK_TARGET[kind](name) + " (press and hold)"; }
 
   function chip(phase) { return CHIP[phase] || ""; }
   function banner(phase) { return BANNER[phase] || ""; }
@@ -150,15 +145,61 @@
     return flags;
   }
 
+  // The sentence under the Cue panel: what the cue track needs now, or that it is ready. `offer` is core.cueOffer.
+  function cueStatus(offer) {
+    if (!offer.exists) return "No cue track yet. " + UI.createCueHint;
+    if (offer.action) return UI.repairCueHint;
+    if (offer.needsOutput) return UI.cueOutputNeededHint;
+    return UI.cueReady + " " + UI.cueOutputHint;
+  }
+
+  // The sentence under the Folder panel. `offer` is core.folderOffer.
+  function folderNote(offer) {
+    return offer.moveToEnd ? UI.colourHint + " " + UI.moveToEndHint : UI.colourHint;
+  }
+
+  // What a cell tag means, printed under the grid while a tag is on screen (a tooltip is invisible on touch).
+  function modeLegend(mode) {
+    if (mode === 0) return "post-fader send: it follows the FOH fader";
+    if (mode === 1) return "pre-FX send";
+    return "send that is not post-FX pre-fader";
+  }
+  var DOUBLE_LEGEND = "a folder and its child both feed this mix: it hears the source twice";
+
   function emptyMatrix(state) {
     if (!state.sources.length && !state.mixes.length) return "This project has no tracks yet.";
-    if (!state.mixes.length) return "No in-ear mixes yet. A mix is a track named IEM_ followed by a name.";
+    if (!state.mixes.length) return "No in-ear mixes yet. A mix is a track named IEM_ followed by a name. Create one with Mixes above.";
     return "";
   }
 
+  // The strip above the grid: one short status per setup panel, so a panel only opens when it has something to do.
+  function mixesStatus(count) { return count === 0 ? "None yet" : count === 1 ? "1 mix" : count + " mixes"; }
+  function folderStatus(offer) { return !offer || !offer.exists ? "None yet" : offer.moveToEnd ? "Tracks after it" : "Ready"; }
+  function cueSummary(offer) {
+    if (!offer || !offer.exists) return "Not made yet";
+    if (offer.action) return "Needs repair";
+    if (offer.needsOutput) return "Choose output";
+    return "Ready";
+  }
+
+  // The line shown after a change went through. `a` and `b` are the names it needs.
+  var DONE = {
+    create: function (a) { return "Created mix " + a + "."; },
+    rename: function (a) { return "Renamed the mix to " + a + "."; },
+    colour: function () { return "Changed the folder colour."; },
+    move: function () { return "Moved the IEMs folder to the end."; },
+    delete: function (a) { return "Deleted mix " + a + "."; },
+    adopt: function (a) { return "Adopted mix " + a + " into the IEMs folder."; },
+    cue: function () { return "The cue track is ready."; },
+    output: function (a) { return "Changed the output of " + a + "."; },
+    cellOn: function (a, b) { return "Switched on " + a + " to " + b + "."; },
+    cellOff: function (a, b) { return "Switched off " + a + " to " + b + "."; },
+  };
+  function done(kind, a, b) { return DONE[kind] ? DONE[kind](a, b) : ""; }
+
   function noMatch(filter) { return "No track matches “" + filter + "”."; }
 
-  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, allOnLabel: allOnLabel, allOffLabel: allOffLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, cuePickerLabel: CUE_PICKER_LABEL, clashText: clashText, modeText: modeText, modeTag: modeTag,
-    modeNote: modeNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, cellAction: cellAction, headerFlags: headerFlags,
-    emptyMatrix: emptyMatrix, noMatch: noMatch };
+  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, cuePickerLabel: CUE_PICKER_LABEL, clashText: clashText, modeText: modeText, modeTag: modeTag,
+    modeNote: modeNote, modeLegend: modeLegend, doubleLegend: DOUBLE_LEGEND, cueStatus: cueStatus, folderNote: folderNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, cellAction: cellAction, headerFlags: headerFlags,
+    emptyMatrix: emptyMatrix, noMatch: noMatch, mixesStatus: mixesStatus, folderStatus: folderStatus, cueSummary: cueSummary, done: done };
 });

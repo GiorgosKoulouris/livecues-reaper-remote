@@ -93,6 +93,13 @@ describe("state", function()
       assert.are.equal("{GUID-1}", read({ { name = "Kick" } }).sources[1].guid)
     end)
 
+    it("reports the track's own colour as rrggbb, and none when it has no colour", function()
+      local red = 0x1000000 + 0xFF + 0x20 * 256 + 0x30 * 65536
+      local sources = read({ { name = "Kick", colour = red }, { name = "Snare" } }).sources
+      assert.are.equal("ff2030", sources[1].tint)
+      assert.is_nil(sources[2].tint)
+    end)
+
     it("never reports a negative depth for a project with stray closers", function()
       assert.are.equal(0, read({ { name = "A", depth = -1 }, { name = "B" } }).sources[2].depth)
     end)

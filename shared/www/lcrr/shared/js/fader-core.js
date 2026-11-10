@@ -159,6 +159,15 @@
         if (wrote || pending) endReq = { target: target, value: value };
         pump();
       },
+      // Ends a wheel burst now instead of after the idle wait. True while its `e` is still to go out: the caller must
+      // not cancel() this controller then, or the move loses its undo entry. The stale check still guards the `e`.
+      finishWheel: function () {
+        if (wheelOn) {
+          if (wheelTimer !== null) { opts.clearTimer(wheelTimer); wheelTimer = null; }
+          wheelEnd();
+        }
+        return !!endReq;
+      },
       // The drag ends with no final write: mix closed, offline, row gone.
       cancel: function () {
         active = false; pending = null; endReq = null; wrote = false; wheelOn = false; seq++;

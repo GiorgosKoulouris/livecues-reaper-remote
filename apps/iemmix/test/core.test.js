@@ -339,22 +339,52 @@ test("a selection whose track moved or was renamed is gone, never another track'
   assert.strictEqual(core.selectMix(m.tracks(), 1), null); // not a listed mix
 });
 
-test("tapping a cell highlights its row in the panel that holds it", () => {
+test("a cell the open panel holds keeps that panel and highlights its row", () => {
   const m = read(MASTERS), t = m.tracks();
-  let s = core.selectCell(core.selectSource(t, 1), 1, 5);
+  let s = core.selectCell(t, core.selectSource(t, 1), 1, 5);
   assert.deepStrictEqual([s.kind, s.number, s.focus], ["source", 1, { mix: 5, source: 1 }]);
-  s = core.selectCell(core.selectMix(t, 4), 1, 4);
+  s = core.selectCell(t, core.selectMix(t, 4), 1, 4);
   assert.deepStrictEqual([s.kind, s.number, s.focus], ["mix", 4, { mix: 4, source: 1 }]);
-  const p = m.panel(core.selectCell(core.selectSource(t, 1), 1, 5));
+  const p = m.panel(core.selectCell(t, core.selectSource(t, 1), 1, 5));
   assert.deepStrictEqual(p.rows.map((r) => r.focused), [false, true]);
 });
 
-test("tapping a cell no open panel holds does nothing: the selection is returned as it was", () => {
-  const m = read(MASTERS), t = m.tracks();
-  const mix = core.selectMix(t, 4), src = core.selectSource(t, 1);
-  assert.strictEqual(core.selectCell(mix, 1, 5), mix);    // a cell of another mix
-  assert.strictEqual(core.selectCell(src, 3, 4), src);    // a cell of another source
-  assert.strictEqual(core.selectCell(null, 3, 4), null);  // no panel open
+test("a cell the open panel does not hold opens a panel of the same kind, and with none open its mix", () => {
+  const t = read(MASTERS).tracks();
+  let s = core.selectCell(t, core.selectMix(t, 4), 1, 5);
+  assert.deepStrictEqual([s.kind, s.number, s.focus], ["mix", 5, { mix: 5, source: 1 }]);
+  s = core.selectCell(t, core.selectSource(t, 1), 3, 4);
+  assert.deepStrictEqual([s.kind, s.number, s.focus], ["source", 3, { mix: 4, source: 3 }]);
+  s = core.selectCell(t, null, 3, 4);
+  assert.deepStrictEqual([s.kind, s.number, s.focus], ["mix", 4, { mix: 4, source: 3 }]);
+});
+
+test("the cell already highlighted, or a mix that is gone, leaves the selection as it was", () => {
+  const t = read(MASTERS).tracks();
+  const s = core.selectCell(t, core.selectMix(t, 4), 1, 4);
+  assert.strictEqual(core.selectCell(t, s, 1, 4), s);
+  assert.strictEqual(core.selectCell(t, null, 1, 99), null);
+});
+
+test("the Source column's width stays usable, and is null when nothing is saved", () => {
+  assert.strictEqual(core.sourceWidth(200.4, 1000), 200);
+  assert.strictEqual(core.sourceWidth(10, 1000), 120);
+  assert.strictEqual(core.sourceWidth(900, 1000), 480);
+  assert.strictEqual(core.sourceWidth(400, 300), 204);   // room left for a mix column
+  assert.strictEqual(core.sourceWidth(400, 150), 120);
+  assert.strictEqual(core.sourceWidth(400, 0), 400);     // the grid is still hidden
+  assert.strictEqual(core.sourceWidth(NaN, 1000), null);
+  assert.strictEqual(core.sourceWidth(null, 1000), null);
+});
+
+test("the grid's shape ignores levels and mutes, and follows what its DOM is built from", () => {
+  const cell = (o) => Object.assign({ vol: 1, db: "0.0", muted: false, sends: 1, tag: null, readOnly: false }, o);
+  const grid = (c, name) => ({ totalRows: 1, mixes: [{ number: 4, name: "Anna", duplicate: false }], rows: [{ source: 1, name: name || "Kick", color: 0, trackMuted: false, cells: [c] }] });
+  const base = core.gridShape(grid(cell()));
+  assert.strictEqual(core.gridShape(grid(cell({ vol: 0.5, db: "-6.0", muted: true }))), base);
+  assert.notStrictEqual(core.gridShape(grid(cell(), "Snare")), base);
+  assert.notStrictEqual(core.gridShape(grid(null)), base);
+  assert.notStrictEqual(core.gridShape(grid(cell({ tag: "2x", readOnly: true }))), base);
 });
 
 test("the stale check: a write goes only while unlocked and the row still addresses the same send", () => {

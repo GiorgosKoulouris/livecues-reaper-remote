@@ -22,20 +22,19 @@
 </header>
 
 <main class="iemmix-work">
-  <div class="iemmix-gridcol">
-    <div class="iemmix-tools">
-      <label class="iemmix-filter">
-        <span class="iemmix-label">Filter sources</span>
-        <input id="iemmix-filter" type="text" autocomplete="off" spellcheck="false" disabled>
-      </label>
-    </div>
-
+  <!-- The strip across the page: the filter names the grid's rows, Listen its columns. -->
+  <div class="iemmix-tools">
+    <input id="iemmix-filter" class="iemmix-filter" type="text" placeholder="Filter sources" aria-label="Filter sources" autocomplete="off" spellcheck="false" disabled>
     <section id="iemmix-listen" class="iemmix-listen" aria-label="Listen" hidden>
-      <h2 class="iemmix-label">Listen</h2>
+      <h2 class="iemmix-label iemmix-listen-label">Listen</h2>
       <div id="iemmix-listen-keys" class="iemmix-listen-keys"></div>
       <p id="iemmix-listen-note" class="iemmix-listen-note" role="status"></p>
     </section>
+  </div>
 
+  <!-- Grid and panel: two boxes with the same top and bottom edges. -->
+  <div class="iemmix-panes">
+  <div class="iemmix-gridcol">
     <p id="iemmix-empty" class="iemmix-message" role="status">Looking for mixes&hellip;</p>
 
     <div id="iemmix-scroll" class="iemmix-scroll" tabindex="0" role="region" aria-label="Level of every source in every mix" hidden>
@@ -48,10 +47,13 @@
 
   <aside id="iemmix-panel" class="iemmix-panel" aria-label="Faders" data-locked="true">
     <div class="iemmix-panel-head">
-      <h2 id="iemmix-panel-title" class="iemmix-panel-title">Faders</h2>
-      <span id="iemmix-panel-flag" class="iemmix-flag" hidden></span>
+      <div class="iemmix-panel-name">
+        <h2 id="iemmix-panel-title" class="iemmix-panel-title">Faders</h2>
+        <span id="iemmix-panel-flag" class="iemmix-flag" hidden></span>
+      </div>
+      <div class="iemmix-panel-cols" aria-hidden="true"><span class="iemmix-label">Pan</span><span class="iemmix-label">Mute</span></div>
     </div>
-    <p id="iemmix-panel-hint" class="iemmix-panel-hint">Tap a source name to see its send in every mix, or a mix name to see its sources and master level.</p>
+    <p id="iemmix-panel-hint" class="iemmix-panel-hint">Tap a cell to open its fader, a source name to see its send in every mix, or a mix name to see its sources and master level.</p>
     <p id="iemmix-panel-lock" class="iemmix-panel-hint iemmix-panel-lockhint" role="status">Locked. Press Unlock to change levels.</p>
     <ul id="iemmix-panel-list" class="iemmix-panel-list"></ul>
 
@@ -69,6 +71,7 @@
       <ul id="iemmix-snaps-list" class="iemmix-snaps-list"></ul>
     </section>
   </aside>
+  </div>
 </main>
 
 <footer class="lcrr-footer">

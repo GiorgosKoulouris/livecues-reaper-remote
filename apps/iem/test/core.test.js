@@ -92,6 +92,16 @@ test("matrix: rows are the source tracks in project order with depth", () => {
   m.rows.forEach((r) => assert.strictEqual(r.cells.length, 5));
 });
 
+test("matrix: a source's own colour comes through as #rrggbb, and a missing or bad one as null", () => {
+  const st = band();
+  st.sources[1].tint = "FF2030";
+  st.sources[2].tint = "red";
+  const m = core.buildMatrix(st, "");
+  assert.strictEqual(m.rows[1].tint, "#ff2030");
+  assert.strictEqual(m.rows[2].tint, null);
+  assert.strictEqual(m.rows[0].tint, null);
+});
+
 test("matrix: ON cells carry the level, mute and signal point", () => {
   const m = core.buildMatrix(band(), "");
   const row = (n) => m.rows.find((r) => r.name === n);
@@ -147,15 +157,10 @@ test("a project with no folder shows its mix as a stray; an empty folder holds n
   assert.strictEqual(replies.state_empty_folder.folder.is_folder, false);
 });
 
-test("the lock: editing needs a live bridge and one Unlock, and the lock closes with the bridge or the project", () => {
-  assert.strictEqual(core.canEdit("ready", false), false);
-  assert.strictEqual(core.canEdit("ready", true), true);
-  ["connecting", "offline", "bridge-down"].forEach((phase) => assert.strictEqual(core.canEdit(phase, true), false, phase));
-  assert.strictEqual(core.stillUnlocked(false, "ready", "a.rpp", "a.rpp"), false);
-  assert.strictEqual(core.stillUnlocked(true, "ready", "a.rpp", "a.rpp"), true);
-  assert.strictEqual(core.stillUnlocked(true, "ready", null, "a.rpp"), true);
-  assert.strictEqual(core.stillUnlocked(true, "ready", "a.rpp", "b.rpp"), false);
-  assert.strictEqual(core.stillUnlocked(true, "bridge-down", "a.rpp", "a.rpp"), false);
+test("editing needs a live bridge and nothing else: there is no lock", () => {
+  assert.strictEqual(core.canEdit("ready"), true);
+  ["connecting", "offline", "bridge-down"].forEach((phase) => assert.strictEqual(core.canEdit(phase), false, phase));
+  assert.strictEqual(core.stillUnlocked, undefined);
 });
 
 test("checkMixName: trimmed, never empty, never another mix's name; a mix may keep its own", () => {
@@ -350,6 +355,16 @@ test("without a cue track the page offers Create cue; with sends missing, the sa
   assert.strictEqual(gap.picker.value, "none");
 });
 
+test("a cue track missing only solo defeat is repaired, and the output is asked for until one is chosen", () => {
+  const base = { mixes: [], sources: [], device: { channels: [] } };
+  const bare = core.cueOffer(Object.assign({ cue: { guid: "{Q}", outputs: [], missing: 0, unprotected: 1 } }, base));
+  assert.deepStrictEqual([bare.action, bare.unprotected, bare.needsOutput], ["repair", 1, true]);
+  const done = core.cueOffer(Object.assign({ cue: { guid: "{Q}", outputs: [{ channel: 2, mono: true }], missing: 0, unprotected: 0 } }, base));
+  assert.deepStrictEqual([done.action, done.needsOutput], [null, false]);
+  const recorded = core.cueOffer(core.readState(replies.state_cue));
+  assert.deepStrictEqual([recorded.unprotected, recorded.needsOutput], [0, false]);
+});
+
 test("Monitor's mix list is the same with the cue track in the project (shared listing rule, recorded state)", () => {
   const reaper = require("../../../shared/www/lcrr/shared/js/reaper.js");
   const state = replies.state_cue;
@@ -366,4 +381,17 @@ test("the recorded cue replies say what they did", () => {
   assert.strictEqual(replies.cue_create.status, "ok");
   assert.strictEqual(replies.cue_unchanged.changed, false);
   assert.strictEqual(replies.cell_cue_not_a_source.error.code, "not_a_source");
+});
+
+test("grid keys move one cell, stop at the edges, and Home/End go to the row ends or, with Ctrl, the corners", () => {
+  assert.deepStrictEqual(core.gridMove("ArrowRight", 1, 1, 3, 3, false), [1, 2]);
+  assert.deepStrictEqual(core.gridMove("ArrowRight", 1, 2, 3, 3, false), [1, 2]);
+  assert.deepStrictEqual(core.gridMove("ArrowLeft", 0, 0, 3, 3, false), [0, 0]);
+  assert.deepStrictEqual(core.gridMove("ArrowDown", 1, 1, 3, 3, false), [2, 1]);
+  assert.deepStrictEqual(core.gridMove("ArrowUp", 0, 1, 3, 3, false), [0, 1]);
+  assert.deepStrictEqual(core.gridMove("Home", 2, 2, 3, 3, false), [2, 0]);
+  assert.deepStrictEqual(core.gridMove("End", 2, 0, 3, 3, false), [2, 2]);
+  assert.deepStrictEqual(core.gridMove("Home", 2, 2, 3, 3, true), [0, 0]);
+  assert.deepStrictEqual(core.gridMove("End", 0, 0, 3, 3, true), [2, 2]);
+  assert.strictEqual(core.gridMove("Enter", 1, 1, 3, 3, false), null);
 });

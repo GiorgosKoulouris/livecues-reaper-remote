@@ -1,7 +1,7 @@
 // IEM Setup: UI wiring. Talks to the Lua bridge through client.js; the logic is core.js and every sentence comes from
 // words.js. DOM is built with textContent only: track and mix names are user data.
-// Writes (create, rename, colour, move to end, delete, output, matrix cell) go through `write()`, which is the one place that checks the lock
-// (core.canEdit); each command adds its keys and calls it the same way.
+// Writes (create, rename, colour, move to end, delete, output, matrix cell) go through `write()`, which is the one place that checks
+// core.canEdit (a live bridge, nothing in flight; there is no lock: apps/iem/docs/adr/0001); each command adds its keys and calls it the same way.
 (function () {
   "use strict";
   var S = LCRR.shared, I = LCRR.iem, wire = I.wire, core = I.core, words = I.words;
@@ -21,19 +21,27 @@
   function $(id) { return document.getElementById(id); }
   var els = {
     chip: $("iem-state"), chipText: $("iem-state-text"), banner: $("iem-banner"),
-    project: $("iem-project"), projectName: $("iem-project-name"), filter: $("iem-filter"),
-    lock: $("iem-lock"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
+    setup: $("iem-setup"), projectName: $("iem-project-name"), filter: $("iem-filter"), done: $("iem-done"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
     createCopy: $("iem-create-copy"), createCopyLabel: $("iem-create-copy-label"),
     createGo: $("iem-create-go"), colourBox: $("iem-colour-box"), colourLabel: $("iem-colour-label"), colour: $("iem-colour"),
     move: $("iem-move"), cue: $("iem-cue"), cueOutBox: $("iem-cue-out-box"), cueOutLabel: $("iem-cue-out-label"),
     cueOut: $("iem-cue-out"),
-    message: $("iem-message"), empty: $("iem-empty"), scroll: $("iem-scroll"), head: $("iem-head"), body: $("iem-body")
+    message: $("iem-message"), empty: $("iem-empty"), scroll: $("iem-scroll"), head: $("iem-head"), body: $("iem-body"),
+    panels: $("iem-panels"), legend: $("iem-legend"),
+    folderNote: $("iem-folder-note"), cueNote: $("iem-cue-note"), footer: document.querySelector(".lcrr-footer")
   };
+  // The three setup jobs: a disclosure key in the strip above the grid and the panel it opens.
+  var SETUP = ["mixes", "folder", "cue"];
+  var setup = {};
+  SETUP.forEach(function (k) {
+    setup[k] = { toggle: $("iem-tog-" + k), status: $("iem-status-" + k), panel: $("iem-panel-" + k) };
+  });
 
-  // `unlocked`: the page opens locked. `note`: the last write's refusal, kept on screen across refreshes until the next
-// attempt. `renaming`: { guid, value, focus } while a column header is being edited.
-var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, reading: false, again: false, projectPath: null,
-    unlocked: false, busy: false, note: "", renaming: null };
+  // `note`: the last write's refusal, kept on screen across refreshes until the next attempt. `renaming`: { guid, value, focus }
+  // while a column header is being edited. `open`: the setup panel showing (undefined until the first read picks one, null
+  // for none). `more`: the mix whose More group is open.
+  var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, reading: false, again: false, projectPath: null,
+    busy: false, focusCell: null, note: "", renaming: null, more: null, focusMore: null, open: undefined, undoTold: false, doneTimer: null };
 
   function h(tag, cls, text) {
     var e = document.createElement(tag);
@@ -43,7 +51,10 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   }
   function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); }
 
-  // ---- the lock and the editing controls ------------------------------------------------------------------------------
+  // ---- the editing controls ------------------------------------------------------------------------------
+  setup.mixes.toggle.firstChild.textContent = words.ui("panelMixes");
+  setup.folder.toggle.firstChild.textContent = words.ui("panelFolder");
+  setup.cue.toggle.firstChild.textContent = words.ui("panelCue");
   els.createLabel.textContent = words.ui("newMix");
   els.createGo.textContent = words.ui("create");
   els.createCopyLabel.textContent = words.ui("copyFrom");
@@ -57,6 +68,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     var key = JSON.stringify(mixes.map(function (m) { return [m.guid, m.name]; }));
     if (key === copyKey) return;
     copyKey = key;
+    els.createCopy.parentNode.hidden = !mixes.length; // nothing to copy from yet
     var chosen = els.createCopy.value;
     clear(els.createCopy);
     var none = h("option", null, words.ui("copyFromNone"));
@@ -75,47 +87,85 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   els.move.title = words.ui("moveToEndHint");
   els.colourBox.title = words.ui("colourHint");
 
-  function editable() { return core.canEdit(ui.phase, ui.unlocked) && !ui.busy; }
+  function editable() { return core.canEdit(ui.phase) && !ui.busy; }
 
   function updateControls() {
     var offer = ui.state ? core.folderOffer(ui.state) : null;
     var ok = editable();
-    els.lock.disabled = ui.phase !== "ready";
-    els.lock.textContent = words.ui(ui.unlocked ? "lock" : "unlock");
-    els.lock.title = words.ui(ui.unlocked ? "unlockedHint" : "unlockHint");
-    els.lock.setAttribute("aria-pressed", ui.unlocked ? "true" : "false");
-    els.create.hidden = !ui.state;
-    els.colourBox.hidden = !ui.state;
+    els.setup.hidden = !ui.state;
+    renderChip();
     updateCopyOptions();
     els.createName.disabled = !ok;
     els.createCopy.disabled = !ok;
     els.createGo.disabled = !ok;
     els.colour.disabled = !ok;
-    els.move.hidden = !(offer && offer.moveToEnd);
-    els.move.disabled = !ok;
+    // The Move key stays in its place; it is only live while something sits after the folder.
+    els.move.disabled = !(ok && offer && offer.moveToEnd);
+    els.folderNote.textContent = offer && offer.moveToEnd ? words.folderNote(offer) : ""; // only while there is something to say
     updateCue(ok);
+    updateSetup(offer);
   }
 
-  // The cue track: Create cue (or Add missing cue sends) while something is missing, and its output picker once it
-  // exists, both while unlocked and through write(). The picker is rebuilt only when what it shows changes, and never
+  // The strip's keys: a status in words per setup job (never colour alone), and the panel that is open. A job that needs
+  // something (no mix yet, tracks after the folder, a cue track to make or repair or give an output) is marked. Only an
+  // empty project opens a panel by itself (Mixes, the job it starts on); otherwise the grid keeps the height.
+  function setupAttention(folder, cue) {
+    return { mixes: !!ui.state && ui.state.mixes.length === 0, folder: !!folder && folder.moveToEnd, cue: !!cue && (!!cue.action || !!cue.needsOutput) };
+  }
+  function updateSetup(folder) {
+    if (!ui.state) return;
+    var cue = core.cueOffer(ui.state);
+    var attn = setupAttention(folder, cue);
+    var text = { mixes: words.mixesStatus(ui.state.mixes.length), folder: words.folderStatus(folder), cue: words.cueSummary(cue) };
+    if (ui.open === undefined) {
+      ui.open = attn.mixes ? "mixes" : null;
+    }
+    SETUP.forEach(function (k) {
+      var on = ui.open === k;
+      if (setup[k].status.textContent !== text[k]) setup[k].status.textContent = text[k];
+      setup[k].toggle.setAttribute("aria-expanded", on ? "true" : "false");
+      setup[k].toggle.setAttribute("data-attn", attn[k] ? "true" : "false");
+      setup[k].panel.hidden = !on;
+    });
+    fitScroll();
+  }
+  SETUP.forEach(function (k) {
+    setup[k].toggle.addEventListener("click", function () { ui.open = ui.open === k ? null : k; updateControls(); });
+  });
+
+  // The grid scrolls inside its own box so its headers stay put; the box takes what is left between its top and the footer,
+  // so the page does not scroll as well. It never gets shorter than the CSS minimum.
+  function fitScroll() {
+    if (els.scroll.hidden) return;
+    var top = els.scroll.getBoundingClientRect().top + (window.pageYOffset || 0);
+    var room = window.innerHeight - top - (els.footer ? els.footer.offsetHeight : 0) - 8;
+    els.scroll.style.maxHeight = Math.max(192, Math.floor(room)) + "px";
+  }
+  window.addEventListener("resize", fitScroll);
+
+  // The cue track: Create cue (or Repair cue) while something is missing, and its output picker once it
+  // exists, both through write(). The picker is rebuilt only when what it shows changes, and never
   // while it is open (a refresh must not close it).
-  els.cueOutLabel.textContent = words.ui("cueOutput");
-  els.cueOutBox.title = words.ui("cueOutputHint");
   function updateCue(ok) {
     var offer = ui.state ? core.cueOffer(ui.state) : null;
-    var show = !!offer && ok;
+    var show = !!offer;
     els.cue.hidden = !(show && offer.action);
     els.cue.disabled = !ok;
+    els.cueNote.textContent = offer && (offer.action || offer.needsOutput) ? words.cueStatus(offer) : "";
     if (offer && offer.action) {
-      els.cue.textContent = words.ui(offer.action === "create" ? "createCue" : "addCueSends");
-      els.cue.title = words.ui(offer.action === "create" ? "createCueHint" : "addCueSendsHint");
+      els.cue.textContent = words.ui(offer.action === "create" ? "createCue" : "repairCue");
+      els.cue.title = words.ui(offer.action === "create" ? "createCueHint" : "repairCueHint");
     }
+    // Until the engineer has chosen the headphone output the label says so.
+    var needed = !!offer && offer.needsOutput;
+    els.cueOutLabel.textContent = words.ui(needed ? "cueOutputNeeded" : "cueOutput");
+    els.cueOutBox.title = words.ui(needed ? "cueOutputNeededHint" : "cueOutputHint");
     els.cueOutBox.hidden = !(show && offer.picker);
     if (!show || !offer.picker) return;
     var info = offer.picker;
     var names = ui.state.device ? ui.state.device.channels : [];
     var key = JSON.stringify([info, names]);
-    els.cueOut.disabled = ui.busy || info.deviceClosed || info.readOnly;
+    els.cueOut.disabled = !ok || info.deviceClosed || info.readOnly;
     if (key === els.cueOut.getAttribute("data-key") || document.activeElement === els.cueOut) return;
     els.cueOut.setAttribute("data-key", key);
     clear(els.cueOut);
@@ -128,28 +178,31 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     els.cueOut.value = info.value;
   }
 
-  els.cue.addEventListener("click", function () { write(function () { return client.createCue(); }); });
+  els.cue.addEventListener("click", function () { write(function () { return client.createCue(); }, words.done("cue")); });
   els.cueOut.addEventListener("change", function () {
     var offer = ui.state && core.cueOffer(ui.state);
     var choice = core.parseOutputChoice(els.cueOut.value);
-    if (offer && offer.exists && choice) write(function () { return client.setOutput(offer.guid, choice); });
+    if (offer && offer.exists && choice) write(function () { return client.setOutput(offer.guid, choice); }, words.done("output", "the cue track"));
   });
 
-  function setUnlocked(on) {
-    ui.unlocked = on;
-    if (!on) { ui.renaming = null; ui.note = ""; showMessage(""); }
-    updateControls();
-    render();
+  // The one gate for every project change: refused while busy or the bridge is away. `send` returns the client's
+  // promise; `doneText` is the line shown when the bridge says ok (the first one adds where undo is). A refusal is shown
+  // in words; either way the page then re-reads the project, so it shows what REAPER holds now (including after "that
+  // track is gone"). Resolves true when the bridge said ok.
+  function showDone(text) {
+    clearTimeout(ui.doneTimer);
+    if (text && !ui.undoTold) { text += " " + words.ui("undoNote"); ui.undoTold = true; }
+    els.done.textContent = text || "";
+    els.done.hidden = !text;
+    if (text) ui.doneTimer = setTimeout(function () { showDone(""); }, 6000);
   }
 
-  // The one gate for every project change: refused while locked, busy or the bridge is away. `send` returns the
-  // client's promise. A refusal is shown in words; either way the page then re-reads the project, so it shows what
-  // REAPER holds now (including after "that track is gone"). Resolves true when the bridge said ok.
-  function write(send) {
+  function write(send, doneText) {
     if (!editable()) return Promise.resolve(false);
     ui.busy = true;
     ui.note = "";
     showMessage("");
+    showDone("");
     updateControls();
     return send().then(function (reply) {
       return !!reply && reply.status === "ok" ? "" : words.error(reply && reply.error);
@@ -159,6 +212,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       ui.busy = false;
       ui.note = note;
       showMessage(note);
+      if (!note) showDone(doneText);
       updateControls();
       // A refresh that landed while the write was out painted every key disabled, and updateControls does not reach
       // them; with nothing changed in REAPER the next read would not repaint either, so repaint here.
@@ -173,15 +227,13 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     showMessage(ui.note);
   }
 
-  els.lock.addEventListener("click", function () { setUnlocked(!ui.unlocked); });
-
   els.create.addEventListener("submit", function (e) {
     e.preventDefault();
     if (!ui.state || !editable()) return;
     var check = core.checkMixName(ui.state, els.createName.value, null);
     if (!check.ok) { refuse(check.code); return; }
     var copyFrom = els.createCopy.value;
-    write(function () { return client.create(check.name, copyFrom); }).then(function (ok) {
+    write(function () { return client.create(check.name, copyFrom); }, words.done("create", check.name)).then(function (ok) {
       if (ok) { els.createName.value = ""; els.createCopy.value = ""; }
     });
   });
@@ -189,12 +241,12 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   els.colour.addEventListener("change", function () {
     var hex = core.colourField(els.colour.value);
     if (!hex) { refuse("bad_colour"); return; }
-    write(function () { return client.colour(hex); });
+    write(function () { return client.colour(hex); }, words.done("colour"));
   });
 
   els.move.addEventListener("click", function () {
     var offer = ui.state && core.folderOffer(ui.state);
-    if (offer && offer.moveToEnd) write(function () { return client.moveToEnd(offer.guid); });
+    if (offer && offer.moveToEnd) write(function () { return client.moveToEnd(offer.guid); }, words.done("move"));
   });
 
   function saveRename() {
@@ -203,24 +255,29 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     var check = core.checkMixName(ui.state, r.value, r.guid);
     if (!check.ok) { refuse(check.code); return; }
     if (check.unchanged) { ui.renaming = null; showMessage(""); render(); return; }
-    write(function () { return client.rename(r.guid, check.name); }).then(function (ok) {
+    write(function () { return client.rename(r.guid, check.name); }, words.done("rename", check.name)).then(function (ok) {
       if (ok) { ui.renaming = null; render(); }
     });
   }
 
   // ---- connection phase -------------------------------------------------------------------------------------------
+  // The chip says "Applying…" while a write is out, so the engineer sees the page took the touch.
+  function renderChip() {
+    var text = ui.busy && ui.phase === "ready" ? words.ui("applying") : words.chip(ui.phase);
+    if (els.chipText.textContent !== text) els.chipText.textContent = text;
+  }
+
   function applyPhase() {
     var was = ui.phase;
     var next = core.connectionPhase(conn.isOffline(), ui.everLive, beat.state());
     ui.phase = next;
     els.chip.setAttribute("data-state", next);
     document.body.setAttribute("data-state", next);
-    if (els.chipText.textContent !== words.chip(next)) els.chipText.textContent = words.chip(next);
+    renderChip();
     els.banner.textContent = words.banner(next);
     els.banner.hidden = !words.banner(next);
     els.filter.disabled = !ui.state;
-    if (ui.unlocked && !core.stillUnlocked(true, next, ui.projectPath, ui.projectPath)) setUnlocked(false); // the bridge went away
-    else updateControls();
+    updateControls();
     if (next === "ready" && was !== "ready") readState();
   }
 
@@ -248,14 +305,15 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       if (!state) { showMessage(words.error(reply && reply.error)); return; }
       showMessage(ui.note);
       var path = state.project ? state.project.path : "";
-      if (ui.unlocked && !core.stillUnlocked(true, ui.phase, ui.projectPath, path)) { ui.unlocked = false; ui.renaming = null; ui.note = ""; showMessage(""); }
+      // Another project became the active one: nothing half-done (a rename, an open More, a message) carries over.
+      if (ui.projectPath !== null && ui.projectPath !== path) { ui.renaming = null; ui.more = null; ui.note = ""; showMessage(""); showDone(""); ui.open = undefined; }
       ui.projectPath = path;
       var key = JSON.stringify(state);
       if (key === ui.stateKey) { updateControls(); return; } // nothing changed in REAPER: leave the grid (and its scroll position) alone
       ui.stateKey = key;
       ui.state = state;
-      els.project.hidden = false;
-      els.projectName.textContent = state.project && state.project.name ? state.project.name : "(unsaved project)";
+      els.projectName.textContent = state.project && state.project.name ? state.project.name : words.ui("unsavedProject");
+      els.projectName.title = els.projectName.textContent;
       els.filter.disabled = false;
       els.colour.value = core.folderOffer(state).colour;
       updateControls();
@@ -283,7 +341,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       else if (e.key === "Escape") { ui.renaming = null; render(); }
     });
     var keys = h("div", "iem-rename-keys");
-    var save = h("button", "iem-primary", words.ui("save"));
+    var save = h("button", "", words.ui("save"));
     save.type = "button";
     save.disabled = !editable();
     save.addEventListener("click", saveRename);
@@ -297,7 +355,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     return box;
   }
 
-  // A press-and-hold key (LCRR.shared.hold), for Delete and bulk off (issue 08). It owns the listeners and tells the render
+  // A press-and-hold key (LCRR.shared.hold), for Delete and Adopt. It owns the listeners and tells the render
   // gate a hold is active. A release is caught on the document as well as on the key, so it cancels an unfinished hold
   // even if the key has been replaced. There is no click handler on purpose: a plain tap must never act.
   // `onComplete` is called once, after the hold ends and any deferred rebuild has run; it should go through write().
@@ -337,57 +395,35 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   }
   var DOC_RELEASE = ["pointerup", "pointercancel"];
 
-  // Delete: through write() like every change, and the key exists only while unlocked.
+  // A hold key reads as one: a chamfered key with a warn edge and a HOLD legend, never a link-like quiet button.
+  function holdFace(btn, text) {
+    btn.appendChild(h("span", "iem-hold-text", text));
+    btn.appendChild(h("span", "iem-hold-legend", words.ui("holdLegend")));
+    return btn;
+  }
+
+  // Delete: a press-and-hold in the mix's More group, through write() like every change.
   function deleteKey(col) {
-    var btn = h("button", "iem-quiet iem-delete", words.ui("delete"));
+    var btn = holdFace(h("button", "iem-hold iem-delete"), words.ui("delete"));
     btn.type = "button";
     btn.disabled = ui.busy;
     btn.title = words.ui("deleteHint");
     btn.setAttribute("aria-label", words.deleteLabel(col.name));
-    return holdKey(btn, function () { write(function () { return client.deleteMix(col.guid); }); });
+    return holdKey(btn, function () { write(function () { return client.deleteMix(col.guid); }, words.done("delete", col.name)); });
   }
 
-  // Adopt, shown only on a stray, through write() like every change.
+  // Adopt, shown only on a stray: it moves the track, turns its master send off and changes its sends, which can change
+  // what a musician hears, so it is a press-and-hold like Delete. Through write() like every change.
   function adoptKey(col) {
-    var btn = h("button", "iem-quiet iem-adopt", words.ui("adopt"));
+    var btn = holdFace(h("button", "iem-hold iem-adopt"), words.ui("adopt"));
     btn.type = "button";
     btn.disabled = ui.busy;
     btn.title = words.ui("adoptHint");
     btn.setAttribute("aria-label", words.adoptLabel(col.name));
-    btn.addEventListener("click", function () { write(function () { return client.adopt(col.guid); }); });
-    return btn;
+    return holdKey(btn, function () { write(function () { return client.adopt(col.guid); }, words.done("adopt", col.name)); });
   }
 
-  // Row and column toggles, shown only while unlocked: All on is one tap (it adds what is missing and leaves existing
-  // sends alone), All off is press-and-hold (it removes every send of the row or column). Both go through write() and
-  // send only the ID; the bridge works out the rest. `kind` is "row" or "column".
-  function bulkKeys(kind, item) {
-    var box = h("div", "iem-bulk");
-    var on = h("button", "iem-quiet iem-bulk-on", words.ui("allOn"));
-    on.type = "button";
-    on.disabled = ui.busy;
-    on.title = words.ui("allOnHint");
-    on.setAttribute("aria-label", words.allOnLabel(kind, item.name));
-    on.addEventListener("click", function () { bulkWrite(kind, item, true); });
-    var off = h("button", "iem-quiet iem-bulk-off", words.ui("allOff"));
-    off.type = "button";
-    off.disabled = ui.busy;
-    off.title = words.ui("allOffHint");
-    off.setAttribute("aria-label", words.allOffLabel(kind, item.name));
-    holdKey(off, function () { bulkWrite(kind, item, false); });
-    box.appendChild(on);
-    box.appendChild(off);
-    return box;
-  }
-  var BULK_SEND = {
-    row: function (item, on) { var r = core.rowRequest(item, on); return client.row(r.source, r.on); },
-    column: function (item, on) { var c = core.columnRequest(item, on); return client.column(c.mix, c.on); },
-  };
-  function bulkWrite(kind, item, on) {
-    write(function () { return BULK_SEND[kind](item, on); });
-  }
-
-  // The output picker of one mix, shown only while unlocked and never for a mix with several outputs (read-only: the
+  // The output picker of one mix, never shown for a mix with several outputs (read-only: the
   // bridge refuses it too). While it is open the grid is not rebuilt (a refresh, such as a musician moving a fader on
   // Monitor, would close it): the picker guard holds the render gate from its first press or focus until it closes
   // (a choice, or focus leaving), and the rebuild deferred meanwhile then runs once. A choice goes through write().
@@ -419,7 +455,7 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       var choice = core.parseOutputChoice(select.value);
       guard.close();
       if (!choice) return;
-      write(function () { return client.setOutput(col.guid, choice); });
+      write(function () { return client.setOutput(col.guid, choice); }, words.done("output", col.name));
     });
     box.appendChild(select);
     return box;
@@ -428,26 +464,43 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   function headerCell(col) {
     var th = h("th", "iem-mix" + (col.noOutput ? " is-no-output" : ""));
     th.scope = "col";
+    var top = null;
     var editing = ui.renaming && ui.renaming.guid === col.guid;
     if (editing) {
       th.appendChild(renameBox(col));
     } else {
-      th.appendChild(h("span", "iem-mix-name", col.name));
-      if (core.canEdit(ui.phase, ui.unlocked)) {
-        var rename = h("button", "iem-quiet", words.ui("rename"));
-        rename.type = "button";
-        rename.disabled = ui.busy;
-        rename.setAttribute("aria-label", words.renameLabel(col.name));
-        rename.addEventListener("click", function () { ui.renaming = { guid: col.guid, value: col.name, focus: true }; render(); });
+      top = h("div", "iem-mix-top");
+      top.appendChild(h("span", "iem-mix-name", col.name));
+      th.appendChild(top);
+      if (core.canEdit(ui.phase)) {
+        // Two things in the header: the output picker below, and More. Rename, Adopt and Delete sit
+        // in More; the ones that remove or change what is heard are press-and-hold.
         var keys = h("div", "iem-mix-keys");
-        keys.appendChild(rename);
-        if (col.stray) keys.appendChild(adoptKey(col));
-        keys.appendChild(deleteKey(col));
-        keys.appendChild(bulkKeys("column", col));
-        th.appendChild(keys);
+        var open = ui.more === col.guid;
+        var more = h("button", "iem-quiet iem-more", words.ui(open ? "less" : "more"));
+        more.type = "button";
+        more.setAttribute("aria-expanded", open ? "true" : "false");
+        more.title = words.ui("moreHint");
+        more.addEventListener("click", function () { ui.more = open ? null : col.guid; ui.focusMore = col.guid; render(); });
+        more.setAttribute("data-more", col.guid);
+        keys.appendChild(more);
+        top.appendChild(keys);
+        if (col.stray) th.appendChild(h("p", "iem-key-note", words.ui("adoptNote")));
+        if (open) {
+          var group = h("div", "iem-hold-group");
+          var rename = h("button", "iem-quiet", words.ui("rename"));
+          rename.type = "button";
+          rename.disabled = ui.busy;
+          rename.setAttribute("aria-label", words.renameLabel(col.name));
+          rename.addEventListener("click", function () { ui.renaming = { guid: col.guid, value: col.name, focus: true }; ui.more = null; render(); });
+          group.appendChild(rename);
+          if (col.stray) group.appendChild(adoptKey(col));
+          group.appendChild(deleteKey(col));
+          th.appendChild(group);
+        }
       }
     }
-    if (core.canEdit(ui.phase, ui.unlocked) && !col.readOnlyOutput) th.appendChild(outputPicker(col));
+    if (core.canEdit(ui.phase) && !col.readOnlyOutput) th.appendChild(outputPicker(col));
     else th.appendChild(h("span", "iem-mix-out", words.outputText(col.output)));
     var flags = words.headerFlags(col).filter(function (f) { return f.code !== "no-output"; });
     if (flags.length) {
@@ -458,24 +511,27 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     return th;
   }
 
-  // While unlocked a cell is a key: one tap switches it on, or off (every send of the pair, no warning). It goes
-  // through write(), so a second tap while one is out is ignored (the key is disabled while busy).
+  // A cell is a key: one tap switches it on, or off (every send of the pair, no warning; the done line says where undo
+  // is). It goes through write(), so a second tap while one is out is ignored (the key is disabled while busy).
   function cellKey(row, col, cell) {
     var btn = h("button", "iem-cell-key");
     btn.type = "button";
     btn.disabled = ui.busy;
+    btn.tabIndex = -1; // roving: paint() makes one cell the grid's tab stop
+    btn.setAttribute("data-row", row.guid);
+    btn.setAttribute("data-mix", col.guid);
     btn.setAttribute("aria-label", words.cellLabel(row, col, cell) + ". " + words.cellAction(row, col, cell));
     btn.title = words.cellAction(row, col, cell);
     btn.addEventListener("click", function () {
       var ask = core.cellRequest(row, col, cell);
-      write(function () { return client.cell(ask.source, ask.mix, ask.on); });
+      write(function () { return client.cell(ask.source, ask.mix, ask.on); }, words.done(ask.on ? "cellOn" : "cellOff", row.name, col.name));
     });
     return btn;
   }
 
   function dataCell(row, col, cell) {
     var td = h("td", "iem-cell");
-    var keyed = core.canEdit(ui.phase, ui.unlocked);
+    var keyed = core.canEdit(ui.phase);
     if (!keyed) td.appendChild(h("span", "lcrr-sr", words.cellLabel(row, col, cell)));
     if (cell) td.className += " is-on" + (cell.muted ? " is-muted" : "");
     if (keyed) td.appendChild(cellKey(row, col, cell));
@@ -503,6 +559,71 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
   var gate = core.createRenderGate(function () { paint(); });
   function render() { gate.request(); }
 
+  // Under the grid, once per tag on screen: what POST, PRE, MODE and 2× mean (tooltips do not exist on touch).
+  function paintLegend(matrix) {
+    var modes = [], twice = false;
+    matrix.rows.forEach(function (row) {
+      row.cells.forEach(function (cell) {
+        if (!cell) return;
+        if (cell.nonStandard && modes.indexOf(cell.mode) === -1) modes.push(cell.mode);
+        if (cell.doubleFeed) twice = true;
+      });
+    });
+    clear(els.legend);
+    var items = modes.map(function (m) { return [words.modeTag(m), words.modeLegend(m)]; });
+    if (twice) items.push(["2×", words.doubleLegend]);
+    items.forEach(function (it) {
+      var span = h("span", "iem-legend-item");
+      span.appendChild(h("span", "iem-tag", it[0]));
+      span.appendChild(document.createTextNode(" " + it[1]));
+      els.legend.appendChild(span);
+    });
+    els.legend.hidden = !items.length;
+  }
+
+  // The grid is one tab stop (roving tabindex) with arrow-key travel, and a rebuild puts focus back on the cell that had
+  // it: every write repaints the grid, which would otherwise drop a keyboard user at the top of the page.
+  function cellKeys() { return els.body.querySelectorAll(".iem-cell-key"); }
+  function isCellKey(e) { return !!e && e.classList && e.classList.contains("iem-cell-key"); }
+  function findCellKey(pos) {
+    var found = null;
+    Array.prototype.forEach.call(cellKeys(), function (b) {
+      if (b.getAttribute("data-row") === pos.row && b.getAttribute("data-mix") === pos.mix) found = b;
+    });
+    return found;
+  }
+  function setTabStop(btn) {
+    Array.prototype.forEach.call(cellKeys(), function (b) { b.tabIndex = b === btn ? 0 : -1; });
+  }
+  function restoreCellFocus() {
+    var keys = cellKeys();
+    if (!keys.length) return;
+    var target = ui.focusCell ? findCellKey(ui.focusCell) : null;
+    setTabStop(target || keys[0]);
+    var head = els.head.getBoundingClientRect().height; // keep a focused cell clear of the sticky headers
+    els.scroll.style.scrollPaddingTop = head + "px";
+    els.scroll.style.scrollPaddingLeft = els.body.querySelector("th") ? els.body.querySelector("th").getBoundingClientRect().width + "px" : "0";
+    if (target && !ui.busy && document.activeElement !== target) target.focus({ preventScroll: true });
+  }
+  els.body.addEventListener("focusin", function (e) {
+    if (!isCellKey(e.target)) return;
+    ui.focusCell = { row: e.target.getAttribute("data-row"), mix: e.target.getAttribute("data-mix") };
+    setTabStop(e.target);
+  });
+  els.body.addEventListener("focusout", function (e) {
+    // Focus going to something else ends the memory; the grid being rebuilt under it (no destination) does not.
+    if (e.relatedTarget && !isCellKey(e.relatedTarget)) ui.focusCell = null;
+  });
+  els.body.addEventListener("keydown", function (e) {
+    if (!isCellKey(e.target) || e.altKey || e.metaKey) return;
+    var td = e.target.closest("td"), tr = td.parentNode, rows = els.body.rows;
+    var to = core.gridMove(e.key, tr.sectionRowIndex, td.cellIndex - 1, rows.length, tr.cells.length - 1, e.ctrlKey);
+    if (!to) return;
+    e.preventDefault();
+    var next = rows[to[0]].cells[to[1] + 1].querySelector(".iem-cell-key");
+    if (next && !next.disabled) next.focus();
+  });
+
   function paint() {
     var state = ui.state;
     if (!state) return;
@@ -515,11 +636,12 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
     els.empty.textContent = emptyText;
     els.empty.hidden = !emptyText;
     els.scroll.hidden = !matrix.columns.length;
+    els.filter.hidden = els.scroll.hidden; // no grid, nothing to filter
 
     clear(els.head);
     clear(els.body);
     var tr = h("tr");
-    var corner = h("th", "iem-corner", "Tracks");
+    var corner = h("th", "iem-corner", words.ui("tracks"));
     corner.scope = "col";
     tr.appendChild(corner);
     matrix.columns.forEach(function (col) { tr.appendChild(headerCell(col)); });
@@ -529,15 +651,25 @@ var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, re
       var r = h("tr", "iem-row" + (row.isFolder ? " is-folder" : ""));
       var th = h("th");
       th.scope = "row";
+      if (row.tint) { th.classList.add("is-tinted"); th.style.setProperty("--c", row.tint); }
       var name = h("span", "iem-row-name", row.name);
       name.style.paddingLeft = (0.75 + row.depth * 1.25) + "rem";
-      th.appendChild(name);
-      if (core.canEdit(ui.phase, ui.unlocked)) th.appendChild(bulkKeys("row", row));
+      var head = h("div", "iem-row-head");
+      head.appendChild(name);
+      th.appendChild(head);
       r.appendChild(th);
       row.cells.forEach(function (cell, i) { r.appendChild(dataCell(row, matrix.columns[i], cell)); });
       els.body.appendChild(r);
     });
 
+    paintLegend(matrix);
+    fitScroll();
+    restoreCellFocus();
+    if (ui.focusMore) {
+      var wanted = ui.focusMore;
+      ui.focusMore = null;
+      Array.prototype.forEach.call(els.head.querySelectorAll("[data-more]"), function (b) { if (b.getAttribute("data-more") === wanted) b.focus(); });
+    }
     if (ui.renaming && (ui.renaming.focus || hadFocus)) {
       ui.renaming.focus = false;
       var box = $("iem-rename-input");

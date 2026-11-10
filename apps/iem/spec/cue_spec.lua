@@ -111,6 +111,51 @@ describe("cue", function()
     end)
   end)
 
+  describe("solo defeat", function()
+    it("is on for the cue track and every mix once the cue is made", function()
+      local api = band()
+      local reply = cue.run({ api = api })
+      assert.are.equal(3, reply.protected)
+      assert.are.equal(1, cue_track(api).solo_defeat)
+      assert.are.equal(1, api.tracks[3].solo_defeat)
+      assert.are.equal(1, api.tracks[4].solo_defeat)
+      assert.is_nil(api.tracks[1].solo_defeat)
+    end)
+
+    it("is repaired by running the cue again, in one undo step, and then there is nothing to do", function()
+      local api = band()
+      cue.run({ api = api })
+      api.tracks[4].solo_defeat = 0
+      cue_track(api).solo_defeat = 0
+      api.undo_steps = {}
+      local reply = cue.run({ api = api })
+      assert.is_true(reply.changed)
+      assert.is_false(reply.created)
+      assert.are.equal(0, reply.added)
+      assert.are.equal(2, reply.protected)
+      one_undo_step(api, "IEM Setup: create cue")
+      api.undo_steps = {}
+      assert.is_false(cue.run({ api = api }).changed)
+      assert.are.same({}, api.undo_steps)
+    end)
+
+    it("adopt turns it on for the stray", function()
+      local api = fake_project.new({ tracks = { { name = "IEM_X", guid = "{X}" } } })
+      adopt.run({ api = api, fields = { guid = "{X}" } })
+      assert.are.equal(1, api.tracks[2].solo_defeat)
+      assert.are.same({ "IEMs", "IEM_X", "IEM-Cue" }, names(api))
+    end)
+
+    it("state counts the mixes and the cue track that lack it", function()
+      local api = band()
+      cue.run({ api = api })
+      assert.are.equal(0, state.run({ api = api }).cue.unprotected)
+      api.tracks[4].solo_defeat = 0
+      cue_track(api).solo_defeat = 0
+      assert.are.equal(2, state.run({ api = api }).cue.unprotected)
+    end)
+  end)
+
   describe("a mix added later", function()
     it("create gives the new mix its cue send in the same undo step", function()
       local api = band()
@@ -139,11 +184,39 @@ describe("cue", function()
       one_undo_step(api, "IEM Setup: create mix")
     end)
 
-    it("create adds no send when there is no cue track", function()
+    it("create makes the cue track when there is none, with the mix's send and solo defeat, in one step", function()
       local api = band()
       create.run({ api = api, fields = { name = "C" } })
-      assert.is_nil(cue_track(api))
-      for _, track in ipairs(api.tracks) do assert.are.equal(0, #track.sends) end
+      local track = cue_track(api)
+      assert.is_not_nil(track)
+      assert.are.same({ "Kick", "IEMs", "IEM_A", "IEM_B", "IEM_C", "IEM-Cue" }, names(api))
+      assert.are.equal(3, #track.receives)
+      assert.are.equal(1, track.solo_defeat)
+      for _, t in ipairs(api.tracks) do
+        if t.name:sub(1, 4) == "IEM_" then assert.are.equal(1, t.solo_defeat) end
+      end
+      one_undo_step(api, "IEM Setup: create mix")
+    end)
+
+    it("create gives the first mix of a project its folder, cue track, send and solo defeat", function()
+      local api = fake_project.new({ tracks = { { name = "Kick" } } })
+      create.run({ api = api, fields = { name = "A" } })
+      assert.are.same({ "Kick", "IEMs", "IEM_A", "IEM-Cue" }, names(api))
+      assert.are.same({ 0, 1, 0, -1 }, depths(api))
+      assert.are.equal(1, api.tracks[3].solo_defeat)
+      assert.are.equal(1, #cue_track(api).receives)
+      one_undo_step(api, "IEM Setup: create mix")
+    end)
+
+    it("create turns solo defeat on for the new mix only when the cue track exists", function()
+      local api = band()
+      cue.run({ api = api })
+      api.tracks[3].solo_defeat = 0
+      create.run({ api = api, fields = { name = "C" } })
+      local mix
+      for _, track in ipairs(api.tracks) do if track.name == "IEM_C" then mix = track end end
+      assert.are.equal(1, mix.solo_defeat)
+      assert.are.equal(0, api.tracks[3].solo_defeat)
     end)
 
     it("adopt gives a stray its cue send in the same undo step", function()
@@ -212,7 +285,7 @@ describe("cue", function()
       local reply = state.run({ api = api })
       assert.are.equal(1, #reply.sources)
       assert.are.equal(2, #reply.mixes)
-      assert.are.same({ guid = cue_track(api).guid, outputs = {}, missing = 0 }, reply.cue)
+      assert.are.same({ guid = cue_track(api).guid, outputs = {}, missing = 0, unprotected = 0 }, reply.cue)
     end)
 
     it("a second track with the same name is an ordinary source", function()

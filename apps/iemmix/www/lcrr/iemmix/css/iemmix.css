@@ -19,12 +19,14 @@
 
 /* A grid is wider than the stage pages' column: the page uses the screen. */
 body > main { max-width:none; padding:.5rem 1rem; }
-.iemmix-work { display:flex; align-items:flex-start; gap:1rem; }
+.iemmix-panes { display:flex; align-items:flex-start; gap:1rem; }
 .iemmix-gridcol { flex:1 1 0; min-width:0; }
 .iemmix-label { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
-.iemmix-tools { display:flex; flex-wrap:wrap; align-items:flex-end; gap:.5rem 1rem; margin-bottom:.5rem; }
-.iemmix-filter { display:flex; flex-direction:column; gap:.125rem; flex:0 1 16rem; }
-input[type=text] { min-height:var(--iemmix-ctl); padding:.25rem .625rem; background:var(--display); color:var(--legend); border:1px solid var(--edge); border-radius:0; font:inherit; font-family:var(--font-mono); }
+/* The strip: top-aligned, so the filter stays level with the first row of keys when Listen wraps. Listen drops to its own line only when it would get cramped. */
+.iemmix-tools { display:flex; flex-wrap:wrap; align-items:flex-start; gap:.375rem 1.5rem; margin-bottom:.5rem; }
+.iemmix-filter { flex:0 1 13rem; min-width:9rem; }
+.iemmix-filter::placeholder { color:var(--legend-dim); opacity:1; }
+input[type=text] { height:var(--iemmix-ctl); padding:0 .625rem; background:var(--display); color:var(--legend); border:1px solid var(--edge); border-radius:0; font:inherit; font-family:var(--font-mono); }
 input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
 .iemmix-message { margin:.375rem 0; padding:.375rem .75rem; background:var(--display); border:1px solid var(--edge); }
 
@@ -40,26 +42,51 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 
 .iemmix-mix-name { display:block; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
 .iemmix-row-head { display:flex; align-items:center; gap:.375rem; min-height:var(--iemmix-ctl); padding:.125rem 0 .125rem .75rem; overflow-wrap:anywhere; }
-.iemmix-swatch { flex:none; width:.75rem; height:.75rem; border:1px solid var(--edge); }
+/* The track's own colour fills its name cell at 25% over Key, as Monitor tints a fader (the name stays above 4.5:1 on any colour). */
+.iemmix-grid tbody th.is-tinted { background:color-mix(in srgb, var(--c) 25%, var(--key)); }
+
+/* Under the pointer: the cell's whole row and column lift a step, on a mouse only (a tap must not leave it lit). */
+.iemmix-grid { --cross:color-mix(in srgb, var(--legend) 9%, transparent); }
+@media (hover:hover) {
+  .iemmix-cell.is-cross:not(.is-on), .iemmix-grid tbody th.is-cross, .iemmix-grid thead th.is-cross { background-image:linear-gradient(var(--cross), var(--cross)); }
+  .iemmix-cell.is-cross .iemmix-cell-inner::after { background:var(--cross); }
+}
+
+/* The Source column's width: the handle on the corner header's right edge, and the width it sets. Once sized, a long name is cut with an ellipsis so rows keep their height. */
+.iemmix-col-resize { position:absolute; top:0; bottom:0; right:0; width:10px; cursor:col-resize; touch-action:none; user-select:none; -webkit-user-select:none; }
+.iemmix-col-resize::before { content:""; position:absolute; top:0; bottom:0; right:0; width:2px; background:transparent; }
+.iemmix-col-resize:hover::before { background:var(--legend-dim); }
+.iemmix-col-resize.dragging::before { background:var(--signal); }
+.iemmix-col-resize:focus-visible { outline:2px solid var(--signal); outline-offset:-2px; }
+@media (pointer:coarse) { .iemmix-col-resize { width:44px; } }
+.iemmix-scroll[data-sized] .iemmix-grid thead th.iemmix-corner, .iemmix-scroll[data-sized] .iemmix-grid tbody th { width:var(--iemmix-src); min-width:var(--iemmix-src); max-width:var(--iemmix-src); }
+.iemmix-scroll[data-sized] .iemmix-row-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .iemmix-flags { display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.125rem; }
 .iemmix-flag { position:relative; z-index:1; display:inline-block; padding:.125rem .375rem; border:1px solid var(--warn-edge); background:var(--warn-umber); color:var(--warn-cream); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; line-height:1.2; }
 .iemmix-row-head .iemmix-flag { margin-left:auto; flex:none; }
 
 .iemmix-cell { height:var(--iemmix-ctl); min-width:6rem; text-align:center; vertical-align:middle; }
-.iemmix-cell.is-on { background:var(--key); }
-.iemmix-cell-inner { appearance:none; width:100%; height:100%; min-height:var(--iemmix-ctl); border:0; background:none; color:inherit; font:inherit; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:.375rem; padding:0 .375rem; }
+/* A send's cell is a look-only slider: the fader's slot, fill, 0 dB tick and a 4px handle on the same law, the number at the left. It takes no drags; a click opens the panel and the wheel nudges. */
+.iemmix-cell.is-on { background:var(--display); }
+.iemmix-cell-inner { --pos:0; --x:calc((100% - 4px) * var(--pos) + 2px); appearance:none; position:relative; display:block; overflow:hidden; width:100%; height:100%; min-height:var(--iemmix-ctl); padding:0; border:0; background:none; color:inherit; font:inherit; cursor:pointer; }
+.iemmix-cell-fill { position:absolute; left:0; top:0; bottom:0; width:var(--x); background:var(--key-hover); }
+.iemmix-cell-mark { position:absolute; top:0; height:9px; width:2px; margin-left:-1px; left:calc((100% - 4px) * var(--mark) + 2px); background:var(--legend); opacity:.45; }
+.iemmix-cell-handle { position:absolute; top:2px; bottom:2px; left:calc(var(--x) - 2px); width:4px; background:var(--legend); }
+.iemmix-cell.over .iemmix-cell-handle { background:var(--warn-amber); }
+.iemmix-cell-text { position:absolute; inset:0; display:flex; align-items:center; padding-left:.375rem; }
+.iemmix-cell-text.on-handle { clip-path:inset(0 calc(100% - var(--x) - 2px) 0 calc(var(--x) - 2px)); }
+.iemmix-cell-text.on-handle .iemmix-db { color:var(--chassis); }
 .iemmix-db { font-family:var(--font-mono); font-size:1.05rem; font-weight:500; color:var(--legend); }
+.iemmix-cell.is-muted .iemmix-cell-fill, .iemmix-cell.is-muted .iemmix-cell-mark { opacity:.45; }
+.iemmix-cell.is-muted .iemmix-cell-handle { opacity:.7; }
+/* Drawn above the fill: a quiet edge under the pointer, a Signal edge on the cell the panel is on. */
+.iemmix-cell-inner::after { content:""; position:absolute; inset:0; pointer-events:none; }
+.iemmix-cell-inner:hover::after { box-shadow:inset 0 0 0 1px var(--legend-dim); }
+.iemmix-cell.is-focused .iemmix-cell-inner::after { box-shadow:inset 0 0 0 2px var(--signal); }
 /* A muted send stays visible but recedes; its text stays above 4.5:1 on the key face. */
-.iemmix-cell.is-muted .iemmix-db { color:var(--legend-dim); text-decoration:line-through; text-decoration-color:var(--led-red); }
-.iemmix-tag { padding:.0625rem .3125rem; border:1px solid var(--warn-edge); background:var(--warn-umber); color:var(--warn-cream); font-size:.64rem; font-weight:700; letter-spacing:.08em; line-height:1.2; }
-
-@media (max-width: 767px) {
-  .iemmix-work { flex-direction:column; align-items:stretch; }
-  .iemmix-panel { width:auto; position:static; max-height:none; }
-  .iemmix-grid tbody th, .iemmix-grid thead th.iemmix-corner { min-width:9rem; }
-  .iemmix-scroll { max-height:calc(100dvh - 8rem); }
-}
+.iemmix-cell.is-muted .iemmix-cell-text:not(.on-handle) .iemmix-db { color:var(--legend-dim); text-decoration:line-through; text-decoration-color:var(--led-red); }
+.iemmix-tag { position:absolute; right:.25rem; top:50%; transform:translateY(-50%); padding:.0625rem .3125rem; border:1px solid var(--warn-edge); background:var(--warn-umber); color:var(--warn-cream); font-size:.64rem; font-weight:700; letter-spacing:.08em; line-height:1.2; }
 
 /* Tapping a name opens it in the panel; a button that looks like its text. Its hit area is the whole header cell
    (the sticky th is the containing block), so the text stays as it is and the target is the cell's height. */
@@ -71,7 +98,6 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 /* The selected source or mix: a 3px Signal edge (DESIGN.md: the active row's edge, the selected tab's underline). */
 .iemmix-row.is-selected > th::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--signal); pointer-events:none; }
 .iemmix-grid thead th.is-selected::before { content:""; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--signal); pointer-events:none; }
-.iemmix-cell-inner:hover { background:var(--key-hover); }
 
 /* Lock button in the bar. */
 .iemmix-lock { flex:none; min-height:var(--iemmix-ctl); padding:0 1rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; font-weight:600; cursor:pointer; }
@@ -80,18 +106,29 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 .iemmix-lock:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
 
 /* The docked panel: beside the grid, both visible (768px tablet and up). */
-.iemmix-panel { flex:none; width:22rem; max-height:calc(100vh - 5rem); max-height:calc(100dvh - 5rem); overflow:auto; position:sticky; top:3.25rem; background:var(--display); border:1px solid var(--edge); padding:.5rem; }
-.iemmix-panel-head { display:flex; align-items:center; gap:.5rem; }
+.iemmix-panel { --pan-w:6.5rem; --cols-w:calc(var(--pan-w) + .5rem + 44px); flex:none; width:clamp(22rem, 28vw, 27rem); max-height:calc(100vh - 5rem); max-height:calc(100dvh - 5rem); overflow:auto; position:sticky; top:3.25rem; background:var(--display); border:1px solid var(--edge); }
+/* The panel's header row answers the grid's: the same Bar face and Line, and its labels sit over the rows' columns. */
+.iemmix-panel-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:.5rem; min-height:calc(var(--iemmix-ctl) + 2px); padding:.125rem .5rem; background:var(--bar); border-bottom:1px solid var(--line); }
+.iemmix-panel-name { flex:1 1 0; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:.125rem .5rem; }
+.iemmix-panel-head .iemmix-panel-title { flex:0 1 auto; font-size:inherit; }
+.iemmix-panel-cols { flex:none; width:var(--cols-w); display:flex; gap:.5rem; text-align:center; }
+.iemmix-panel-cols > :first-child { width:var(--pan-w); }
+.iemmix-panel-cols > :last-child { width:44px; }
+.iemmix-panel[data-kind=none] .iemmix-panel-cols { display:none; }
 .iemmix-panel-title { flex:1; min-width:0; margin:0; font-size:1rem; font-weight:600; overflow-wrap:anywhere; }
 .iemmix-panel-hint { margin:.375rem 0; color:var(--legend-dim); font-size:.85rem; }
+.iemmix-panel > .iemmix-panel-hint { margin-inline:.5rem; }
 .iemmix-panel[data-locked=true] .iemmix-panel-lockhint { color:var(--warn-cream); }
-.iemmix-panel-list { list-style:none; margin:.25rem 0 0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
+/* A row's 3px of border and padding hang into the panel's margin, so its content starts on the panel's .5rem edge. */
+.iemmix-panel-list { list-style:none; margin:.375rem calc(.5rem - 3px) 0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
 .iemmix-panel[data-locked=true] .iemmix-fader { opacity:.6; }
 .iemmix-prow { display:flex; align-items:center; gap:.5rem; padding:.125rem; border:1px solid transparent; }
 .iemmix-prow.is-focused { border-color:var(--signal); background:var(--key); }
 .iemmix-prow-main { flex:1 1 7rem; min-width:0; }
 /* The pan control and the mute button, beside the level fader. */
-.iemmix-prow-controls { flex:none; display:flex; align-items:center; gap:.5rem; }
+/* Fixed width even when empty (a mix's master), so every level fader, and its 0 dB mark, lines up. */
+.iemmix-prow-controls { flex:none; width:var(--cols-w); display:flex; align-items:center; gap:.5rem; }
+.iemmix-prow:has(.iemmix-prow-static) .iemmix-prow-controls { display:none; }
 .iemmix-mute { position:relative; flex:none; width:44px; height:44px; padding:8px 0 0; font:inherit; font-weight:700; text-align:center; background:var(--key); color:inherit; border:0; border-radius:0; clip-path:var(--chamfer); cursor:pointer; }
 .iemmix-mute::before { content:""; position:absolute; top:6px; left:50%; width:6px; height:6px; margin-left:-3px; border-radius:50%; background:var(--edge); }
 .iemmix-mute.on { background:var(--chassis); box-shadow:inset 0 0 0 2px var(--led-red); color:var(--led-red); }
@@ -102,11 +139,13 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 @media (hover:hover) { .iemmix-mute:hover:not(:disabled):not(.on) { background:var(--key-hover); } }
 /* Pan: a short slider (--pos 0..1, centre at .5); only the thumb takes touches. The thumb is 28px for the handle's
    travel; its ::before widens the hit area to 44px, and the .5rem gaps beside the control keep that off its neighbours. */
-.iemmix-pan { --pthumb:28px; --pos:.5; position:relative; flex:none; width:6.5rem; height:44px; background:var(--display); border:1px solid var(--edge); }
+.iemmix-pan { --pthumb:28px; --pos:.5; position:relative; flex:none; width:var(--pan-w); height:44px; background:var(--display); border:1px solid var(--edge); }
 .iemmix-pan-mark { position:absolute; top:10px; bottom:10px; left:50%; width:2px; margin-left:-1px; background:var(--legend); opacity:.45; pointer-events:none; }
 .iemmix-pan-handle { position:absolute; top:2px; bottom:2px; width:10px; left:calc(var(--pthumb) / 2 + (100% - var(--pthumb)) * var(--pos) - 5px); background:var(--legend); pointer-events:none; }
 .iemmix-pan.dragging .iemmix-pan-handle { background:var(--signal); }
-.iemmix-pan-text { position:absolute; left:4px; top:2px; font-family:var(--font-mono); font-size:.7rem; color:var(--legend-dim); pointer-events:none; }
+/* The readout sits on the side the handle is not, so the handle never covers it. */
+.iemmix-pan-text { position:absolute; top:0; bottom:0; left:6px; display:flex; align-items:center; font-family:var(--font-mono); font-size:.75rem; color:var(--legend-dim); pointer-events:none; }
+.iemmix-pan[data-side=left] .iemmix-pan-text { left:auto; right:6px; }
 .iemmix-pan-thumb::before { content:""; position:absolute; top:0; bottom:0; left:-8px; right:-8px; }
 .iemmix-pan-thumb { position:absolute; top:-1px; left:calc((100% - var(--pthumb)) * var(--pos)); width:var(--pthumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
 .iemmix-pan-thumb:focus-visible { outline:2px solid var(--signal); outline-offset:-2px; }
@@ -124,31 +163,33 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 .iemmix-fader { --thumb:44px; --pos:0; --x:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); position:relative; min-width:0; height:44px; overflow:hidden; background:var(--display); border:1px solid var(--edge); }
 .iemmix-fader-fill { position:absolute; left:0; top:0; bottom:0; width:var(--x); background:var(--key-hover); pointer-events:none; }
 .iemmix-fader.tinted .iemmix-fader-fill { background:color-mix(in srgb, var(--c) 25%, var(--key)); }
-.iemmix-fader-mark { position:absolute; top:13px; bottom:13px; width:2px; margin-left:-1px; left:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); background:var(--legend); opacity:.45; pointer-events:none; }
+/* The 0 dB mark is a tick at the top edge: on a panel-width fader it would otherwise run through the value. */
+.iemmix-fader-mark { position:absolute; top:0; height:9px; width:2px; margin-left:-1px; left:calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pos)); background:var(--legend); opacity:.45; pointer-events:none; }
 .iemmix-fader-handle { position:absolute; top:2px; bottom:2px; left:calc(var(--x) - 5px); width:10px; background:var(--legend); pointer-events:none; }
 .iemmix-fader.over .iemmix-fader-handle { background:var(--warn-amber); }
 .iemmix-fader.dragging .iemmix-fader-handle { background:var(--signal); }
 .iemmix-fader-text { position:absolute; inset:0; display:flex; align-items:center; gap:.5rem; padding:0 10px 0 14px; pointer-events:none; }
 .iemmix-fader-text.on-handle { color:var(--chassis); clip-path:inset(0 calc(100% - var(--x) - 5px) 0 calc(var(--x) - 5px)); }
-.iemmix-fader-name { font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.iemmix-fader-name { font-size:1rem; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .iemmix-fader-value { flex:none; font-family:var(--font-mono); font-size:.85rem; font-variant-numeric:tabular-nums; }
 .iemmix-fader-thumb { position:absolute; top:0; left:calc((100% - var(--thumb)) * var(--pos)); width:var(--thumb); height:44px; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; cursor:grab; }
 .iemmix-fader.dragging .iemmix-fader-thumb { cursor:grabbing; }
 .iemmix-fader-thumb:focus-visible { outline:2px solid var(--signal); outline-offset:-2px; }
 
 /* Listen: one key per mix, the one heard is pressed */
-.iemmix-listen { margin-bottom:.5rem; }
+.iemmix-listen { flex:1 1 24rem; min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:.625rem; }
+.iemmix-listen-label { margin:0; line-height:var(--iemmix-ctl); }
 .iemmix-listen-keys { display:flex; flex-wrap:wrap; gap:.375rem; }
-.iemmix-listen-key { min-height:var(--iemmix-ctl); padding:0 .875rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; cursor:pointer; }
+.iemmix-listen-key { min-height:var(--iemmix-ctl); padding:0 .75rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; cursor:pointer; }
 .iemmix-listen-key[aria-pressed=true] { background:var(--signal); color:var(--signal-ink); border-color:var(--signal); font-weight:600; }
 .iemmix-listen-key:disabled { opacity:.5; cursor:default; }
 .iemmix-listen-key:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
-.iemmix-listen-note { margin:.25rem 0 0; font-size:.8rem; }
+.iemmix-listen-note { grid-column:1 / -1; margin:.25rem 0 0; font-size:.8rem; }
 .iemmix-listen-note:empty { display:none; }
 
 /* Snapshots, below the panel's faders: a name field with Save, then a list. Recall, Overwrite and Delete are press-and-hold
    keys (recall overwrites what the musicians set; overwrite and delete cannot be undone): a Warn Amber fill runs across the key while it is held. */
-.iemmix-snaps { margin-top:.75rem; padding-top:.5rem; border-top:1px solid var(--edge); }
+.iemmix-snaps { margin-top:.75rem; padding:.5rem; border-top:1px solid var(--edge); }
 .iemmix-snaps-form { display:flex; align-items:flex-end; gap:.5rem; margin:.375rem 0; }
 .iemmix-snaps-field { display:flex; flex-direction:column; gap:.125rem; flex:1 1 0; min-width:0; }
 .iemmix-snaps-field input { min-width:0; }
@@ -157,8 +198,12 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 .iemmix-key:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
 @media (hover:hover) { .iemmix-key:hover:not(:disabled) { background:var(--key-hover); } }
 .iemmix-snaps-list { list-style:none; margin:.25rem 0 0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
-.iemmix-snap { display:flex; flex-wrap:wrap; align-items:center; gap:.25rem .5rem; padding:.25rem .5rem; background:var(--display); border:1px solid var(--edge); }
-.iemmix-snap-text { flex:1 1 8rem; min-width:0; display:flex; flex-direction:column; }
+/* Six columns so the keys line up from one snapshot to the next: three equal keys, or Recall all and Recall <mix> over Overwrite and Delete. */
+.iemmix-snap { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:.25rem; padding:.25rem .375rem .375rem; background:var(--display); border:1px solid var(--edge); }
+.iemmix-snap-text { grid-column:1 / -1; min-width:0; display:flex; flex-direction:column; }
+.iemmix-snap .iemmix-key { grid-column:span 2; padding:0 .25rem; font-size:1rem; white-space:nowrap; text-overflow:ellipsis; }
+.iemmix-snap .iemmix-key.is-one-mix { grid-column:span 4; }
+.iemmix-snap .iemmix-key.is-one-mix ~ .iemmix-key { grid-column:span 3; }
 .iemmix-snap-name { font-weight:500; overflow-wrap:anywhere; }
 .iemmix-snap-meta { font-size:.72rem; color:var(--legend-dim); }
 .iemmix-hold::after { content:""; position:absolute; inset:0; background:var(--warn-amber); opacity:.35; transform:scaleX(0); transform-origin:left; pointer-events:none; }
@@ -166,4 +211,21 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 @media (prefers-reduced-motion: reduce) {
   .iemmix-hold::after { transform:none; opacity:0; }
   .iemmix-hold.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
+}
+
+/* Laptop and tablet: the page is exactly the screen. Grid and panel fill what the bar, strip and footer leave, end on the same line, and each scrolls inside itself. */
+@media (min-width: 768px) and (min-height: 32rem) {
+  body { height:100vh; height:100dvh; }
+  .iemmix-work { flex:1 1 0; min-height:0; display:flex; flex-direction:column; }
+  .iemmix-panes { flex:1 1 0; min-height:0; align-items:stretch; }
+  .iemmix-gridcol { display:flex; flex-direction:column; min-height:0; }
+  .iemmix-scroll { flex:1 1 0; min-height:0; max-height:none; }
+  .iemmix-panel { position:static; max-height:none; }
+}
+
+@media (max-width: 767px) {
+  .iemmix-panes { flex-direction:column; align-items:stretch; }
+  .iemmix-panel { width:auto; position:static; max-height:none; }
+  .iemmix-grid tbody th, .iemmix-grid thead th.iemmix-corner { min-width:9rem; }
+  .iemmix-scroll { max-height:calc(100dvh - 8rem); }
 }

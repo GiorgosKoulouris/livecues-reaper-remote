@@ -8,7 +8,7 @@
 --   3. master send off, the shared colour;
 --   4. every send it receives becomes post-FX pre-fader (`I_SENDMODE` 3), found from the source's side. Level, pan and
 --      mute are kept. This can change what a musician hears (spec);
---   5. when a cue track exists and the stray has no send to it, it gets one (cue.lua).
+--   5. the cue track is made when there is none, the stray gets a send to it if it has none, and solo defeat (cue.lua).
 --
 -- Its hardware outputs are not touched, so several outputs stay as they are. Refusals are decided before the block
 -- opens: track_gone, not_a_mix, not_a_stray (already in the folder).
@@ -93,11 +93,8 @@ function adopt.run(given)
     api.SetMediaTrackInfo_Value(target.track, "B_MAINSEND", 0)
     tracks.set_colour(api, target.track, colour)
     convert_sends(api, target)
-    -- A cue track already in the project gets the stray's send if it has none (a cue made earlier covered it).
-    local cue_entry = tracks.find_cue(list)
-    if cue_entry and not cue.senders(api, cue_entry.track)[target.guid] then
-      cue.add_send(api, target.track, cue_entry.track)
-    end
+    -- The cue track (made here when the project has none), the stray's send to it if it has none, and solo defeat.
+    cue.join(api, target.track, colour)
   end)
   return { status = "ok" }
 end

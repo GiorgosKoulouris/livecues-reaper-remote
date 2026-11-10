@@ -13,10 +13,12 @@
 -- only while its `I_FOLDERDEPTH` is 1: an emptied folder is a plain track
 -- (suite CONTEXT.md, issue 01), so nothing is "in" it.
 -- **Sources** are every other track, in project order, each with its folder
--- nesting `depth` (0 at the top level) so the page can indent.
+-- nesting `depth` (0 at the top level) so the page can indent, and a `tint` (`rrggbb`) when the track has its own
+-- colour.
 --
 -- **The cue track** is the first track named `IEM-Cue` (IEM Mix listens through it): neither a mix nor a source row.
--- `cue = { guid, outputs, missing }` (absent when there is none): its hardware outputs and the number of mixes with
+-- `cue = { guid, outputs, missing, unprotected }` (absent when there is none): its hardware outputs, how many mixes and
+-- cue tracks lack solo defeat (`unprotected`) and the number of mixes with
 -- no send to it.
 --
 -- `folder.tracks_after` is true when tracks sit after the folder's last member.
@@ -56,11 +58,21 @@ end
 
 --- @param given table { api }
 --- @return table { status = "ok", folder, mixes, sources }
+-- The track's own colour as `rrggbb`, or nil when it has none (bit 0x1000000 clear). REAPER keeps it in the
+-- platform's native order, so it goes through ColorFromNative.
+local function track_tint(api, track)
+  local native = api.GetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR") | 0
+  if native & 0x1000000 == 0 then return nil end
+  local r, g, b = api.ColorFromNative(native & 0xFFFFFF)
+  return ("%02x%02x%02x"):format(r, g, b)
+end
+
 function state.run(given)
   local api = given.api
   local mixes, sources = {}, {}
   local folder = nil
   local cue = nil          -- the first track named `IEM-Cue`: not a source, not a mix
+  local unprotected = 0    -- mixes without solo defeat (the cue track is counted with them)
   local level = 0          -- folder nesting before the current track
   local folder_base = nil  -- `level` when the IEMs folder opened; nil outside it
 
@@ -71,6 +83,7 @@ function state.run(given)
     local guid = api.GetTrackGUID(track)
 
     if is_mix_name(name) then
+      if not cue_core.is_protected(api, track) then unprotected = unprotected + 1 end
       mixes[#mixes + 1] = {
         guid = guid,
         name = name:sub(#state.MIX_PREFIX + 1),
@@ -80,7 +93,8 @@ function state.run(given)
         sends = sends_of(api, track),
       }
     elseif not cue and name == tracks.CUE_NAME then
-      cue = { guid = guid, outputs = tracks.outputs(api, track), track = track }
+      cue = { guid = guid, outputs = tracks.outputs(api, track), track = track,
+              solo_defeat = cue_core.is_protected(api, track) }
     elseif not folder and name == state.FOLDER_NAME then
       folder = { guid = guid, is_folder = depth == 1 }
       if depth == 1 then
@@ -92,6 +106,7 @@ function state.run(given)
         name = name,
         depth = math.max(level, 0),
         is_folder = depth == 1,
+        tint = track_tint(api, track),
       }
     end
 
@@ -121,7 +136,8 @@ function state.run(given)
     for _, mix in ipairs(mixes) do
       if not senders[mix.guid] then missing = missing + 1 end
     end
-    cue = { guid = cue.guid, outputs = cue.outputs, missing = missing }
+    if not cue.solo_defeat then unprotected = unprotected + 1 end
+    cue = { guid = cue.guid, outputs = cue.outputs, missing = missing, unprotected = unprotected }
   end
 
   return {
