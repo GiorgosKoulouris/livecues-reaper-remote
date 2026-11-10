@@ -67,20 +67,50 @@ function collectLuaFiles(repo) {
 }
 
 // The notes under a "## <version> ..." heading of CHANGELOG.md, trimmed, up to the next "## " heading.
-// A pre-release ("1.1.0-beta1") with no heading of its own uses its base version's ("1.1.0"). null if none.
+// null if that version has no section.
 function changelogFor(markdown, version) {
   const lines = markdown.split(/\r?\n/);
-  function section(v) {
-    const head = lines.findIndex((l) => l.indexOf("## " + v) === 0 && /^(\s|\(|$)/.test(l.slice(3 + v.length)));
-    if (head < 0) return null;
-    let end = lines.findIndex((l, i) => i > head && /^## /.test(l));
-    if (end < 0) end = lines.length;
-    return lines.slice(head + 1, end).join("\n").trim();
-  }
-  const exact = section(version);
-  if (exact !== null) return exact;
-  const base = version.replace(/-.*$/, "");
-  return base !== version ? section(base) : null;
+  const head = lines.findIndex((l) => l.indexOf("## " + version) === 0 && /^(\s|\(|$)/.test(l.slice(3 + version.length)));
+  if (head < 0) return null;
+  let end = lines.findIndex((l, i) => i > head && /^## /.test(l));
+  if (end < 0) end = lines.length;
+  return lines.slice(head + 1, end).join("\n").trim();
+}
+
+const CHANGELOG_HEADING = /^## ((\d+)\.(\d+)\.(\d+)(?:-beta(\d+))?) \(\d{4}-\d{2}-\d{2}\)$/;
+
+// Everything wrong with the layout of CHANGELOG.md, as messages; [] when it is sound. `version` is the package version.
+function changelogProblems(markdown, version) {
+  const problems = [];
+  const sections = [];
+  markdown.split(/\r?\n/).forEach((line) => {
+    if (/^## /.test(line)) {
+      const m = CHANGELOG_HEADING.exec(line);
+      if (!m) problems.push("malformed heading, expected '## <version> (YYYY-MM-DD)': " + line);
+      sections.push({
+        line: line,
+        version: m ? m[1] : null,
+        rank: m ? [+m[2], +m[3], +m[4], m[5] === undefined ? Infinity : +m[5]] : null,
+        hasNotes: false
+      });
+    } else if (sections.length && /^- /.test(line)) {
+      sections[sections.length - 1].hasNotes = true;
+    }
+  });
+  if (!sections.length) return problems.concat("CHANGELOG.md has no version sections");
+  if (sections[0].version !== version) problems.push("the top section must be the package version " + version + ": " + sections[0].line);
+  sections.filter((s) => !s.hasNotes).forEach((s) => problems.push("section has no notes: " + s.line));
+  const valid = sections.filter((s) => s.version);
+  valid.slice(1).forEach((s, i) => {
+    const before = valid[i].rank;
+    const diff = before.map((n, j) => n - s.rank[j]).find((d) => d !== 0 && !Number.isNaN(d));
+    if (!(diff > 0)) problems.push("sections out of order, newest version first: " + s.line);
+  });
+  valid.filter((s) => s.version.indexOf("-") >= 0).forEach((s) => {
+    const base = s.version.replace(/-.*$/, "");
+    if (valid.some((o) => o.version === base)) problems.push("collapse the betas into the stable section " + base + ": " + s.line);
+  });
+  return problems;
 }
 
 // Everything wrong with publishing `tag` of `repo` ("owner/name"), as messages; [] when it can go out. Guards the tag
@@ -175,4 +205,4 @@ function installText(version) {
   ].join("\n");
 }
 
-module.exports = { sliceRoots, collectFiles, collectLuaFiles, changelogFor, releaseProblems, releaseNotes, buildIndexXml, installText, escapeXml, MAIN, SUITE, INDEX_NAME, CATEGORY };
+module.exports = { sliceRoots, collectFiles, collectLuaFiles, changelogFor, changelogProblems, releaseProblems, releaseNotes, buildIndexXml, installText, escapeXml, MAIN, SUITE, INDEX_NAME, CATEGORY };

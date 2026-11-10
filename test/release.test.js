@@ -3,7 +3,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { buildIndexXml, installText, escapeXml, collectFiles, collectLuaFiles, sliceRoots, changelogFor, releaseProblems, releaseNotes } = require("../scripts/release-lib.js");
+const { buildIndexXml, installText, escapeXml, collectFiles, collectLuaFiles, sliceRoots, changelogFor, changelogProblems, releaseProblems, releaseNotes } = require("../scripts/release-lib.js");
 
 const files = [
   { deployed: "lcrr-podium.html", source: "apps/podium/www/lcrr-podium.html" },
@@ -133,18 +133,65 @@ test("changelogFor returns the notes under the version's heading, up to the next
   assert.strictEqual(changelogFor(CL, "1.0.0"), "- First");
 });
 
-test("changelogFor: a pre-release uses its base version's section", () => {
-  assert.strictEqual(changelogFor(CL, "1.1.0-beta1"), "- Added thing\n  - detail\n- Fixed other (abc123)");
+test("changelogFor: a pre-release does not borrow its base version's section", () => {
+  assert.strictEqual(changelogFor(CL, "1.1.0-beta1"), null);
 });
 
-test("changelogFor: an exact pre-release heading wins over the base version", () => {
-  const md = "## 1.1.0-beta1\n\n- beta note\n\n## 1.1.0\n\n- final note\n";
+test("changelogFor: a pre-release reads its own section", () => {
+  const md = "## 1.1.0-beta1\n\n- beta note\n\n## 1.0.0\n\n- older note\n";
   assert.strictEqual(changelogFor(md, "1.1.0-beta1"), "- beta note");
 });
 
 test("changelogFor: no section for the version gives null; 1.1 does not match 1.1.0", () => {
   assert.strictEqual(changelogFor(CL, "2.0.0"), null);
   assert.strictEqual(changelogFor("## 1.1.0\n\n- x\n", "1.1"), null);
+});
+
+const GOOD_CL = "# Changelog\n\n## 1.2.0-beta2 (2026-12-02)\n\n- Second beta\n\n## 1.2.0-beta1 (2026-12-01)\n\n- First beta\n\n## 1.1.10 (2026-11-20)\n\n- Patch\n  - detail\n\n## 1.1.9 (2026-11-10)\n\n- Older\n";
+
+test("changelogProblems: a well-formed file has no problems", () => {
+  assert.deepStrictEqual(changelogProblems(GOOD_CL, "1.2.0-beta2"), []);
+  assert.deepStrictEqual(changelogProblems(GOOD_CL.replace(/\n/g, "\r\n"), "1.2.0-beta2"), []);
+});
+
+test("changelogProblems: a file with no sections is a problem", () => {
+  assert.match(changelogProblems("# Changelog\n", "1.0.0").join("\n"), /no version sections/);
+});
+
+test("changelogProblems: every heading must be '## <version> (YYYY-MM-DD)'", () => {
+  ["## 2026-11-10", "## Unreleased", "## 1.0.0", "## 1.0 (2026-11-10)", "## 1.0.0 (11-10-2026)", "## 1.0.0-rc1 (2026-11-10)"].forEach((h) => {
+    const md = "## 1.1.0 (2026-11-11)\n\n- New\n\n" + h + "\n\n- Old\n";
+    assert.match(changelogProblems(md, "1.1.0").join("\n"), /heading/, h);
+  });
+});
+
+test("changelogProblems: a section with no bullet is a problem", () => {
+  const md = "## 1.1.0 (2026-11-11)\n\n## 1.0.0 (2026-11-10)\n\n- Old\n";
+  assert.match(changelogProblems(md, "1.1.0").join("\n"), /no notes/);
+});
+
+test("changelogProblems: sections run newest version first, numerically", () => {
+  const out = "## 1.1.9 (2026-11-10)\n\n- A\n\n## 1.1.10 (2026-11-20)\n\n- B\n";
+  assert.match(changelogProblems(out, "1.1.9").join("\n"), /out of order/);
+  const betas = "## 1.2.0-beta1 (2026-12-01)\n\n- A\n\n## 1.2.0-beta2 (2026-12-02)\n\n- B\n";
+  assert.match(changelogProblems(betas, "1.2.0-beta1").join("\n"), /out of order/);
+  const dup = "## 1.0.0 (2026-11-11)\n\n- A\n\n## 1.0.0 (2026-11-10)\n\n- B\n";
+  assert.match(changelogProblems(dup, "1.0.0").join("\n"), /out of order/);
+});
+
+test("changelogProblems: the top section must be the current version", () => {
+  assert.match(changelogProblems(GOOD_CL, "1.2.0").join("\n"), /top section/);
+});
+
+test("changelogProblems: a stable version's betas are collapsed into it", () => {
+  const md = "## 1.2.0 (2026-12-03)\n\n- Stable\n\n## 1.2.0-beta1 (2026-12-01)\n\n- Beta\n";
+  assert.match(changelogProblems(md, "1.2.0").join("\n"), /collapse/);
+});
+
+test("the repo's CHANGELOG.md has only well-formed version sections, topped by the package version", () => {
+  const repo = path.join(__dirname, "..");
+  const version = JSON.parse(fs.readFileSync(path.join(repo, "package.json"), "utf8")).version;
+  assert.deepStrictEqual(changelogProblems(fs.readFileSync(path.join(repo, "CHANGELOG.md"), "utf8"), version), []);
 });
 
 test("buildIndexXml puts the changelog in a CDATA block, safe against a closing marker", () => {
