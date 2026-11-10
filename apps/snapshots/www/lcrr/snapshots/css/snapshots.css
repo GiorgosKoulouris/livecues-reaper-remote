@@ -31,6 +31,13 @@
 .snapshots-row-name { font-weight:500; overflow-wrap:anywhere; }
 .snapshots-row-meta { font-size:.72rem; color:var(--legend-dim); }
 
+/* Marks: what a snapshot holds (a solo, a muted Master). A shape and a word, so colour is never the only signal. */
+.snapshots-row-marks { display:flex; flex-wrap:wrap; gap:.375rem; margin-top:.25rem; }
+.snapshots-mark { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:.0625rem .375rem; border:1px solid var(--edge); color:var(--legend); }
+.snapshots-mark::before { content:"\25CF\00a0"; }
+.snapshots-mark-master::before { content:"\25A0\00a0"; }
+.snapshots-mark-solo { color:var(--warn-amber); border-color:var(--warn-amber); }
+
 /* Overwrite and Delete are press-and-hold keys: a warn edge and a HOLD legend, filled left to right while held. */
 .snapshots-row-keys { display:flex; flex-wrap:wrap; gap:.375rem; margin-top:.375rem; }
 button.snapshots-hold { position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:.5rem; line-height:1; padding:.25rem .625rem; box-shadow:inset 0 0 0 1px var(--warn-edge); touch-action:none; user-select:none; -webkit-user-select:none; }
@@ -41,3 +48,9 @@ button.snapshots-hold { position:relative; overflow:hidden; display:inline-flex;
   .snapshots-hold::after { transform:none; opacity:0; }
   .snapshots-hold.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
 }
+
+/* Restore: the ticks, the hold key on a row and the result note. */
+.snapshots-ticks-box { margin:.375rem 0; padding:0; border:0; }
+.snapshots-ticks { display:flex; flex-wrap:wrap; gap:.25rem 1rem; }
+.snapshots-tick { display:inline-flex; align-items:center; gap:.4rem; min-height:2.75rem; }
+.snapshots-note { margin:.375rem 0; padding:.375rem .5rem; background:var(--display); border:1px solid var(--edge); font-size:.85rem; }

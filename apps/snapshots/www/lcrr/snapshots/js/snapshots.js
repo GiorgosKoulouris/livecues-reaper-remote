@@ -2,7 +2,7 @@
 // words.js. DOM is built with textContent only: project names are user data.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words;
+  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi;
   var REFRESH_MS = 3000; // while connected, re-read the project this often (another project may become the active one)
 
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1000 });
@@ -132,13 +132,21 @@
     els.empty.textContent = words.ui("empty");
     els.empty.hidden = list.length > 0;
     els.list.textContent = "";
+    restoreUi.resetKeys();
     list.forEach(function (s) {
       var li = h("li", "snapshots-row");
       li.appendChild(h("span", "snapshots-row-name", s.name));
       li.appendChild(h("span", "snapshots-row-meta", words.counts(s, savedText(s.saved))));
+      var marks = words.marks(s);
+      if (marks.length) {
+        var tags = h("div", "snapshots-row-marks");
+        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + (m === "Solo" ? "solo" : "master"), m)); });
+        li.appendChild(tags);
+      }
       var keys = h("div", "snapshots-row-keys");
       keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
       keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));
+      restoreUi.addKey(keys, s);
       li.appendChild(keys);
       els.list.appendChild(li);
     });
@@ -162,9 +170,7 @@
     ev.preventDefault();
     if (ui.phase !== "ready" || ui.busy) return;
     var names = (ui.list || []).map(function (s) { return s.name; });
-    var check = core.checkName(els.name.value, names, function (name) {
-      return !wire.tooLong(wire.setRequestCommand(wire.buildRequest("xxxxxxxxxxxx-xxxx", { cmd: "snapshot_save", name: name })));
-    });
+    var check = core.checkName(els.name.value, names, N.client.nameFits);
     if (!check.name) { showMessage(words.error(check)); return; }
     ui.busy = true;
     els.save.disabled = true;
@@ -178,6 +184,8 @@
       readList();
     });
   });
+
+  restoreUi.init({ client: client, showMessage: showMessage });
 
   setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();

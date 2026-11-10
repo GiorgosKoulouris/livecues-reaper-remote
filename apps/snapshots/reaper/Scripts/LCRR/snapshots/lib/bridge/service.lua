@@ -8,7 +8,8 @@
 -- This module owns no ExtState and no loop (LCRR_Snapshots_Bridge.lua has those), so the whole of it runs under busted.
 --
 -- **What the page can ask for** (`cmd`): `state` and `snapshots` (read-only), and
--- `snapshot_save` (`name`, optional `overwrite` 1) and `snapshot_delete` (`name`). Each reply is
+-- `snapshot_save` (`name`, optional `overwrite` 1), `snapshot_delete` (`name`) and `snapshot_restore` (`name`, `ticks`;
+-- writes the project, in one undo step). Each reply is
 --
 --   { v, command, project = { name, path }, status, ... }
 --
@@ -23,6 +24,7 @@ local state = require("lib.core.state")
 local snapshots = require("lib.core.snapshots")
 local snapshot_save = require("lib.core.snapshot_save")
 local snapshot_delete = require("lib.core.snapshot_delete")
+local snapshot_restore = require("lib.core.snapshot_restore")
 
 local service = {}
 
@@ -54,6 +56,11 @@ local function handlers(given)
 
   function h.snapshot_delete(fields)
     return snapshot_delete.run({ api = given.api, fields = fields })
+  end
+
+  -- The one snapshot command that changes the project: one undo step, made by the core.
+  function h.snapshot_restore(fields)
+    return snapshot_restore.run({ api = given.api, fields = fields })
   end
 
   return h

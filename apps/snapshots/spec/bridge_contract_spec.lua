@@ -87,6 +87,28 @@ local scenarios = {
     api.ext.LCRR_SNAPSHOTS = { snapshots = "garbage" }
     return ask("cmd=snapshots")
   end },
+  { "snapshot_restore", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_restore&name=Verse&ticks=LPMSRE")
+  end },
+  { "snapshot_restore_in_ears", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_restore&name=Verse&ticks=I")
+  end },
+  { "snapshot_restore_automated", function()
+    local ask, api = saved_bridge()
+    api.tracks[1].automode, api.tracks[1].env = 3, { Volume = 2, Mute = 2 }
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_restore&name=Verse&ticks=LPMSRE")
+  end },
+  { "snapshot_restore_no_ticks", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_restore&name=Verse&ticks=")
+  end },
+  { "snapshot_restore_not_found", function() return saved_bridge()("cmd=snapshot_restore&name=Nope&ticks=L") end },
   { "unknown_command", function() return bridge()("cmd=nope") end },
   { "request_truncated", function()
     local _, reply = service.new({ api = fake_project.new({ path = PATH }) }).handle("q1|40|cmd=sta")

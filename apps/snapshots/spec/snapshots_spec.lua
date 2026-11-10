@@ -253,3 +253,58 @@ describe("snapshot_save overwrite and snapshot_delete", function()
     assert.are.equal("garbage", api.ext[SECTION].snapshots)
   end)
 end)
+
+describe("snapshot marks", function()
+  local function marks_after(solo, muted)
+    local api = show()
+    api.tracks[1].solo = solo
+    api.GetMasterTrack(0).mute = muted
+    local ask = bridge(api)
+    ask("cmd=snapshot_save&name=A")
+    local reply = ask("cmd=snapshots")
+    return reply:find('"solo":true', 1, true) ~= nil, reply:find('"master_muted":true', 1, true) ~= nil,
+      assert(store.list(api))[1].marks
+  end
+
+  it("marks a solo alone", function()
+    local solo, muted, bits = marks_after(1, 0)
+    assert.is_true(solo)
+    assert.is_false(muted)
+    assert.are.equal(store.MARK_SOLO, bits)
+  end)
+
+  it("marks a muted Master alone", function()
+    local solo, muted, bits = marks_after(0, 1)
+    assert.is_false(solo)
+    assert.is_true(muted)
+    assert.are.equal(store.MARK_MASTER_MUTED, bits)
+  end)
+
+  it("marks both together, and a safe solo (5) counts as a solo", function()
+    local solo, muted, bits = marks_after(5, 1)
+    assert.is_true(solo)
+    assert.is_true(muted)
+    assert.are.equal(store.MARK_SOLO | store.MARK_MASTER_MUTED, bits)
+  end)
+
+  it("marks neither", function()
+    local solo, muted, bits = marks_after(0, 0)
+    assert.is_false(solo)
+    assert.is_false(muted)
+    assert.are.equal(0, bits)
+  end)
+
+  it("refreshes on overwrite, both ways", function()
+    local api = show()
+    api.tracks[1].solo, api.GetMasterTrack(0).mute = 0, 0
+    local ask = bridge(api)
+    ask("cmd=snapshot_save&name=A")
+    assert.are.equal(0, assert(store.list(api))[1].marks)
+    api.tracks[1].solo, api.GetMasterTrack(0).mute = 1, 1
+    ask("cmd=snapshot_save&name=A&overwrite=1")
+    assert.are.equal(3, assert(store.list(api))[1].marks)
+    api.tracks[1].solo, api.GetMasterTrack(0).mute = 0, 0
+    ask("cmd=snapshot_save&name=A&overwrite=1")
+    assert.are.equal(0, assert(store.list(api))[1].marks)
+  end)
+end)
