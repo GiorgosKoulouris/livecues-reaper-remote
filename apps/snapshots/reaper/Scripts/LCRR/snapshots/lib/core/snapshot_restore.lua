@@ -16,7 +16,9 @@
 -- added since the save are left alone; nothing is ever created or removed. `tracks` counts the tracks (Master
 -- included) that had a value written, `sends` the sends and outputs written. In-ear tracks and every send into one
 -- are recognised by their current names (`IEM_<name>`, `IEM-Cue`, the first `IEMs`) and, with I off, left alone and
--- not counted.
+-- not counted. A track that is gone counts once if any tick that writes a track value is on (L P M S R F I) and its
+-- sends and outputs count if E or I is on; a snapshot does not record which tracks were in-ear, so it follows the
+-- ticks like any other.
 --
 -- `automated` counts the written values (track and send volume, pan and mute) with active automation, and
 -- `muted_skipped` the mutes left alone because they would reach a Mute envelope in a writing mode (core `automation`,
@@ -50,6 +52,18 @@ local TRACK_TICKS = {
 }
 local SEND_KEYS = { { "D_VOL", "vol" }, { "D_PAN", "pan" }, { "B_MUTE", "mute" }, { "I_SENDMODE", "mode" } }
 local SOLO_WRITE = { [5] = 1, [6] = 2 }
+
+-- Which kinds of value a set of ticks writes. In-ears writes both for the in-ear tracks.
+local function writes_track(ticks)
+  for letter in pairs(TRACK_TICKS) do
+    if ticks[letter] then return true end
+  end
+  return ticks.I or false
+end
+
+local function writes_sends(ticks)
+  return ticks.E or ticks.I or false
+end
 
 local function read_ticks(raw)
   local ticks, any = {}, false
@@ -102,7 +116,9 @@ local function plan(api, contents, ticks)
   for _, saved in ipairs(contents.tracks) do
     local entry = now.by_guid[saved.guid]
     if not entry then
-      result.skipped = result.skipped + 1 + #saved.sends + #saved.outputs
+      -- A snapshot does not record which tracks were in-ear, so a deleted track follows the ticks like any other.
+      if writes_track(ticks) then result.skipped = result.skipped + 1 end
+      if writes_sends(ticks) then result.skipped = result.skipped + #saved.sends + #saved.outputs end
     else
       -- In-ear values (an in-ear track's own, every send into one, their outputs) follow only the In-ears tick.
       local ear = now.in_ear[saved.guid] or false
@@ -123,7 +139,7 @@ local function plan(api, contents, ticks)
           end
         end
       end
-      if ticks.E or ticks.I then
+      if writes_sends(ticks) then
         local queues = sends_by_dest(api, entry.track)
         local function add(category, index, send)
           local is_send = category == SEND_CATEGORY

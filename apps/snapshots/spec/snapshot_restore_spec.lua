@@ -183,6 +183,16 @@ describe("snapshot_restore", function()
     assert.are.equal(0.9, bus.vol)
   end)
 
+  it("counts a deleted track once with only Levels on, not its sends or outputs", function()
+    table.remove(api.tracks, 1)
+    assert.are.equal(1, run(api, "L").skipped)
+  end)
+
+  it("counts a deleted track's sends and outputs, not the track, with only Sends on", function()
+    table.remove(api.tracks, 1)
+    assert.are.equal(3 + 2, run(api, "E").skipped)
+  end)
+
   it("skips and counts a deleted send, matching the rest by pair and order", function()
     table.remove(kick.sends, 1)
     local reply = run(api, "E")
