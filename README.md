@@ -32,6 +32,9 @@ Open the **Home** page and pick an app. It also shows whether REAPER is connecte
 **IEM Mix: balance every in-ear mix.** The engineer's view: a live grid of every source in every mix, plus a side panel with faders, pans and mutes. Listen to any mix through a cue track, and save and recall snapshots. The page opens locked, and one tap unlocks it.
 *Needs:* in-ear mixes in the project. Listen and snapshots also rely on IEM Setup and the startup hook.
 
+**Snapshots: save and restore the whole mix.** Save the project's mix under a name and bring it back with one press, playing or stopped: levels, pans, mutes, solos, polarity, sends and, if you tick them, FX on/off and the in-ears. Restore is one undo step. Tick what to restore, and hold a key to restore, overwrite or delete. Saving, overwriting and deleting can't be undone. Snapshots are stored in the project, so save the project to keep them.
+*Needs:* the startup hook (step 4 of the install).
+
 **Arrange: put project regions in a new order.** Describe the order you want, check what would happen, then apply it. Regions move with everything inside them: media, automation, markers and tempo. It changes your project, so try it on a copy first. The [Arrange guide](apps/arrange/README.md) explains how it works and what it won't do.
 *Needs:* the startup hook, and a project with uniquely named regions.
 
