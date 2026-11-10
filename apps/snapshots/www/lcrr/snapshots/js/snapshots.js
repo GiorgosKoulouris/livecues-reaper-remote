@@ -137,6 +137,12 @@
       var li = h("li", "snapshots-row");
       li.appendChild(h("span", "snapshots-row-name", s.name));
       li.appendChild(h("span", "snapshots-row-meta", words.counts(s, savedText(s.saved))));
+      var marks = words.marks(s);
+      if (marks.length) {
+        var tags = h("div", "snapshots-row-marks");
+        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + (m === "Solo" ? "solo" : "master"), m)); });
+        li.appendChild(tags);
+      }
       var keys = h("div", "snapshots-row-keys");
       keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
       keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));

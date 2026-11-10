@@ -55,6 +55,14 @@
     return plural(s.tracks, "track", "tracks") + ", " + plural(s.sends, "send", "sends") + (when ? " · " + when : "");
   }
 
+  // The marks on a row: what the snapshot holds that the engineer should see before Restore. Words, not colour alone.
+  function marks(s) {
+    var out = [];
+    if (s.solo) out.push("Solo");
+    if (s.masterMuted) out.push("Master muted");
+    return out;
+  }
+
   // A row's key names for a screen reader and its tooltip: what holding it does to which snapshot.
   function holdLabel(kind, name) { return (kind === "delete" ? "Delete " : "Overwrite ") + name + ", hold to confirm"; }
   // The restore's wording: the ticks' labels, the Restore key, and the result note.
@@ -73,5 +81,5 @@
   var NO_SNAPSHOTS = UI.empty;
   var UNDO_NOTE = "Saving a snapshot cannot be undone.";
 
-  return { tick: tick, restoreNote: restoreNote, holdLabel: holdLabel, counts: counts, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
+  return { tick: tick, restoreNote: restoreNote, holdLabel: holdLabel, counts: counts, marks: marks, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
 });

@@ -88,3 +88,11 @@ test("every refusal of an overwrite or a delete is worded, matching the recorded
   clean(words.holdLabel("delete", "Verse"), "delete label");
   assert.ok(words.holdLabel("overwrite", "Verse").startsWith("Overwrite Verse"));
 });
+
+test("marks name what a snapshot holds, in words, from the recorded list reply", () => {
+  const core = require("../www/lcrr/snapshots/js/core.js");
+  const fs = require("fs"), path = require("path");
+  const line = fs.readFileSync(path.join(__dirname, "fixtures/bridge-replies.txt"), "utf8").split("\n").find((l) => l.startsWith("snapshots_marks\t"));
+  const list = core.readList(JSON.parse(line.slice(line.indexOf("\t") + 1)));
+  assert.deepStrictEqual(list.map((s) => words.marks(s)), [[], ["Solo"], ["Master muted"], ["Solo", "Master muted"]]);
+});
