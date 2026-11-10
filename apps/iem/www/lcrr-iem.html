@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEM Setup · LiveCues ReaperRemote</title>
+<link rel="icon" href="lcrr/shared/img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="lcrr/shared/img/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="lcrr/shared/img/apple-touch-icon.png">
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/iem/css/iem.css">
+</head>
+<body data-state="connecting">
+<header class="iem-bar">
+  <div class="iem-bar-inner">
+    <h1 class="iem-title">IEM Setup</h1>
+    <span id="iem-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="iem-shape" aria-hidden="true"></i><span id="iem-state-text">Connecting&hellip;</span></span>
+  </div>
+  <div id="iem-banner" role="alert" hidden></div>
+</header>
+
+<main>
+  <div class="iem-tools">
+    <div id="iem-project" class="iem-project" hidden>
+      <span class="iem-label">Project</span>
+      <strong id="iem-project-name"></strong>
+    </div>
+    <label class="iem-filter">
+      <span class="iem-label">Filter tracks</span>
+      <input id="iem-filter" type="text" autocomplete="off" spellcheck="false" disabled>
+    </label>
+    <!-- Every label is set from words.js. Each command's keys live here and gate on the lock. -->
+    <div id="iem-actions" class="iem-actions">
+      <form id="iem-create" class="iem-create" autocomplete="off" hidden>
+        <label class="iem-filter">
+          <span class="iem-label" id="iem-create-label"></span>
+          <input id="iem-create-name" type="text" spellcheck="false">
+        </label>
+        <button id="iem-create-go" class="iem-primary" type="submit"></button>
+      </form>
+      <label class="iem-colour" id="iem-colour-box" hidden>
+        <span class="iem-label" id="iem-colour-label"></span>
+        <input id="iem-colour" type="color">
+      </label>
+      <button id="iem-move" type="button" hidden></button>
+      <button id="iem-lock" type="button" aria-pressed="false" disabled></button>
+    </div>
+  </div>
+
+  <p id="iem-message" class="iem-message" role="status" hidden></p>
+  <p id="iem-empty" class="iem-message" hidden></p>
+
+  <div id="iem-scroll" class="iem-scroll" tabindex="0" role="region" aria-label="Which tracks feed which mix" hidden>
+    <table id="iem-grid" class="iem-grid">
+      <thead id="iem-head"></thead>
+      <tbody id="iem-body"></tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="lcrr-footer">
+  <div class="lcrr-footer-inner">
+    <a class="lcrr-home" href="lcrr.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Home</a>
+  </div>
+</footer>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/shared/js/hold.js"></script>
+<script src="lcrr/iem/js/wire.js"></script>
+<script src="lcrr/iem/js/client.js"></script>
+<script src="lcrr/iem/js/core.js"></script>
+<script src="lcrr/iem/js/words.js"></script>
+<script src="lcrr/iem/js/iem.js"></script>
+</body>
+</html>

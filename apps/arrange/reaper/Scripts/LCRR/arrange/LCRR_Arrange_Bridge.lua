@@ -16,17 +16,20 @@
 --   stop it.
 
 -- The bridge front end over the same cores as the dialog scripts. The request
--- handling is lib/bridge/service.lua, the loop is lib/bridge/runner.lua.
+-- handling is lib/bridge/service.lua, the loop is shared/bridge/runner.lua.
+-- `shared` is a sibling of this folder (Scripts/LCRR/shared, suite ADR-0001).
 local script_dir = ({ reaper.get_action_context() })[2]:match("^(.*)[\\/]")
 package.path = script_dir .. "/?.lua;" .. package.path
+package.path = script_dir .. "/../?.lua;" .. package.path
 
 local service = require("lib.bridge.service")
-local runner = require("lib.bridge.runner")
+local runner = require("shared.bridge.runner")
 
 local _, _, section_id, command_id = reaper.get_action_context()
 
 local bridge = runner.new({
   api = reaper,
+  section = "LCRR_ARRANGE",
   handle = service.new({ api = reaper }).handle,
 })
 

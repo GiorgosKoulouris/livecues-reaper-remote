@@ -4,13 +4,15 @@
 .DESCRIPTION
   Lays every web slice (shared\www, apps\<app>\www) over REAPER's web root: the lcrr*.html entry pages go at the
   top level (REAPER lists only those as "Default interface"), and each lcrr\<part> folder goes under lcrr\.
-  Lays every reaper slice (apps\<app>\reaper, a mirror of REAPER's resource path) over the resource path: each
-  Scripts\LCRR\<part> folder goes to <Resource>\Scripts\LCRR\<part>, scripts and their lib\ together.
+  Lays every reaper slice (apps\<app>\reaper and shared\reaper, mirrors of REAPER's resource path) over the resource
+  path: each Scripts\LCRR\<part> folder goes to <Resource>\Scripts\LCRR\<part>, scripts and their lib\ together.
+  The shared Lua lands as Scripts\LCRR\shared, a sibling of the app folders, which the bridge scripts reach by
+  adding their parent folder to package.path.
   Each install replaces the whole lcrr\ and Scripts\LCRR\ trees, so a file deleted or renamed in the repo
   disappears from REAPER too. Re-run to update. Run from a PowerShell prompt on the Windows host:
       .\scripts\install.ps1
-  The Arrange bridge (LCRR_Arrange_Bridge.lua) starts with REAPER through one marked line in Scripts\__startup.lua,
-  which install adds (or replaces) and -Uninstall removes; the rest of that file is left alone.
+  The bridges (LCRR_Arrange_Bridge.lua, LCRR_IEM_Bridge.lua) start with REAPER through one marked line each in
+  Scripts\__startup.lua, which install adds (or replaces) and -Uninstall removes; the rest of that file is left alone.
   New Lua scripts must be loaded once in REAPER (Actions > Show action list > New action > Load ReaScript);
   already-loaded ones pick up changes on their next run.
 .PARAMETER Root
@@ -41,8 +43,9 @@ $ErrorActionPreference = 'Stop'
 $repo = Join-Path $PSScriptRoot '..' | Resolve-Path
 $slices = @(Join-Path $repo 'shared\www') + @(Get-ChildItem (Join-Path $repo 'apps') -Directory |
   ForEach-Object { Join-Path $_.FullName 'www' } | Where-Object { Test-Path $_ })
-$reaperSlices = @(Get-ChildItem (Join-Path $repo 'apps') -Directory |
-  ForEach-Object { Join-Path $_.FullName 'reaper' } | Where-Object { Test-Path $_ })
+# shared\reaper is the shared Lua (Scripts\LCRR\shared), laid in beside the apps' folders like any other part.
+$reaperSlices = @(@(Join-Path $repo 'shared\reaper') + @(Get-ChildItem (Join-Path $repo 'apps') -Directory |
+  ForEach-Object { Join-Path $_.FullName 'reaper' }) | Where-Object { Test-Path $_ })
 $scripts = Join-Path $Resource 'Scripts'
 $scriptsLcrr = Join-Path $scripts 'LCRR'
 
@@ -63,21 +66,28 @@ function Remove-Entry([string]$p) {
   else { Remove-Item -LiteralPath $p -Recurse -Force }
 }
 
-# The Arrange bridge runs in the background from REAPER's start (Scripts\__startup.lua). That file may hold the user's
-# own lines, so ours is one marked line: it is replaced on every install and removed on uninstall, nothing else is
-# touched. __startup.lua cannot just dofile the bridge, because get_action_context() would then name __startup.lua and
-# the bridge could not find its lib\; it registers the bridge as an action and runs that (same command id each start).
+# The bridges (Arrange, IEM Setup) run in the background from REAPER's start (Scripts\__startup.lua). That file may hold
+# the user's own lines, so ours are marked lines, one per bridge: each is replaced on every install and removed on
+# uninstall, nothing else is touched. __startup.lua cannot just dofile a bridge, because get_action_context() would then
+# name __startup.lua and the bridge could not find its lib\; it registers the bridge as an action and runs that (same
+# command id each start).
 $startupFile = Join-Path $scripts '__startup.lua'
-$startupMarker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'
-$startupLine = 'do local p = reaper.GetResourcePath() .. "/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua"; ' +
-  'local id = reaper.AddRemoveReaScript(true, 0, p, true); if id ~= 0 then reaper.Main_OnCommand(id, 0) end end ' + $startupMarker
+$bridges = @(
+  @{ Name = 'Arrange'; Marker = '-- LCRR-ARRANGE-BRIDGE (managed by install.ps1)'; Script = 'arrange/LCRR_Arrange_Bridge.lua' },
+  @{ Name = 'IEM Setup'; Marker = '-- LCRR-IEM-BRIDGE (managed by install.ps1)'; Script = 'iem/LCRR_IEM_Bridge.lua' }
+)
+foreach ($b in $bridges) {
+  $b.Line = 'do local p = reaper.GetResourcePath() .. "/Scripts/LCRR/' + $b.Script + '"; ' +
+    'local id = reaper.AddRemoveReaScript(true, 0, p, true); if id ~= 0 then reaper.Main_OnCommand(id, 0) end end ' + $b.Marker
+}
 
-function Set-StartupLine([bool]$present) {
+# Present: the bridge's line is (re)written. Absent: it is removed. Other bridges' lines and the user's lines are kept.
+function Set-StartupLine($bridge, [bool]$present) {
   $kept = @()
   if (Test-Path -LiteralPath $startupFile) {
-    $kept = @(Get-Content -LiteralPath $startupFile | Where-Object { $_ -notlike "*$startupMarker*" })
+    $kept = @(Get-Content -LiteralPath $startupFile | Where-Object { $_ -notlike "*$($bridge.Marker)*" })
   }
-  if ($present) { $kept += $startupLine }
+  if ($present) { $kept += $bridge.Line }
   if ($kept.Count -eq 0) {
     if (Test-Path -LiteralPath $startupFile) { Remove-Item -LiteralPath $startupFile -Force }
     return
@@ -96,7 +106,7 @@ function Remove-Installed {
     Get-ChildItem $scriptsLcrr -Force | ForEach-Object { Remove-Entry $_.FullName }
     Remove-Entry $scriptsLcrr
   }
-  if (Test-Path -LiteralPath $startupFile) { Set-StartupLine $false }
+  if (Test-Path -LiteralPath $startupFile) { foreach ($b in $bridges) { Set-StartupLine $b $false } }
 }
 
 if ($Uninstall) {
@@ -153,9 +163,11 @@ if ($count) {
   Write-Host ("{0} {1} script folders into {2}" -f ($(if ($Link) {'Linked'} else {'Copied'}), $count, $scriptsLcrr))
   Write-Host "New scripts: in REAPER, Actions > Show action list > New action > Load ReaScript, from $scriptsLcrr\<app>."
 }
-if (Test-Path -LiteralPath (Join-Path $scriptsLcrr 'arrange\LCRR_Arrange_Bridge.lua')) {
-  Set-StartupLine $true
-  Write-Host "Arrange bridge: starts with REAPER (marked line in $startupFile). Restart REAPER, or run LCRR_Arrange_Bridge.lua once from the Action list."
+foreach ($b in $bridges) {
+  if (Test-Path -LiteralPath (Join-Path $scriptsLcrr ($b.Script -replace '/', '\'))) {
+    Set-StartupLine $b $true
+    Write-Host "$($b.Name) bridge: starts with REAPER (marked line in $startupFile). Restart REAPER, or run $(Split-Path -Leaf $b.Script) once from the Action list."
+  }
 }
 
 $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |

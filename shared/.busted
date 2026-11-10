@@ -1,0 +1,14 @@
+-- Busted configuration for the shared Lua. Run from shared/ (npm test does this).
+-- `lua` is pinned to 5.4 because REAPER embeds 5.4 (see apps/arrange/.busted).
+-- `lpath` makes `require("shared.bridge.json")` resolve as it does inside REAPER,
+-- where each bridge script adds the folder holding `shared` to package.path.
+return {
+  _all = {
+    lua = "lua5.4",
+    lpath = "./reaper/Scripts/LCRR/?.lua",
+  },
+  default = {
+    ROOT = { "spec" },
+    verbose = true,
+  },
+}

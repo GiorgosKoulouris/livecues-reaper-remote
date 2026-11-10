@@ -37,8 +37,8 @@
 local env_lib = require("lib.core.env")
 local project = require("lib.project")
 local sidecar = require("lib.sidecar")
-local json = require("lib.bridge.json")
-local request = require("lib.bridge.request")
+local json = require("shared.bridge.json")
+local request = require("shared.bridge.request")
 local tokens = require("lib.bridge.tokens")
 
 local apply = require("lib.core.apply")

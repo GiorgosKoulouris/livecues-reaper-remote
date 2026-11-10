@@ -105,7 +105,7 @@ components:
 
 # Design System: LiveCues ReaperRemote
 
-One design system for the whole suite. Tokens and the self-hosted fonts live in `shared/www/lcrr/shared/css/tokens.css`, base styles and the suite footer in `base.css`; each app adds only its own components. The component sections below describe Podium (the first app) unless headed otherwise; the Suite footer and Home sections apply suite-wide, and Monitor and Arrange have their own sections.
+One design system for the whole suite. Tokens and the self-hosted fonts live in `shared/www/lcrr/shared/css/tokens.css`, base styles and the suite footer in `base.css`; each app adds only its own components. The component sections below describe Podium (the first app) unless headed otherwise; the Suite footer and Home sections apply suite-wide, and Monitor, Arrange and IEM Setup have their own sections.
 
 ## Overview
 
@@ -176,7 +176,7 @@ A warm near-black chassis with three tonal steps (bar, display, key), one signal
 
 ## Layout
 
-A single column, capped at 48rem (72rem for Arrange's desk layout). Lists have rows separated by lines, not cards.
+A single column, capped at 48rem (72rem for Arrange's desk layout; IEM Setup's grid uses the whole screen). Lists have rows separated by lines, not cards.
 
 **Podium's bar is compact on purpose**, because a project can have many regions and markers. It is a two-row grid, about 80px in total, sticky above a two-tab strip:
 1. **Clock and keys:** the project-time readout at left, Stop-or-Play and Rec at right, symbols only (no text on the keys).
@@ -254,10 +254,18 @@ Square by default. **Keys** (every button that acts) have one chamfered corner, 
 - **Run / Edit tabs:** the same tabs as Podium: Legend Dim, selected in Legend with a 3px Signal underline.
 - **Region editor:** rows in Display slots with an Edge border: a 44px drag handle key (grab cursor), name, a small amber flag when a region is missing, the Headroom control (−1 s, a IBM Plex Mono field with a trailing "s", +1 s) and 44px keys for move and remove. While dragging, the row dims to 50% and a 3px Signal edge marks where it will drop.
 
+### IEM Setup (`lcrr-iem.html`)
+- **Built for a laptop or tablet** (768px and wider), not a phone: the page is the full screen width, and the grid scrolls inside its own bordered Display box so its row and column headers stay put on both axes.
+- **Bar and state:** the same sticky Bar, state LED and Signal banner strip as Arrange ("IEM Setup not running" in Warn Amber when the bridge is down). The bar sits above the grid's headers.
+- **Grid:** columns are mixes, rows are every non-IEM track in project order, each name indented 1.25rem per folder level (folders in 700 weight). Row and column headers are Bar faces with Line gridlines, sticky. Cells are 44px high. A mix header shows its name (600), its output in IBM Plex Mono (Warn Amber when there is none, "No output") and small Warn Umber flags for a stray mix, a duplicate name or several outputs.
+- **ON cell:** a Key face holding the send level in IBM Plex Mono, dB with one decimal and no unit, read-only. A muted send keeps its face but the figure drops to Legend Dim and is struck through in LED Red. OFF cells are empty Display.
+- **Cell tags:** two small Warn Edge boxes in the corner of a cell's content: POST or PRE when the send is not post-FX pre-fader (with a tooltip saying so), and 2x (Warn Umber fill) when a folder and its child both feed the mix. Each also has a screen-reader sentence in the cell.
+- **Filter:** a 44px text field, IBM Plex Mono, Signal focus ring.
+
 ### Home page
 - Sticky Bar: the suite name ("LiveCues" in Legend, "ReaperRemote" in Signal; the second word hidden below 480px) and a connection state on the right.
 - **Connection state:** the same drawn shape and word as the other bars. Connected = LED Green disc ("REAPER connected"); unreachable = Warn Amber ring ("REAPER unreachable"); connecting = ring at 70%.
-- **App keys:** Key faces with the larger 12px chamfer, min 5rem tall: the app name in key-label caps, a 2–3 word description in Legend Dim ("Cues and transport", "In ear mixes", "Reorder project regions"), and a Signal triangle at the right. Grid that fills columns of at least 16rem (one column on phones). Pressed inverts.
+- **App keys:** Key faces with the larger 12px chamfer, min 5rem tall: the app name in key-label caps, a 2–3 word description in Legend Dim ("Cues and transport", "In ear mixes", "Reorder project regions", "Create and route in ear mixes"), and a Signal triangle at the right. Grid that fills columns of at least 16rem (one column on phones). Pressed inverts.
 
 ## Do's and Don'ts
 

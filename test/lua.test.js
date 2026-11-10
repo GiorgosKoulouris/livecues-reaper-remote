@@ -20,6 +20,12 @@ test("luaApps finds only the apps carrying the given config, sorted", () => {
   assert.deepStrictEqual(luaApps(repo, ".luacheckrc"), ["apps/arrange"]);
 });
 
+test("luaApps lists shared/ after the apps when it carries the config", () => {
+  const repo = tmpRepo(["apps/arrange/.busted", "shared/.busted", "shared/.luacheckrc"]);
+  assert.deepStrictEqual(luaApps(repo, ".busted"), ["apps/arrange", "shared"]);
+  assert.deepStrictEqual(luaApps(repo, ".luacheckrc"), ["shared"]);
+});
+
 test("luaApps and run are a no-op for a repo without Lua apps", () => {
   const repo = tmpRepo(["apps/podium/www/x.html"]);
   assert.deepStrictEqual(luaApps(repo, ".busted"), []);

@@ -1,7 +1,7 @@
 -- Encode-only JSON, for the bridge's replies.
 --
 -- The bridge never parses JSON: requests are flat key/value fields
--- (lib/bridge/request.lua), so this is the only direction there is.
+-- (shared/bridge/request.lua), so this is the only direction there is.
 --
 -- Lua has one table type, so two shapes need a rule:
 --

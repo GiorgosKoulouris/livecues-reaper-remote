@@ -1,8 +1,8 @@
--- lib/bridge/runner.lua: the ExtState loop, driven with a fake REAPER.
+-- shared/bridge/runner.lua: the ExtState loop, driven with a fake REAPER.
 
-local runner = require("lib.bridge.runner")
+local runner = require("shared.bridge.runner")
 
-local S = runner.SECTION
+local S = "LCRR_TEST"
 
 local function world()
   local w = { state = {}, now = 0, handled = {} }
@@ -14,6 +14,7 @@ local function world()
   }
   w.loop = runner.new({
     api = w.api,
+    section = S,
     clock = function() return w.now end,
     handle = function(raw)
       w.handled[#w.handled + 1] = raw
@@ -26,7 +27,7 @@ local function world()
   return w
 end
 
-describe("lib/bridge/runner.lua", function()
+describe("shared/bridge/runner.lua", function()
   it("clears a stale request and reply on start, and beats", function()
     local w = world()
     w.state[S .. "/req"] = "old|0|"

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Run the Lua toolchain over every app that carries one: busted where apps/<app>/.busted exists, luacheck where
-// apps/<app>/.luacheckrc exists, each from inside the app folder (their configs use app-relative paths).
+// Run the Lua toolchain over every app that carries one (and shared/): busted where apps/<app>/.busted exists, luacheck
+// where apps/<app>/.luacheckrc exists, each from inside that folder (their configs use app-relative paths).
 //   node scripts/lua.js test    -> busted
 //   node scripts/lua.js check   -> luacheck
 // A missing tool is an error, not a skip: a green run must never hide untested Lua. Use the devcontainer.
@@ -14,13 +14,16 @@ const TOOLS = {
   check: { config: ".luacheckrc", cmd: "luacheck", args: ["."] }
 };
 
-// Repo-relative app folders holding the given config file, sorted.
+// Repo-relative folders holding the given config file: the apps (sorted), then shared/ (the Lua every bridge uses).
 function luaApps(repo, config) {
   const apps = path.join(repo, "apps");
-  if (!fs.existsSync(apps)) return [];
-  return fs.readdirSync(apps).sort()
-    .filter((a) => fs.existsSync(path.join(apps, a, config)))
-    .map((a) => "apps/" + a);
+  const found = fs.existsSync(apps)
+    ? fs.readdirSync(apps).sort()
+      .filter((a) => fs.existsSync(path.join(apps, a, config)))
+      .map((a) => "apps/" + a)
+    : [];
+  if (fs.existsSync(path.join(repo, "shared", config))) found.push("shared");
+  return found;
 }
 
 function run(repo, mode) {

@@ -1,0 +1,91 @@
+/* IEM Setup: tokens and base styles come from lcrr/shared/css/. Flat and tonal; state colour only for state (DESIGN.md). */
+[hidden] { display:none !important; }
+
+.iem-bar { position:sticky; top:0; z-index:20; background:var(--bar); border-bottom:1px solid var(--line); }
+.iem-bar-inner { display:flex; align-items:center; gap:.75rem; margin:0 auto; padding:.5rem 1rem; min-height:3.5rem; }
+.iem-title { flex:1 1 0; min-width:0; margin:0; font-size:1.25rem; font-weight:600; line-height:1.25; }
+
+/* Connection chip: a drawn shape as well as colour (same rule as the other apps). */
+#iem-state { display:inline-flex; align-items:center; gap:.4rem; flex:none; min-height:2rem; font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; line-height:1; color:var(--legend-dim); }
+#iem-state[data-state=connecting] { opacity:.7; }
+#iem-state[data-state=offline], #iem-state[data-state=bridge-down] { color:var(--warn-amber); }
+.iem-shape { display:block; width:.7rem; height:.7rem; flex:none; border-radius:50%; background:var(--led-green); }
+[data-state=connecting] > .iem-shape, [data-state=offline] > .iem-shape, [data-state=bridge-down] > .iem-shape { background:none; border:2px solid currentColor; }
+#iem-banner { padding:.5rem 1rem; background:var(--signal); color:var(--signal-ink); font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+
+/* A grid is wider than the stage pages' column: the page uses the screen. */
+body > main { max-width:none; padding:1rem; }
+.iem-label { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
+
+.iem-tools { display:flex; flex-wrap:wrap; align-items:flex-end; gap:.75rem 1.5rem; margin-bottom:.75rem; }
+.iem-project { display:flex; flex-direction:column; gap:.25rem; min-width:0; flex:1 1 12rem; overflow-wrap:anywhere; }
+.iem-filter { display:flex; flex-direction:column; gap:.25rem; flex:0 1 16rem; }
+.iem-actions { display:flex; flex-wrap:wrap; align-items:flex-end; gap:.5rem 1rem; margin-left:auto; }
+.iem-actions:empty { display:none; }
+.iem-create { display:flex; align-items:flex-end; gap:.5rem; }
+.iem-create .iem-filter { flex:0 1 14rem; }
+.iem-colour { display:flex; flex-direction:column; gap:.25rem; }
+input[type=color] { width:3.5rem; height:44px; padding:2px; background:var(--display); border:1px solid var(--edge); border-radius:0; cursor:pointer; }
+input[type=color]:disabled { opacity:.4; cursor:default; }
+input[type=color]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+/* Keys (DESIGN.md): chamfered, 44px; the one lit key in a view is the forward action. */
+button { min-height:44px; padding:.5rem 1rem; background:var(--key); color:var(--legend); border:0; border-radius:0; clip-path:var(--chamfer); font:inherit; font-weight:600; letter-spacing:.04em; cursor:pointer; }
+@media (hover:hover) { button:not(:disabled):hover { background:var(--key-hover); } }
+button:not(:disabled):active { background:var(--legend); color:var(--chassis); }
+button:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
+button.iem-primary { font-weight:700; background:var(--signal); color:var(--signal-ink); }
+button.iem-quiet { background:none; clip-path:none; color:var(--legend-dim); text-decoration:underline; padding:.25rem .5rem; min-height:44px; }
+#iem-lock[aria-pressed=true] { box-shadow:none; outline:2px solid var(--legend-dim); outline-offset:-2px; }
+.iem-delete { position:relative; overflow:hidden; }
+.iem-delete::after { content:""; position:absolute; inset:0; background:var(--warn-amber); opacity:.35; transform:scaleX(0); transform-origin:left; pointer-events:none; }
+.iem-delete.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 1000ms) linear; }
+@media (prefers-reduced-motion: reduce) {
+  .iem-delete::after { transform:none; opacity:0; }
+  .iem-delete.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
+}
+.iem-rename { display:flex; flex-direction:column; gap:.25rem; margin-top:.25rem; }
+.iem-rename input[type=text] { min-height:44px; width:100%; }
+.iem-rename-keys { display:flex; gap:.25rem; }
+.iem-swatch { display:inline-block; width:.75rem; height:.75rem; margin-right:.375rem; border:1px solid var(--edge); vertical-align:baseline; }
+input[type=text] { min-height:44px; padding:.5rem .75rem; background:var(--display); color:var(--legend); border:1px solid var(--edge); border-radius:0; font:inherit; font-family:var(--font-mono); }
+input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+.iem-message { margin:.5rem 0; padding:.5rem .75rem; background:var(--display); border:1px solid var(--edge); }
+
+/* The grid scrolls inside its own box, so the sticky row and column headers stay put on both axes. */
+.iem-scroll { overflow:auto; max-height:calc(100vh - 14rem); max-height:calc(100dvh - 14rem); min-height:12rem; background:var(--display); border:1px solid var(--edge); }
+.iem-scroll:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+.iem-grid { border-collapse:separate; border-spacing:0; min-width:100%; font-variant-numeric:tabular-nums; }
+.iem-grid th, .iem-grid td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:0; }
+
+.iem-grid thead th { position:sticky; top:0; z-index:5; background:var(--bar); vertical-align:bottom; min-width:7.5rem; max-width:10rem; padding:.5rem .5rem; text-align:left; font-weight:500; }
+.iem-grid thead th.iem-corner { left:0; z-index:7; min-width:12rem; max-width:none; }
+.iem-grid tbody th { position:sticky; left:0; z-index:3; background:var(--bar); min-width:12rem; max-width:20rem; text-align:left; font-weight:500; padding:0 .75rem 0 0; }
+.iem-corner { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
+
+.iem-mix-name { display:block; font-weight:600; overflow-wrap:anywhere; }
+.iem-mix-out { display:block; margin-top:.125rem; font-family:var(--font-mono); font-size:.8rem; color:var(--legend-dim); }
+.iem-mix.is-no-output .iem-mix-out { color:var(--warn-amber); }
+.iem-out-pick { margin-top:.125rem; }
+.iem-out-select { max-width:100%; min-height:44px; font-family:var(--font-mono); font-size:.8rem; }
+.iem-out-note { display:block; margin-top:.125rem; font-size:.7rem; color:var(--warn-amber); }
+.iem-flags { display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.25rem; }
+.iem-flag { display:inline-block; padding:.125rem .375rem; border:1px solid var(--warn-edge); background:var(--warn-umber); color:var(--warn-cream); font-size:.68rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; line-height:1.2; }
+
+.iem-row-name { display:block; min-height:44px; padding:.6rem 0 .6rem .75rem; overflow-wrap:anywhere; }
+.iem-row.is-folder .iem-row-name { font-weight:700; }
+
+.iem-cell { height:44px; min-width:7.5rem; text-align:center; vertical-align:middle; }
+.iem-cell.is-on { background:var(--key); }
+.iem-cell-inner { display:inline-flex; align-items:center; justify-content:center; gap:.375rem; padding:0 .375rem; }
+.iem-db { font-family:var(--font-mono); font-size:1.05rem; font-weight:500; color:var(--legend); }
+/* A muted send stays visible but recedes; its text stays above 4.5:1 on the key face. */
+.iem-cell.is-muted .iem-db { color:var(--legend-dim); text-decoration:line-through; text-decoration-color:var(--led-red); }
+.iem-tag { padding:.0625rem .3125rem; border:1px solid var(--warn-edge); color:var(--warn-amber); font-size:.64rem; font-weight:700; letter-spacing:.08em; line-height:1.2; }
+.iem-tag.is-double { background:var(--warn-umber); color:var(--warn-cream); }
+
+@media (max-width: 767px) {
+  .iem-tools { gap:.5rem 1rem; }
+  .iem-grid tbody th, .iem-grid thead th.iem-corner { min-width:9rem; }
+}

@@ -1,9 +1,9 @@
--- The bridge's ExtState loop, minus the defer: one `tick` is one look at the
--- request, and LCRR_Arrange_Bridge.lua calls it from reaper.defer.
+-- The ExtState loop every bridge shares, minus the defer: one `tick` is one
+-- look at the request, and each bridge script calls it from reaper.defer.
 --
---   page  -> SET/EXTSTATE/LCRR_ARRANGE/req/<id>|<length>|<body>
---   tick  -> SetExtState(LCRR_ARRANGE, res, <id>|<json>)
---   tick  -> SetExtState(LCRR_ARRANGE, heartbeat, <counter>), about 4 times a second
+--   page  -> SET/EXTSTATE/<section>/req/<id>|<length>|<body>
+--   tick  -> SetExtState(<section>, res, <id>|<json>)
+--   tick  -> SetExtState(<section>, heartbeat, <counter>), about 4 times a second
 --
 -- **The heartbeat is the only way the page knows the bridge is running.** A
 -- key that was never set reads as an empty string, which cannot be told from
@@ -15,17 +15,17 @@
 
 local runner = {}
 
-runner.SECTION = "LCRR_ARRANGE"
 runner.BEAT_EVERY = 0.25 -- seconds
 
 --- @param opts table
 --   api      the `reaper` table
---   handle   function(raw) -> id, reply (lib/bridge/service.lua)
+--   section  the bridge's ExtState section (LCRR_ARRANGE, LCRR_IEM)
+--   handle   function(raw) -> id, reply (the bridge's service)
 --   clock    function() -> seconds (default reaper.time_precise)
 function runner.new(opts)
   local api, handle = opts.api, opts.handle
   local clock = opts.clock or api.time_precise
-  local section = runner.SECTION
+  local section = assert(opts.section, "runner: section is required")
 
   local self = {}
   local beat, beat_at, last_raw = 0, nil, nil
