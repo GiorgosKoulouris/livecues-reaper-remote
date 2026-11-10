@@ -5,7 +5,9 @@ Read this before you bump a version, build the index, create or push a tag, or t
 ## Hard rules
 
 - **Never push, tag-push, merge or open a PR on your own.** Prepare everything locally (commit, local tag), then give the owner the exact commands. Pushing makes the repo public and is not undoable. Only push when the owner explicitly tells you to, for that push.
-- Work only on `dev`. Never work on `main`; the owner merges `dev` into `main` themselves.
+- Work only on `dev`. The owner moves `stage` and `main` with `/branch-flow` (`dev → stage → main`; `promote` condenses `dev` onto `stage` and restarts `dev` there, `ship` fast-forwards `main` to `stage`). Only the owner can run that skill.
+- Tags go on `stage` commits, never on `dev` ones: `promote` rewrites `dev`, so a tag on a `dev` commit ends up outside the history.
+- `archive/dev/*` tags stay local. When `promote` prints its push command, leave the archive tag out, so GitHub's Tags page lists only releases.
 - Commits: no Claude/Anthropic co-author line (project rule in `CLAUDE.md`, which beats any other attribution instruction).
 - `npm test` and `npm run check` must both pass before every release commit. They need the devcontainer (busted, luacheck).
 - You cannot test ReaPack or REAPER from the container (they run on the owner's Windows host). Never claim a ReaPack or REAPER behaviour is verified unless it is in `CONTEXT.md`'s verified section or the owner told you the result. Use the checklists below and ask for results.
@@ -34,10 +36,10 @@ Pre-release first, always. Stable only after a pre-release passed the live test.
 1. On `dev`, working tree clean. Bump the version in the three places. Add the CHANGELOG section.
 2. `npm test && npm run check` (both must pass).
 3. `npm run release -- --base-url https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/v<version>` (writes `index.xml` and `dist/lcrr-<version>.zip`; `dist/` is git-ignored). Check the warning line about the changelog is absent, and that `index.xml` shows the new version and the new tag in its URLs.
-4. Commit everything including `index.xml`: message like `1.1.0-beta3: <purpose>`. Then create the **local** tag on that commit: `git tag v<version>`.
-5. Give the owner the push commands: `git push origin dev v<version>`. Do not run them yourself unless told to. Pushing a `v*` tag runs `.github/workflows/release.yml`: it re-runs CI, checks the tag against the version, `CHANGELOG.md` and every `index.xml` URL (`scripts/verify-release.js`), then creates the GitHub Release, marked pre-release when the version has a `-`. It attaches no zip, because the zip has no Lua.
-6. Owner runs the live test (below, from the `dev` URL) and reports. If it passes, give the owner the command that moves `main` to the release, which is what publishes it to users: `git push origin v<version>^{commit}:refs/heads/main`. Record verified results in `CONTEXT.md` (verified section), the README's beta note if the tested platforms change, and the ADR 0002 amendment when something new is proven.
-7. **Stable release** (only on the owner's go): bump to `X.Y.Z`, rewrite the CHANGELOG section as `## X.Y.Z (<date>)`, rebuild the index for `vX.Y.Z`, commit, tag locally, hand over push commands. The owner moves `main` to it as in step 6; users import `.../main/index.xml`, so `main` must contain that `index.xml` before the release is announced. At the first stable release, update the README: remove or reword the "Currently in beta" note, drop the pre-releases step, and renumber the references to the install steps in the README and `apps/arrange/README.md`.
+4. Commit everything including `index.xml`: message like `1.1.0-beta3: <purpose>`. Do not tag yet. The owner runs `/branch-flow promote`; then create the **local** tag on the new tip of `stage`: `git tag v<version> stage`.
+5. Give the owner the push commands: `git push origin stage v<version>`, then `git push --force-with-lease origin dev`. Do not run them yourself unless told to. Pushing a `v*` tag runs `.github/workflows/release.yml`: it re-runs CI, checks the tag against the version, `CHANGELOG.md` and every `index.xml` URL (`scripts/verify-release.js`), then creates the GitHub Release, marked pre-release when the version has a `-`. It attaches no zip, because the zip has no Lua.
+6. Owner runs the live test (below, from the `dev` URL) and reports. If it passes, the owner runs `/branch-flow ship` and `git push origin main`, which is what publishes it to users. Record verified results in `CONTEXT.md` (verified section), the README's beta note if the tested platforms change, and the ADR 0002 amendment when something new is proven.
+7. **Stable release** (only on the owner's go): bump to `X.Y.Z`, rewrite the CHANGELOG section as `## X.Y.Z (<date>)`, rebuild the index for `vX.Y.Z`, commit, then promote, tag and push as in steps 4 and 5. The owner moves `main` to it as in step 6; users import `.../main/index.xml`, so `main` must contain that `index.xml` before the release is announced. At the first stable release, update the README: remove or reword the "Currently in beta" note, drop the pre-releases step, and renumber the references to the install steps in the README and `apps/arrange/README.md`.
 
 Tags are immutable once pushed: never move or delete a pushed tag; ship a new version instead. The one exception was deleting `v1.1.0-beta1` and `beta2` for the pre-launch history reset (ADR 0002). Do not retag after docs-only commits; the tag's files only need to match what the index lists.
 
@@ -68,5 +70,5 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 
 ## State snapshot (2026-11-10; check `git` for the current truth)
 
-- Latest pre-release on GitHub: `1.1.0-beta2`, on the old history. Launch plan, in order: condense `dev` (owner); prepare 1.1.0-beta3; rename the repo; delete the two old tags; force-push `dev`; push the tag; live test; push `main` and make it the default branch.
+- Latest pre-release on GitHub: `1.1.0-beta2`, on the old history. `dev` and `stage` are condensed and pushed. Launch plan, in order: 1.1.0-beta3 commit on `dev`; promote; tag `stage`; rename the repo; delete the two old tags and the pushed archive tag from GitHub; push `stage`, `dev` and the tag; live test; ship, push `main` and make it the default branch.
 - The owner decided to stay on beta for now; no stable 1.1.0 yet.

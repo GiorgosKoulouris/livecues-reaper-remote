@@ -34,5 +34,5 @@ Arrange and IEM Setup ship Lua, and ReaPack cannot edit `__startup.lua`. Decided
 Decided with the owner (grilling, 2026-11-10), before the first public launch:
 
 - The repo is renamed `GiorgosKoulouris/livecues-reaper-remote`. Earlier mentions of `LiveCues-RRemote` in this ADR and in `CONTEXT.md`'s verified notes describe what was true at the time.
-- `main` is the default branch from 1.1.0-beta3 on, and the ReaPack import URL is `.../main/index.xml` for betas and stable alike, so users only ever need one URL. `dev` stays the working branch. `main` moves only to a release commit that has passed the live test.
+- `main` is the default branch from 1.1.0-beta3 on, and the ReaPack import URL is `.../main/index.xml` for betas and stable alike, so users only ever need one URL. `dev` stays the working branch. `main` moves only by fast-forward to a `stage` commit that has passed the live test. Tags go on `stage`, because promoting rewrites `dev`.
 - The history is condensed once before launch. The tags `v1.1.0-beta1` and `v1.1.0-beta2` are deleted as a one-time exception to "tags are immutable", and 1.1.0-beta3 is the first release in the clean history.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0-beta3 (2026-11-10)
 
 - install.ps1 -Uninstall (and a re-install) now also remove or replace the __startup.lua lines written by the LCRR: Install startup hook action; both match on the bridge id (test/startup-ids.test.js)
 - The repository is now livecues-reaper-remote and main is its default branch: import the ReaPack URL from the README again
