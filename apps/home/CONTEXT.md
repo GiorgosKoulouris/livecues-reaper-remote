@@ -4,7 +4,7 @@ Launcher for the suite. Served by REAPER like every other app; intended as the "
 
 ## Behaviour decisions
 
-- Shows one button per app (Podium, Monitor, Arrange, IEM Setup, IEM Mix; hard-coded in `lcrr.html`, no manifest) and a connection chip. Nothing else: no transport state, no project info.
+- Shows one button per app, hard-coded in `lcrr.html` (no manifest), grouped by where the device is used: **Stage** (Monitor, Podium: performers and stage operator), **Desk** (IEM Mix, Snapshots: the engineer, live) and **Utilities** (IEM Setup, Arrange: desk tools, not live). Group labels carry no descriptions. A connection chip sits in the bar. Nothing else: no transport state, no project info.
 - The chip polls `TRANSPORT` every 2 s through the shared poller. States: "Connecting…" until the first reply, "REAPER connected" (LED Green, filled disc), "REAPER unreachable" (Warn Amber, ring) after the shared guard's 2 failed polls. One missed poll keeps the current chip.
 - Connected is the LED Green disc, the same LED as "playing" on the other bars; green only ever reports state (DESIGN.md, LED Rule).
 - No suite footer here.

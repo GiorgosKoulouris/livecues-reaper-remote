@@ -28,7 +28,7 @@
   Remove the installed lcrr*.html pages, the lcrr folder and Scripts\LCRR. REAPER keeps any Action list entries
   for the removed scripts until you delete them there.
 .PARAMETER Port
-  Only used to print the URL (default 8080).
+  The port of REAPER's web interface. Only used to print the URL (default 80, which is left out of the URL).
 #>
 [CmdletBinding()]
 param(
@@ -36,7 +36,7 @@ param(
   [string]$Resource = (Join-Path $env:APPDATA 'REAPER'),
   [switch]$Link,
   [switch]$Uninstall,
-  [int]$Port = 8080
+  [int]$Port = 80
 )
 $ErrorActionPreference = 'Stop'
 
@@ -176,7 +176,10 @@ foreach ($b in $bridges) {
 $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
   Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
   Select-Object -ExpandProperty IPAddress
+$portPart = if ($Port -eq 80) { '' } else { ":$Port" }
 Write-Host "`nOpen:"
-Write-Host "  http://localhost:$Port/lcrr.html"
-foreach ($ip in $ips) { Write-Host "  http://${ip}:$Port/lcrr.html" }
-Write-Host "`nREAPER must have the web interface enabled on port $Port (see README). Pick lcrr.html as the Default interface."
+Write-Host "  http://localhost$portPart/"
+foreach ($ip in $ips) { Write-Host "  http://$ip$portPart/" }
+Write-Host "`nREAPER must have the web interface enabled on port $Port (see README), with lcrr.html as the Default interface."
+if ($Port -ne 80) { Write-Host "Printed for port $Port. If your REAPER web interface uses another port, add it to the URL or re-run with -Port." }
+else { Write-Host "Printed for port 80. If your REAPER web interface uses another port, add it to the URL (for example :8080) or re-run with -Port." }

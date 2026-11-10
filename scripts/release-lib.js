@@ -194,11 +194,11 @@ function installText(version) {
   return [
     SUITE + " " + version,
     "",
-    "1. In REAPER: Preferences > Control/OSC/web > Add > Web browser interface. Set a port.",
+    "1. In REAPER: Preferences > Control/OSC/web > Add > Web browser interface. Set the port to 80.",
     "2. Click 'User pages...' (opens %APPDATA%\\REAPER\\reaper_www_root).",
     "3. Extract this zip into that folder, keeping its folders: lcrr*.html at the top, the lcrr\\ folder beside them.",
     "4. Re-open the dialog, pick lcrr.html as the 'Default interface', click Apply.",
-    "5. Open http://<pc-ip>:<port>/ from a phone, tablet or desktop on the same LAN.",
+    "5. Open http://<pc-ip>/ from a phone, tablet or desktop on the same LAN (add :<port> if you chose a port other than 80).",
     "",
     "Trusted LAN only: do not expose the port to the internet.",
     ""

@@ -51,9 +51,9 @@ You need REAPER and [ReaPack](https://reapack.com) on the computer, and your pho
 2. Turn on pre-releases, since LCRR is in beta: **Extensions > ReaPack > Manage repositories**, open the LCRR entry and enable **Show pre-releases** (or use the global option in ReaPack's options).
 3. Go to **Extensions > ReaPack > Browse packages**, find **lcrr.html** and install it.
 4. Open **Actions > Show action list**, run **LCRR: Install startup hook** once, then restart REAPER. This starts the background scripts that Arrange and IEM Setup rely on.
-5. Go to **Preferences > Control/OSC/web > Add > Web browser interface**. Set a port (for example `8080`) and choose **lcrr.html** as the **Default interface**. Add a username and password if you want a login.
+5. Go to **Preferences > Control/OSC/web > Add > Web browser interface**. Set the port to **80**, so the address needs no port number, and choose **lcrr.html** as the **Default interface**. Add a username and password if you want a login.
 6. Allow REAPER through Windows Firewall for private networks.
-7. On your phone, open `http://<pc-ip>:<port>/`. The **Access URL** in REAPER's web interface settings shows the address.
+7. On your phone, open `http://<pc-ip>/`. The **Access URL** in REAPER's web interface settings shows the address. If you chose a port other than 80, add it: `http://<pc-ip>:<port>/`.
 
 **Use LCRR on a network you trust, and don't expose it to the internet.** Anyone who can reach the page can control REAPER. See [SECURITY.md](SECURITY.md) for details and how to report a problem.
 
@@ -90,7 +90,7 @@ For a portable REAPER or a custom web folder, see the install options in [CONTRI
 - **`lcrr.html` isn't in the Default interface list:** reopen the web interface dialog after installing. REAPER lists only `.html` files at the top level of its web folder.
 - **The page loads with no styling or does nothing:** the `lcrr` folder is missing from `reaper_www_root`, next to the `lcrr*.html` pages. Reinstall.
 - **Arrange or IEM Setup says it isn't running:** run **LCRR: Install startup hook** and restart REAPER.
-- **`localhost:8080` shows `ERR_EMPTY_RESPONSE` although REAPER says the server is up:** another program is using that port. Run `netstat -ano | findstr :8080` to find it, or choose a different port.
+- **`localhost` shows `ERR_EMPTY_RESPONSE` or REAPER can't start its web interface on port 80:** another program is using that port (IIS, Skype and other local web servers often do). Run `netstat -ano | findstr :80` to find it, or choose a different port in REAPER (for example `8080`) and open `http://<pc-ip>:8080/`.
 
 Something else wrong? [Open an issue](https://github.com/GiorgosKoulouris/livecues-reaper-remote/issues).
 
