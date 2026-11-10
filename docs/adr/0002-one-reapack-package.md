@@ -36,3 +36,11 @@ Decided with the owner (grilling, 2026-11-10), before the first public launch:
 - The repo is renamed `GiorgosKoulouris/livecues-reaper-remote`. Earlier mentions of `LiveCues-RRemote` in this ADR and in `CONTEXT.md`'s verified notes describe what was true at the time.
 - `main` is the default branch from 1.1.0-beta3 on, and the ReaPack import URL is `.../main/index.xml` for betas and stable alike, so users only ever need one URL. `dev` stays the working branch. `main` moves only by fast-forward to a `stage` commit that has passed the live test. Tags go on `stage`, because promoting rewrites `dev`.
 - The history is condensed once before launch. The tags `v1.1.0-beta1` and `v1.1.0-beta2` are deleted as a one-time exception to "tags are immutable", and 1.1.0-beta3 is the first release in the clean history.
+
+## Amendment (2026-11-10): CHANGELOG.md is release notes only
+
+Decided with the owner (grilling, 2026-11-10):
+
+- `CHANGELOG.md` holds only `## <version> (YYYY-MM-DD)` sections for users, newest first, written in the release commit. Commit detail lives in the `stage` commit messages. The earlier commit log with `stage` hashes is removed: it repeated those messages, and because it could only be written after a promote, each release needed an extra commit and a second promote.
+- There is no `## Unreleased` section. A stable section replaces its betas. A version needs its own section: the fallback to the base version's section is gone.
+- `npm test` enforces the layout (`changelogProblems` in `scripts/release-lib.js`). The repo sets `Changelog: version-notes` for `/branch-flow`, so the release order is promote, then ship.

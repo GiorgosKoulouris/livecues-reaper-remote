@@ -36,6 +36,12 @@ Versions, tags, `index.xml`, ReaPack and live testing: **read `docs/agents/relea
 
 Multi-context: `CONTEXT-MAP.md` at the root points at each context's `CONTEXT.md`; suite ADRs in `docs/adr/`, app ADRs in `apps/<app>/docs/adr/`. See `docs/agents/domain.md`.
 
+## Branch flow
+
+Branches run dev → stage → main. All commits go on `dev`. `stage` changes only through `/branch-flow promote`, and `main` only through `/branch-flow ship`.
+
+Changelog: version-notes
+
 ## User rules
 
 - When asking questions, use AskUserTool.

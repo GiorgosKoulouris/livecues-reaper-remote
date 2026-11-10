@@ -27,7 +27,7 @@ Read this before you bump a version, build the index, create or push a tag, or t
 
 - The version is in **three** places, changed together: root `package.json` (`version`), `package-lock.json` (lines 3 and 9, the root package entries), `shared/www/lcrr/shared/js/version.js` (`var version`). `shared/test/version.test.js` fails if `version.js` and `package.json` differ.
 - Scheme: `MAJOR.MINOR.PATCH`, with `-betaN` for pre-releases (`1.1.0-beta2`). Tags are `v<version>` (`v1.1.0-beta2`).
-- `CHANGELOG.md`: add a `## <version> (<date>)` section at the top. It becomes the ReaPack changelog (`changelogFor` in `scripts/release-lib.js`). A pre-release with no heading of its own uses its base version's section. No section: the build warns and the index says only "Release <version>", so always add one.
+- `CHANGELOG.md` holds only release notes for users: one `## <version> (YYYY-MM-DD)` section per version, newest first, written in the release commit before promote. The section becomes the ReaPack changelog and the GitHub Release body (`changelogFor` in `scripts/release-lib.js`). `npm test` enforces the layout (`changelogProblems`): the top section is the `package.json` version, every section has a bullet, and a stable section replaces its betas.
 
 ## Release procedure
 
@@ -39,7 +39,7 @@ Pre-release first, always. Stable only after a pre-release passed the live test.
 4. Commit everything including `index.xml`: message like `1.1.0-beta3: <purpose>`. Do not tag yet. The owner runs `/branch-flow promote`; then create the **local** tag on the new tip of `stage`: `git tag v<version> stage`.
 5. Give the owner the push commands: `git push origin stage v<version>`, then `git push --force-with-lease origin dev`. Do not run them yourself unless told to. Pushing a `v*` tag runs `.github/workflows/release.yml`: it re-runs CI, checks the tag against the version, `CHANGELOG.md` and every `index.xml` URL (`scripts/verify-release.js`), then creates the GitHub Release, marked pre-release when the version has a `-`. It attaches no zip, because the zip has no Lua.
 6. Owner runs the live test (below, from the `dev` URL) and reports. If it passes, the owner runs `/branch-flow ship` and `git push origin main`, which is what publishes it to users. Record verified results in `CONTEXT.md` (verified section), the README's beta note if the tested platforms change, and the ADR 0002 amendment when something new is proven.
-7. **Stable release** (only on the owner's go): bump to `X.Y.Z`, rewrite the CHANGELOG section as `## X.Y.Z (<date>)`, rebuild the index for `vX.Y.Z`, commit, then promote, tag and push as in steps 4 and 5. The owner moves `main` to it as in step 6; users import `.../main/index.xml`, so `main` must contain that `index.xml` before the release is announced. At the first stable release, update the README: remove or reword the "Currently in beta" note, drop the pre-releases step, and renumber the references to the install steps in the README and `apps/arrange/README.md`.
+7. **Stable release** (only on the owner's go): bump to `X.Y.Z`, replace that version's beta sections in the CHANGELOG with one `## X.Y.Z (<date>)` section, rebuild the index for `vX.Y.Z`, commit, then promote, tag and push as in steps 4 and 5. The owner moves `main` to it as in step 6; users import `.../main/index.xml`, so `main` must contain that `index.xml` before the release is announced. At the first stable release, update the README: remove or reword the "Currently in beta" note, drop the pre-releases step, and renumber the references to the install steps in the README and `apps/arrange/README.md`.
 
 Tags are immutable once pushed: never move or delete a pushed tag; ship a new version instead. The one exception was deleting `v1.1.0-beta1` and `beta2` for the pre-launch history reset (ADR 0002). Do not retag after docs-only commits; the tag's files only need to match what the index lists.
 
@@ -64,11 +64,11 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 ## Changing the release machinery
 
 - `install.ps1` and `hook.lua` both manage the marked `__startup.lua` lines and must match them by **bridge id** only (`LCRR-ARRANGE-BRIDGE`, `LCRR-IEM-BRIDGE`), never by the marker's suffix; `test/startup-ids.test.js` guards this. A new bridge goes in both lists.
-- Code: `scripts/release-lib.js` (`collectFiles`, `collectLuaFiles`, `buildIndexXml`, `changelogFor`), `scripts/build-release.js`. Tests: `test/release.test.js`. Change tests first.
+- Code: `scripts/release-lib.js` (`collectFiles`, `collectLuaFiles`, `buildIndexXml`, `changelogFor`, `changelogProblems`), `scripts/build-release.js`. Tests: `test/release.test.js`. Change tests first.
 - Adding an app with Lua or a new entry script: it appears in the index automatically from `apps/<app>/reaper/Scripts/LCRR/<part>/`. A new bridge must also be added to `hook.bridges` in `shared/reaper/Scripts/LCRR/shared/startup/hook.lua` (with a spec) so the startup hook starts it.
 - Changing the index name, category or per-source layout changes where users' files land: that is a decision for the owner, document it in an ADR amendment, and expect a live test.
 
 ## State snapshot (2026-11-10; check `git` for the current truth)
 
-- Latest pre-release on GitHub: `1.1.0-beta2`, on the old history. `dev` and `stage` are condensed and pushed. Launch plan, in order: 1.1.0-beta3 commit on `dev`; promote; tag `stage`; rename the repo; delete the two old tags and the pushed archive tag from GitHub; push `stage`, `dev` and the tag; live test; ship, push `main` and make it the default branch.
+- Latest pre-release: `1.1.0-beta3`, tagged on `stage` and live. `main` is the default branch and carries the public import URL `https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/main/index.xml`. `dev` and `stage` are in step with it.
 - The owner decided to stay on beta for now; no stable 1.1.0 yet.
