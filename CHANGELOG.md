@@ -116,3 +116,9 @@
   - GitHub: CI, tag-based releases, and gh in the devcontainer
   - Community files: issue forms, pull request template, SECURITY.md, IBM Plex license
   - Docs: new repository name, main as the import branch, public issues and the launch plan
+- Devcontainer: lock the github-cli feature (5de72688b5)
+  - Devcontainer: lock the github-cli feature
+- 1.1.0-beta3: first release under the new repository name and main import URL; release guide on tags (f0c2438e6f)
+  - Release guide: tags go on stage, main moves through branch-flow
+  - 1.1.0-beta3: first release under the new repository name and main import URL
+  - Release guide: archive tags stay local
