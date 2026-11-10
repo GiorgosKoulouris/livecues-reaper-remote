@@ -53,3 +53,39 @@ test("overwrite(name) saves with overwrite=1 and remove(name) sends snapshot_del
   assert.ok((await sent((c) => c.overwrite("Verse"))).endsWith("|cmd=snapshot_save&name=Verse&overwrite=1"));
   assert.ok((await sent((c) => c.remove("Verse"))).endsWith("|cmd=snapshot_delete&name=Verse"));
 });
+
+// A name must fit every request it is later sent in, not only Save.
+const wire = require("../www/lcrr/snapshots/js/wire.js");
+const core = require("../www/lcrr/snapshots/js/core.js");
+const realId = "mhx7k2q9-1234567"; // a base-36 clock, "-", a counter: as long as the page makes them
+function requestsFor(name) {
+  return [
+    { cmd: "snapshot_save", name },
+    { cmd: "snapshot_save", name, overwrite: 1 },
+    { cmd: "snapshot_restore", name, ticks: "LPMSREFI" }
+  ].map((f) => wire.setRequestCommand(wire.buildRequest(realId, f)));
+}
+function longestAccepted(unit) {
+  let name = "";
+  while (core.checkName(name + unit, [], client.nameFits).name) name += unit;
+  return name;
+}
+
+test("the longest name the check accepts saves, overwrites and restores with every tick", () => {
+  ["a", "\u{1F600}"].forEach((unit) => {
+    const name = longestAccepted(unit);
+    assert.ok(name.length > 0);
+    requestsFor(name).forEach((cmd) => assert.ok(!wire.tooLong(cmd), cmd.length + " is over the limit"));
+  });
+});
+
+test("one more character than the longest accepted name is refused", () => {
+  ["\u{1F600}", "é", "a"].forEach((unit) => {
+    const name = longestAccepted(unit);
+    assert.deepStrictEqual(core.checkName(name + unit, [], client.nameFits), { code: "name_too_long" });
+  });
+});
+
+test("forty emoji are refused at Save", () => {
+  assert.deepStrictEqual(core.checkName("\u{1F600}".repeat(40), [], client.nameFits), { code: "name_too_long" });
+});

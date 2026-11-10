@@ -170,9 +170,7 @@
     ev.preventDefault();
     if (ui.phase !== "ready" || ui.busy) return;
     var names = (ui.list || []).map(function (s) { return s.name; });
-    var check = core.checkName(els.name.value, names, function (name) {
-      return !wire.tooLong(wire.setRequestCommand(wire.buildRequest("xxxxxxxxxxxx-xxxx", { cmd: "snapshot_save", name: name })));
-    });
+    var check = core.checkName(els.name.value, names, N.client.nameFits);
     if (!check.name) { showMessage(words.error(check)); return; }
     ui.busy = true;
     els.save.disabled = true;

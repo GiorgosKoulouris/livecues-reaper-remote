@@ -11,6 +11,21 @@
 
   var CALL_TIMEOUT_MS = transport.CALL_TIMEOUT_MS;
 
+  // Longer than any id the page generates (a base-36 clock, "-", a counter), so a name that fits here fits for real.
+  var LONGEST_ID = "xxxxxxxxxxxx-xxxxxxxx";
+  var ALL_TICKS = "LPMSREFI";
+
+  // Will the name fit every request it is ever sent in: Save, Overwrite, and Restore with all eight ticks?
+  function nameFits(name) {
+    return [
+      { cmd: "snapshot_save", name: name },
+      { cmd: "snapshot_save", name: name, overwrite: 1 },
+      { cmd: "snapshot_restore", name: name, ticks: ALL_TICKS }
+    ].every(function (fields) {
+      return !wire.tooLong(wire.setRequestCommand(wire.buildRequest(LONGEST_ID, fields)));
+    });
+  }
+
   // opts: fetchText(url, timeoutMs) -> Promise<string>; newId(); now(); wait(ms) -> Promise
   function createClient(opts) {
     // Resolves with the bridge's reply object; rejects with an Error carrying `code` (see shared bridge-client.js).
@@ -38,5 +53,5 @@
     return { restore: restore, call: call, state: state, snapshots: snapshots, save: save, overwrite: overwrite, remove: remove };
   }
 
-  return { createClient: createClient, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };
+  return { createClient: createClient, nameFits: nameFits, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };
 });
