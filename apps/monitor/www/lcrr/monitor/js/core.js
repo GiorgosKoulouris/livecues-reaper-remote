@@ -1,13 +1,13 @@
 // Monitor: pure helpers (no DOM, no network). Works in browsers and in node tests.
 // Track replies are parsed here until a second app needs them (shared/CLAUDE.md). Facts: root CONTEXT.md.
 (function (root, factory) {
-  var api = factory();
+  var api = factory(root.LCRR && root.LCRR.shared && root.LCRR.shared.reaper || (typeof require === "function" ? require("../../../../../../shared/www/lcrr/shared/js/reaper.js") : null));
   if (typeof module === "object" && module.exports) module.exports = api;
   else { var L = root.LCRR = root.LCRR || {}; (L.monitor = L.monitor || {}).core = api; }
-})(this, function () {
+})(this, function (reaper) {
   "use strict";
 
-  var MIX_PREFIX = "IEM_"; // exact, case-sensitive
+  var listMixes = reaper.listMixes, dbText = reaper.dbText; // the shared rule and format; still exported from here
 
   // NTRACK\t<n> and TRACK\tnumber\tname\tflags\tvol\tpan\tpeak\tpos\twidth\tpanmode\tsendcnt\trecvcnt\thwoutcnt\tcolor.
   // Returns { ntrack, tracks } (master left out; `number` is the t in GET/TRACK/<t>/...), or null when the reply
@@ -29,25 +29,10 @@
     return { ntrack: ntrack, tracks: tracks };
   }
 
-  // Mix list rule: exact IEM_ prefix, a name after it, at least one receive and at least one hardware output.
-  // `name` is shown without the prefix; `duplicate` marks every listed track whose name is shared (not openable).
-  function listMixes(tracks) {
-    var out = [], count = {};
-    tracks.forEach(function (t) {
-      if (t.name.indexOf(MIX_PREFIX) !== 0 || t.name.length === MIX_PREFIX.length) return;
-      if (t.recvcnt < 1 || t.hwoutcnt < 1) return;
-      var name = t.name.slice(MIX_PREFIX.length);
-      count[name] = (count[name] || 0) + 1;
-      out.push({ name: name, number: t.number, duplicate: false });
-    });
-    out.forEach(function (m) { m.duplicate = count[m.name] > 1; });
-    return out;
-  }
-
   // Name match for the open mix, run on every poll: the one track named IEM_<name> that is still listed.
   // `duplicate` when the name is on more than one track (listed or not), `gone` when absent or no longer a mix.
   function findMix(tracks, name) {
-    var full = MIX_PREFIX + name, hits = tracks.filter(function (t) { return t.name === full; });
+    var hits = reaper.tracksNamed(tracks, name);
     if (hits.length > 1) return { status: "duplicate" };
     if (hits.length === 0 || hits[0].recvcnt < 1 || hits[0].hwoutcnt < 1) return { status: "gone" };
     return { status: "ok", number: hits[0].number, recvcnt: hits[0].recvcnt, hwoutcnt: hits[0].hwoutcnt };
@@ -76,14 +61,6 @@
       out[-s.y - 1] = { source: s.source, vol: s.vol, muted: s.muted };
     });
     return out;
-  }
-
-  // Linear level to the dB value shown in a fader, with no unit: "0.0", "-6.0", "+6.0", "-inf".
-  function dbText(vol) {
-    if (!(vol > 0)) return "-inf";
-    var d = Math.round(20 * Math.log(vol) / Math.LN10 * 10) / 10;
-    if (d === 0) d = 0; // no "-0.0"
-    return (d > 0 ? "+" : "") + d.toFixed(1);
   }
 
   // The mix's master level: the SEND line for index 0 of `mixNumber`, accepted only when its last field is -1 (a
@@ -137,26 +114,7 @@
     return tracks.map(function (t) { return t.number + ":" + t.color + ":" + t.name; }).join("\n");
   }
 
-  // ---- Faders ----
-  var CAP = Math.pow(10, 6 / 20); // +6 dB, the highest level any drag can write
-
-  // value = pos^4 * CAP. pos is the thumb position from 0 (silence) to 1 (+6 dB); 0 dB sits at about 0.84.
-  function faderValue(pos) {
-    if (!(pos > 0)) return 0;
-    return pos >= 1 ? CAP : Math.pow(pos, 4) * CAP;
-  }
-  // Inverse. A level above the cap parks at 1 (the thumb's end); the dB readout still shows the true level.
-  function faderPos(value) {
-    if (!(value > 0)) return 0;
-    return value >= CAP ? 1 : Math.pow(value / CAP, 0.25);
-  }
-
-  // SET/TRACK/<t>/SEND/<y>/VOL/<v>; with `end` the "e" suffix, which only ends the move (and adds the undo entry).
-  function setVolCommand(track, y, value, end) {
-    var v = value.toFixed(6).replace(/\.?0+$/, "");
-    return "SET/TRACK/" + track + "/SEND/" + y + "/VOL/" + (v === "" ? "0" : v) + (end ? "e" : "");
-  }
-
+  // ---- Fader write gating (the fader itself is shared/js/fader-core.js) ----
   // May a write for `target` ({ track, y, source }) go out? `st` is the latest state: { number: the mix's track
   // index from the latest poll, receives, fresh: the receives were read under the latest track list, offline }.
   // A source (y < 0) must also still be the receive at that index. The master fader (y 0, source -1, the first
@@ -181,33 +139,6 @@
       if (!keepVol && !keepMute) return r;
       return { source: r.source, vol: keepVol ? p.vol : r.vol, muted: keepMute ? p.muted : r.muted };
     });
-  }
-
-  // SET/TRACK/<t>/SEND/<y>/MUTE/<0|1>: the state to set, never a toggle, never a level.
-  function setMuteCommand(track, y, muted) {
-    return "SET/TRACK/" + track + "/SEND/" + y + "/MUTE/" + (muted ? 1 : 0);
-  }
-
-  // One row's mute writes. press() works out the new state from the on-screen state and sends it, unless the
-  // stale check fails or the previous mute write is still outstanding (a double tap). Whether the write worked
-  // or not, a read must have begun after it settled before it can change the screen (readToken/canApply).
-  // opts: check(target) -> bool, send(cmd) -> Promise.
-  function createMuteWriter(opts) {
-    var inflight = false, seq = 0;
-    return {
-      press: function (target, mutedOnScreen) {
-        if (inflight || !opts.check(target)) return false;
-        inflight = true;
-        var done = function () { inflight = false; seq++; };
-        var p;
-        try { p = opts.send(setMuteCommand(target.track, target.y, !mutedOnScreen)); } catch (err) { p = Promise.reject(err); }
-        p.then(done, done);
-        return true;
-      },
-      busy: function () { return inflight; },
-      readToken: function () { return inflight ? -1 : seq; },
-      canApply: function (token) { return token === seq && !inflight; }
-    };
   }
 
   // Solo in my mix: the web API has no per-send solo, so it mutes the other receives (and unmutes the soloed
@@ -237,93 +168,7 @@
     return { moves: moves };
   }
 
-  // One fader's drag and write state, shared by the source rows and (issue 06) the master fader.
-  // opts: now(), setTimer(fn, ms), clearTimer(h), send(cmd) -> Promise, check(target) -> bool (the stale check,
-  // run at the moment each request would go out), gateMs (50), slopPx (3), travelPx (thumb travel in px).
-  // Movement is relative: move(dx) takes the distance from the press, positive toward louder.
-  function createFaderDrag(opts) {
-    var now = opts.now, gateMs = opts.gateMs === undefined ? 50 : opts.gateMs, slopPx = opts.slopPx === undefined ? 3 : opts.slopPx;
-    var travel = opts.travelPx || 1;
-    var active = false, target = null, startVol = 0, offset = 0, anchor = null, pos = 0, value = 0, wrote = false;
-    var pending = null;    // { target, value }: latest level not yet sent
-    var endReq = null;     // { target, value }: the move was released and still needs its e
-    var inflight = false, lastSent = -Infinity, timer = null, seq = 0;
-
-    function fire(cmd) {
-      inflight = true; lastSent = now();
-      var done = function () { inflight = false; seq++; pump(); };
-      var p;
-      try { p = opts.send(cmd); } catch (err) { p = Promise.reject(err); }
-      p.then(done, done);
-    }
-    function pump() {
-      if (inflight) return;
-      if (endReq) {
-        var e = endReq, p = pending; endReq = null; pending = null;
-        if (!opts.check(e.target)) return;
-        var set = setVolCommand(e.target.track, e.target.y, e.value, false);
-        fire((p ? set + ";" : "") + setVolCommand(e.target.track, e.target.y, e.value, true));
-        return;
-      }
-      if (!pending) return;
-      var wait = lastSent + gateMs - now();
-      if (wait > 0) {
-        if (timer === null) timer = opts.setTimer(function () { timer = null; pump(); }, wait);
-        return;
-      }
-      var w = pending; pending = null;
-      if (!opts.check(w.target)) return;
-      wrote = true;
-      fire(setVolCommand(w.target.track, w.target.y, w.value, false));
-    }
-
-    return {
-      // Starts a drag at the thumb. Refused while the previous drag's final request has not gone out.
-      begin: function (t, vol, travelPx) {
-        if (active || endReq) return false;
-        if (travelPx) travel = travelPx;
-        active = true; target = t; startVol = vol; value = vol; pos = faderPos(vol); offset = pos; anchor = null; wrote = false; seq++;
-        return true;
-      },
-      // Returns { pos, value } when the level changed (and queues the write), null when nothing changes.
-      move: function (dx) {
-        if (!active) return null;
-        if (anchor === null) { // inside the slop nothing moves; the drag then continues from the slop's edge
-          if (Math.abs(dx) < slopPx) return null;
-          anchor = dx > 0 ? slopPx : -slopPx;
-        }
-        var raw = offset + (dx - anchor) / travel;
-        // Past an end the offset follows the finger, so the way back starts at once (no dead zone).
-        if (raw > 1) { offset = 1 - (dx - anchor) / travel; raw = 1; }
-        else if (raw < 0) { offset = -(dx - anchor) / travel; raw = 0; }
-        if (raw === pos) return null;
-        pos = raw; value = faderValue(pos);
-        pending = { target: target, value: value };
-        pump();
-        return { pos: pos, value: value };
-      },
-      // Release: the latest value (if not yet sent) and the e in one request, only if a level was written.
-      end: function () {
-        if (!active) return;
-        active = false; seq++;
-        if (wrote || pending) endReq = { target: target, value: value };
-        pump();
-      },
-      // The drag ends with no final write: mix closed, offline, row gone.
-      cancel: function () {
-        active = false; pending = null; endReq = null; wrote = false; seq++;
-        if (timer !== null) { opts.clearTimer(timer); timer = null; }
-      },
-      active: function () { return active; },
-      pos: function () { return pos; },
-      busy: function () { return active || inflight || !!pending || !!endReq; },
-      // A read may be applied only if it began while this fader was idle and nothing has happened since.
-      readToken: function () { return (active || inflight || pending || endReq) ? -1 : seq; },
-      canApply: function (token) { return token === seq && !active && !inflight && !pending && !endReq; }
-    };
-  }
-
-  return { CAP: CAP, faderValue: faderValue, faderPos: faderPos, setVolCommand: setVolCommand, writeAllowed: writeAllowed, setMuteCommand: setMuteCommand, soloPlan: soloPlan, restorePlan: restorePlan, createMuteWriter: createMuteWriter,
-    holdLevels: holdLevels, createFaderDrag: createFaderDrag, tracksKey: tracksKey, parseTrackReply: parseTrackReply, listMixes: listMixes, findMix: findMix, parseSendReply: parseSendReply,
+  return { writeAllowed: writeAllowed, soloPlan: soloPlan, restorePlan: restorePlan, holdLevels: holdLevels,
+    tracksKey: tracksKey, parseTrackReply: parseTrackReply, listMixes: listMixes, findMix: findMix, parseSendReply: parseSendReply,
     applyReceives: applyReceives, parseMasterReply: parseMasterReply, buildReadRequests: buildReadRequests, dbText: dbText, buildReceiveRequests: buildReceiveRequests, rowsFor: rowsFor };
 });

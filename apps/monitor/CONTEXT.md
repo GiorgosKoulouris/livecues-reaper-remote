@@ -28,7 +28,7 @@ Each musician opens their own in-ear mix from a phone (`lcrr-monitor.html`). REA
 
 ## Code map
 
-- `www/lcrr-monitor.html`; `www/lcrr/monitor/css/monitor.css`; `www/lcrr/monitor/js/core.js` (pure: `parseTrackReply`, `listMixes`, `findMix`, `parseSendReply`, `applyReceives`, `rowsFor`, `dbText`, `buildReceiveRequests`, `parseMasterReply`, `buildReadRequests`, and the fader: `CAP`, `faderValue`, `faderPos`, `setVolCommand`, `writeAllowed`, `holdLevels`, `setMuteCommand`, `soloPlan`, `restorePlan`, `createMuteWriter`, `createFaderDrag`); `www/lcrr/monitor/js/fader.js` (one fader: thumb, Pointer Events; takes a write target, reused by the master fader); `www/lcrr/monitor/js/monitor.js` (UI wiring).
+- `www/lcrr-monitor.html`; `www/lcrr/monitor/css/monitor.css`; `www/lcrr/monitor/js/core.js` (pure: `parseTrackReply`, `listMixes`, `findMix`, `parseSendReply`, `applyReceives`, `rowsFor`, `dbText`, `buildReceiveRequests`, `parseMasterReply`, `buildReadRequests`, `tracksKey`, and the parts of the fader that know Monitor's state shape: `writeAllowed`, `holdLevels`, `soloPlan`, `restorePlan`); `www/lcrr/monitor/js/monitor.js` (UI wiring). The fader itself is shared: `shared/www/lcrr/shared/js/fader-core.js` (`LCRR.shared.faderCore`: `CAP`, `faderValue`, `faderPos`, `setVolCommand`, `setMuteCommand`, `createMuteWriter`, `createFaderDrag`) and `fader.js` (`LCRR.shared.fader`: one fader, thumb, Pointer Events; takes a write target, reused by the master fader; Monitor passes `prefix: "monitor"` for its CSS classes). Page load order: `fader-core.js`, `fader.js`, then Monitor's `core.js`, `monitor.js`.
 
 ## Still unverified
 

@@ -105,7 +105,7 @@ components:
 
 # Design System: LiveCues ReaperRemote
 
-One design system for the whole suite. Tokens and the self-hosted fonts live in `shared/www/lcrr/shared/css/tokens.css`, base styles and the suite footer in `base.css`; each app adds only its own components. The component sections below describe Podium (the first app) unless headed otherwise; the Suite footer and Home sections apply suite-wide, and Monitor, Arrange and IEM Setup have their own sections.
+One design system for the whole suite. Tokens and the self-hosted fonts live in `shared/www/lcrr/shared/css/tokens.css`, base styles and the suite footer in `base.css`; each app adds only its own components. The component sections below describe Podium (the first app) unless headed otherwise; the Suite footer and Home sections apply suite-wide, and Monitor, Arrange, IEM Setup and IEM Mix have their own sections.
 
 ## Overview
 
@@ -261,6 +261,14 @@ Square by default. **Keys** (every button that acts) have one chamfered corner, 
 - **ON cell:** a Key face holding the send level in IBM Plex Mono, dB with one decimal and no unit, read-only. A muted send keeps its face but the figure drops to Legend Dim and is struck through in LED Red. OFF cells are empty Display.
 - **Cell tags:** two small Warn Edge boxes in the corner of a cell's content: POST or PRE when the send is not post-FX pre-fader (with a tooltip saying so), and 2x (Warn Umber fill) when a folder and its child both feed the mix. Each also has a screen-reader sentence in the cell.
 - **Filter:** a 44px text field, IBM Plex Mono, Signal focus ring.
+
+### IEM Mix (`lcrr-iemmix.html`)
+- **Built for a laptop or tablet** (768px and wider): the same full-width page, grid and cells as IEM Setup, with a docked panel beside the grid. Below 768px the panel stacks under the grid; that is not a designed phone layout.
+- **Selection:** the selected source has a 3px Signal edge on the left of its row header, the selected mix a 3px Signal edge along the bottom of its column header (the active row's edge and the tab's underline). A source name or a mix name is a 44px target (the whole header cell) with the text unchanged; a cell tap only highlights its row in the panel.
+- **Lock:** a Key in the bar, chamfered, opening as "Unlock"; unlocked it is the Lit Key reading "Lock". Focus ring inside the key (offset −4px). While locked the panel's faders dim to 60%, pan and mute are disabled, and a line in the panel says the page is locked, or why it stayed or went locked.
+- **Panel:** a Display box with an Edge border, 22rem wide and sticky beside the grid, titled with the source or mix. A source row is one line at 768px: the Monitor fader, a 6.5rem pan control and a 44px Mute key. The master row of a mix is level only, first in the list. A repeated pair or a duplicated mix is a static row with its level and a short note, no controls. A tapped cell's row has a Signal border on a Key face.
+- **Pan control:** a 44px Display slot with an Edge border, a centre mark like the fader's 0 dB mark, a 10px Legend handle (Signal while dragging) and a small IBM Plex Mono readout at top left ("C", "L25", "R100"). The handle is the only thing that takes touches: a 28px thumb for its travel, widened to a 44px hit area that stops short of the neighbouring controls, so scrolling past a row never moves a pan.
+- **Mute:** as Monitor's (sunk with a 2px LED Red outline when on), disabled at 40% while locked or offline.
 
 ### Home page
 - Sticky Bar: the suite name ("LiveCues" in Legend, "ReaperRemote" in Signal; the second word hidden below 480px) and a connection state on the right.

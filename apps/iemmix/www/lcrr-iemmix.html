@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEM Mix · LiveCues ReaperRemote</title>
+<link rel="icon" href="lcrr/shared/img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="lcrr/shared/img/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="lcrr/shared/img/apple-touch-icon.png">
+<link rel="stylesheet" href="lcrr/shared/css/tokens.css">
+<link rel="stylesheet" href="lcrr/shared/css/base.css">
+<link rel="stylesheet" href="lcrr/iemmix/css/iemmix.css">
+</head>
+<body data-state="connecting">
+<header class="iemmix-bar">
+  <div class="iemmix-bar-inner">
+    <h1 class="iemmix-title">IEM Mix</h1>
+    <span id="iemmix-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="iemmix-shape" aria-hidden="true"></i><span id="iemmix-state-text">connecting&hellip;</span></span>
+    <button id="iemmix-lock" class="iemmix-lock" type="button" aria-pressed="false" title="The page opens locked. Unlock to change levels." disabled>Unlock</button>
+  </div>
+  <div id="iemmix-banner" role="alert" hidden></div>
+</header>
+
+<main class="iemmix-work">
+  <div class="iemmix-gridcol">
+    <div class="iemmix-tools">
+      <label class="iemmix-filter">
+        <span class="iemmix-label">Filter sources</span>
+        <input id="iemmix-filter" type="text" autocomplete="off" spellcheck="false" disabled>
+      </label>
+    </div>
+
+    <p id="iemmix-empty" class="iemmix-message" role="status">Looking for mixes&hellip;</p>
+
+    <div id="iemmix-scroll" class="iemmix-scroll" tabindex="0" role="region" aria-label="Level of every source in every mix" hidden>
+      <table id="iemmix-grid" class="iemmix-grid">
+        <thead id="iemmix-head"></thead>
+        <tbody id="iemmix-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <aside id="iemmix-panel" class="iemmix-panel" aria-label="Faders" data-locked="true">
+    <div class="iemmix-panel-head">
+      <h2 id="iemmix-panel-title" class="iemmix-panel-title">Faders</h2>
+      <span id="iemmix-panel-flag" class="iemmix-flag" hidden></span>
+    </div>
+    <p id="iemmix-panel-hint" class="iemmix-panel-hint">Tap a source name to see its send in every mix, or a mix name to see its sources and master level.</p>
+    <p id="iemmix-panel-lock" class="iemmix-panel-hint iemmix-panel-lockhint" role="status">Locked. Press Unlock to change levels.</p>
+    <ul id="iemmix-panel-list" class="iemmix-panel-list"></ul>
+  </aside>
+</main>
+
+<footer class="lcrr-footer">
+  <div class="lcrr-footer-inner">
+    <a class="lcrr-home" href="lcrr.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Home</a>
+  </div>
+</footer>
+
+<script src="lcrr/shared/js/reaper.js"></script>
+<script src="lcrr/shared/js/poll.js"></script>
+<script src="lcrr/shared/js/guard.js"></script>
+<script src="lcrr/shared/js/fader-core.js"></script>
+<script src="lcrr/shared/js/fader.js"></script>
+<script src="lcrr/iemmix/js/core.js"></script>
+<script src="lcrr/iemmix/js/wheel.js"></script>
+<script src="lcrr/iemmix/js/iemmix.js"></script>
+</body>
+</html>

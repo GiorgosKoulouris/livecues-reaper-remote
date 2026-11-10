@@ -74,6 +74,40 @@
 
   function seekPlayCommand(seconds) { return "SET/POS/" + seconds + ";1007"; }
 
+  // ---- In-ear mixes: the rule every app that shows them shares ----
+  var MIX_PREFIX = "IEM_"; // exact, case-sensitive
+
+  // Mix listing rule: exact IEM_ prefix, a name after it, at least one receive and at least one hardware output.
+  // `name` is shown without the prefix; `duplicate` marks every listed track whose name is shared with another listed one.
+  function listMixes(tracks) {
+    var out = [], count = {};
+    tracks.forEach(function (t) {
+      if (t.name.indexOf(MIX_PREFIX) !== 0 || t.name.length === MIX_PREFIX.length) return;
+      if (t.recvcnt < 1 || t.hwoutcnt < 1) return;
+      var name = t.name.slice(MIX_PREFIX.length);
+      count[name] = (count[name] || 0) + 1;
+      out.push({ name: name, number: t.number, duplicate: false });
+    });
+    out.forEach(function (m) { m.duplicate = count[m.name] > 1; });
+    return out;
+  }
+
+  // Every track named IEM_<name>, listed or not. A mix is identified by its name, so more than one means no write
+  // can be sure of its target.
+  function tracksNamed(tracks, name) {
+    var full = MIX_PREFIX + name;
+    return tracks.filter(function (t) { return t.name === full; });
+  }
+
+  // Linear level to dB text with no unit: "0.0", "-6.0", "+6.0", "-inf".
+  function dbText(vol) {
+    if (!(vol > 0)) return "-inf";
+    var d = Math.round(20 * Math.log(vol) / Math.LN10 * 10) / 10;
+    if (d === 0) d = 0; // no "-0.0"
+    return (d > 0 ? "+" : "") + d.toFixed(1);
+  }
+
   return { parseTransport: parseTransport, stateName: stateName, hasRegionList: hasRegionList, parseRegions: parseRegions,
-    hasMarkerList: hasMarkerList, parseMarkers: parseMarkers, colorToCss: colorToCss, seekPlayCommand: seekPlayCommand };
+    hasMarkerList: hasMarkerList, parseMarkers: parseMarkers, colorToCss: colorToCss, seekPlayCommand: seekPlayCommand,
+    listMixes: listMixes, tracksNamed: tracksNamed, dbText: dbText };
 });

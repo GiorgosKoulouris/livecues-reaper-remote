@@ -71,3 +71,25 @@ test("parseMarkers skips malformed lines; hasMarkerList detects the block", () =
   assert.strictEqual(reaper.hasMarkerList("MARKER_LIST\nMARKER_LIST_END"), true);
   assert.strictEqual(reaper.hasMarkerList("REGION_LIST\nREGION_LIST_END"), false);
 });
+
+const track = (number, name, recvcnt, hwoutcnt) => ({ number, name, recvcnt, hwoutcnt });
+
+test("listMixes: exact IEM_ prefix, a name after it, a receive and a hardware output", () => {
+  const m = reaper.listMixes([track(1, "Kick", 0, 0), track(2, "IEM_Drums", 1, 1), track(3, "iem_x", 1, 1), track(4, "IEM_", 1, 1), track(5, "IEM_norecv", 0, 1), track(6, "IEM_nohw", 1, 0)]);
+  assert.deepStrictEqual(m, [{ name: "Drums", number: 2, duplicate: false }]);
+});
+
+test("listMixes marks a name shared by listed tracks, and only those", () => {
+  const m = reaper.listMixes([track(1, "IEM_Gtr", 1, 1), track(2, "IEM_Keys", 1, 1), track(3, "IEM_Gtr", 2, 1), track(4, "IEM_Keys", 0, 0)]);
+  assert.deepStrictEqual(m.map((x) => [x.name, x.number, x.duplicate]), [["Gtr", 1, true], ["Keys", 2, false], ["Gtr", 3, true]]);
+});
+
+test("tracksNamed finds every track of that mix name, listed or not", () => {
+  const tracks = [track(1, "IEM_A", 1, 1), track(2, "IEM_A", 0, 0), track(3, "IEM_a", 1, 1), track(4, "A", 1, 1)];
+  assert.deepStrictEqual(reaper.tracksNamed(tracks, "A").map((t) => t.number), [1, 2]);
+  assert.deepStrictEqual(reaper.tracksNamed(tracks, "B"), []);
+});
+
+test("dbText gives one decimal with a sign, no -0.0, and -inf at silence", () => {
+  assert.deepStrictEqual([0, 1, 0.5, 2, 0.0001, 0.99999].map(reaper.dbText), ["-inf", "0.0", "-6.0", "+6.0", "-80.0", "0.0"]);
+});

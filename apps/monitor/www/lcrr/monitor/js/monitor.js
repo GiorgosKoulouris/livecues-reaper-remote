@@ -1,7 +1,7 @@
 // Monitor: UI wiring (mix list, mix view, offline). The pure logic is in core.js.
 (function () {
   "use strict";
-  var S = LCRR.shared, reaper = S.reaper, poll = S.poll, core = LCRR.monitor.core;
+  var S = LCRR.shared, reaper = S.reaper, poll = S.poll, core = LCRR.monitor.core, faderCore = S.faderCore;
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1500 });
   var poller = poll.createPoller({ intervalMs: 250 });
   poller.addCommand("NTRACK");
@@ -96,7 +96,8 @@
   // The master fader writes the first hardware output (send index 0, always a number), only while the latest
   // poll agrees. It is built once when the mix opens (see openMix).
   function createMaster(m) {
-    return LCRR.monitor.fader.create({
+    return S.fader.create({
+      prefix: "monitor",
       label: "Master level",
       getTarget: function () { return open === m && m.master !== null ? { track: m.number, y: 0, source: -1 } : null; },
       check: function (t) { return open === m && core.writeAllowed(t, writeState()); },
@@ -141,7 +142,8 @@
     solo.disabled = conn.isOffline();
     solo.addEventListener("click", function () { if (open === m) toggleSolo(n); });
     // The fader writes to this row's receive (send index -n) of the mix, and only while the latest poll still agrees.
-    var fader = LCRR.monitor.fader.create({
+    var fader = S.fader.create({
+      prefix: "monitor",
       label: "Level",
       getTarget: function () {
         var r = open === m && m.receives[n - 1];
@@ -156,8 +158,8 @@
       }
     });
     // Mute: a native button, so the click fires on release and the browser cancels it when the finger slides
-    // away or the page scrolls. The state sent is worked out from what is on screen (core.createMuteWriter).
-    var muter = core.createMuteWriter({
+    // away or the page scrolls. The state sent is worked out from what is on screen (faderCore.createMuteWriter).
+    var muter = faderCore.createMuteWriter({
       check: function (t) { return open === m && core.writeAllowed(t, writeState()); },
       send: function (cmd) { return poll.send(cmd); }
     });

@@ -2,13 +2,14 @@
 
 `www/lcrr/shared/` deploys to `reaper_www_root/lcrr/shared/` and is loaded by every app. A change here changes every app: run the full `npm test` and check each app's page.
 
-- `js/reaper.js`: REAPER reply parsing and command strings (`LCRR.shared.reaper`). Facts it relies on are in the root `CONTEXT.md`.
+- `js/reaper.js`: REAPER reply parsing and command strings (`LCRR.shared.reaper`), plus the rules every in-ear app shares: `listMixes` (the mix listing rule), `tracksNamed` (every track of a mix name, listed or not) and `dbText`. Facts it relies on are in the root `CONTEXT.md`.
 - `js/poll.js`: one combined request per tick with a 3 s timeout; apps add commands with `addCommand()`. `send()` for one-off commands.
 - `js/guard.js`: offline verdict (2 failed polls, settle time after reconnect) and a repeat-trigger cooldown.
 - `js/hold.js`: press-and-hold helper for accident protection.
+- `js/fader-core.js`: the fader's pure logic (`LCRR.shared.faderCore`): `CAP`, `WHEEL_IDLE_MS`, `faderValue`, `faderPos`, `setVolCommand`, `setMuteCommand`, `createFaderDrag`, `createMuteWriter`. `createFaderDrag` drives any one 0..1 control: the write command and position-to-value mapping are options (`command`, `toValue`, `toPos`), defaulting to the level fader's; IEM Mix's pan injects its own from its `core.js`. `nudge(target, value)` (and the fader's `nudge(value)` and `level()`) is a wheel burst: values go out through the same gated path, one `e` after `wheelIdleMs` (400) of no steps; the wait counts as busy; only IEM Mix uses it, Monitor has no wheel. The app decides what may be written and passes it in as `check(target)`. `js/fader.js`: one fader in the DOM (`LCRR.shared.fader.create`); load after `fader-core.js`. Its parts take class `<prefix>-fader...` (`prefix` option, required); the CSS is still the app's (Monitor: `monitor.css`). `fader.bindThumb` is the pointer wiring of one drag on its own, for a control other than the level fader (IEM Mix's pan).
 - `img/`: the suite icon (`icon.svg`, plus `icon-32.png` and `apple-touch-icon.png` as raster fallbacks). Every page links all three in its head.
 - `css/tokens.css`: design tokens from `DESIGN.md`, plus the `@font-face` rules for the self-hosted IBM Plex Sans and IBM Plex Mono (`fonts/*.woff2`, open licence; no internet on the stage LAN, so never link a font host). `css/base.css`: reset, column page layout, the suite footer (`.lcrr-footer`, `.lcrr-home`).
 
 - `reaper/Scripts/LCRR/shared/bridge/`: the Lua every bridge uses (`json.lua`, `request.lua`, `runner.lua`). A reaper slice installed as `Scripts\LCRR\shared`; bridge scripts add their parent folder to `package.path` and `require("shared.bridge.<module>")` (suite ADR-0001, 2026-11-09 amendment). Specs in `shared/spec/` (busted, Lua 5.4; run `cd shared && busted`, `luacheck .`).
 
-Rules: JS stays pure where it is now (no DOM in `reaper`, `guard`, `hold`; timers and fetch injectable) and uses the UMD wrapper so tests `require` the same file. Something moves here only once it is not specific to one app. Tests: `shared/test/`.
+Rules: JS stays pure where it is now (no DOM in `reaper`, `guard`, `hold`, `fader-core`; timers and fetch injectable) and uses the UMD wrapper so tests `require` the same file. Something moves here only once it is not specific to one app. Tests: `shared/test/`.

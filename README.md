@@ -8,6 +8,7 @@ Remote-control pages for REAPER, served by REAPER's built-in web interface. Open
 | Podium | `lcrr-podium.html` | Transport bar, region list and marker list for the stage |
 | Monitor | `lcrr-monitor.html` | Personal in-ear mixes from a phone: mix list so far |
 | Arrange | `lcrr-arrange.html` | Region Repack from the desk: Check, Apply, Verify, Capture and diagnostics, through a background script in REAPER |
+| IEM Mix | `lcrr-iemmix.html` | The engineer's page for balancing every in-ear mix: a live grid of every source's level and a docked panel of faders, pans and mutes |
 
 ## Setup (Windows)
 

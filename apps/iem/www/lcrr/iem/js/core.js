@@ -3,22 +3,16 @@
 // Output is plain data; every sentence is in words.js. Write-side logic (the lock gate, name checks, the folder
 // offer) is here too; later issues add cell toggles and bulk operations as further pure functions.
 (function (root, factory) {
-  var api = factory();
+  var api = factory(root.LCRR && root.LCRR.shared && root.LCRR.shared.reaper || (typeof require === "function" ? require("../../../../../../shared/www/lcrr/shared/js/reaper.js") : null));
   if (typeof module === "object" && module.exports) module.exports = api;
   else { var L = root.LCRR = root.LCRR || {}; (L.iem = L.iem || {}).core = api; }
-})(this, function () {
+})(this, function (reaper) {
   "use strict";
+
+  var dbText = reaper.dbText; // shared; still exported from here
 
   // I_SENDMODE of the send IEM Setup creates: post-FX, pre-fader. Anything else gets the "non-standard" mark.
   var STANDARD_MODE = 3;
-
-  // A linear send gain as dB text: "-6.0", "0.0", "+3.5", or "-inf" at zero.
-  function dbText(vol) {
-    if (!(vol > 0)) return "-inf";
-    var db = Math.round(20 * Math.log(vol) / Math.LN10 * 10) / 10;
-    if (db === 0) return "0.0"; // also turns -0 into 0
-    return (db > 0 ? "+" : "") + db.toFixed(1);
-  }
 
   // Is the bridge reachable? `offline` is the connection guard's verdict, `everLive` whether any poll has worked,
   // `beat` the heartbeat state ("unknown" | "running" | "stopped").
