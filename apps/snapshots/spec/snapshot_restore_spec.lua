@@ -52,7 +52,8 @@ describe("snapshot_restore", function()
 
   it("restores levels alone, on tracks and the Master, leaving everything else", function()
     local reply = run(api, "L")
-    assert.are.same({ status = "ok", name = "Verse", tracks = 3, sends = 0, skipped = 0 }, reply)
+    assert.are.same({ status = "ok", name = "Verse", tracks = 3, sends = 0, skipped = 0,
+      automated = 0, muted_skipped = 0 }, reply)
     assert.are.same({ 0.5, 0.9, 0.9 }, { kick.vol, bus.vol, master.vol })
     assert.are.equal(0.11, drums.vol)
     assert.are.equal(0.33, kick.pan)
@@ -95,7 +96,8 @@ describe("snapshot_restore", function()
 
   it("restores sends and hardware outputs alone, in order, duplicates included", function()
     local reply = run(api, "E")
-    assert.are.same({ status = "ok", name = "Verse", tracks = 0, sends = 5, skipped = 0 }, reply)
+    assert.are.same({ status = "ok", name = "Verse", tracks = 0, sends = 5, skipped = 0,
+      automated = 0, muted_skipped = 0 }, reply)
     local first = kick.sends[1]
     assert.are.same({ 0.3, 0.1, 1, 3 }, { first.vol, first.pan, first.mute, first.mode })
     assert.are.equal(0.6, kick.sends[2].vol)

@@ -74,8 +74,10 @@
   // The last restore's result: what was written, what was skipped because it is gone.
   function restoreNote(r) {
     var gone = r.skipped ? " " + plural(r.skipped, "saved item was", "saved items were") + " skipped, gone from the project." : "";
-    if (!r.tracks && !r.sends) return "Nothing was restored from “" + r.name + "”." + gone;
-    return "Restored “" + r.name + "”: " + plural(r.tracks, "track", "tracks") + ", " + plural(r.sends, "send", "sends") + " written." + gone;
+    var auto = r.automated ? " " + plural(r.automated, "restored value has", "restored values have") + " active automation and will follow it." : "";
+    var muted = r.mutedSkipped ? " " + plural(r.mutedSkipped, "mute was", "mutes were") + " left alone, because the automation mode would write it into a Mute envelope." : "";
+    if (!r.tracks && !r.sends) return "Nothing was restored from “" + r.name + "”." + gone + muted + auto;
+    return "Restored “" + r.name + "”: " + plural(r.tracks, "track", "tracks") + ", " + plural(r.sends, "send", "sends") + " written." + gone + muted + auto;
   }
 
   var NO_SNAPSHOTS = UI.empty;

@@ -31,13 +31,24 @@ test("every tick has a label", () => {
 
 test("the recorded restore reply is pushed through to its note", () => {
   const result = restore.readResult(replies.snapshot_restore);
-  assert.deepStrictEqual(result, { name: "Verse", tracks: 3, sends: 3, skipped: 0 });
+  assert.deepStrictEqual(result, { name: "Verse", tracks: 3, sends: 3, skipped: 0, automated: 0, mutedSkipped: 0 });
   assert.strictEqual(words.restoreNote(result), "Restored “Verse”: 3 tracks, 3 sends written.");
   assert.strictEqual(words.restoreNote({ name: "V", tracks: 1, sends: 1, skipped: 2 }),
     "Restored “V”: 1 track, 1 send written. 2 saved items were skipped, gone from the project.");
   assert.ok(words.restoreNote({ name: "V", tracks: 0, sends: 0, skipped: 1 }).startsWith("Nothing was restored"));
   assert.strictEqual(restore.readResult(replies.snapshot_restore_no_ticks), null);
   assert.strictEqual(restore.readResult(replies.snapshot_save), null);
+});
+
+test("the recorded automated restore reply states both counts in plain words", () => {
+  const result = restore.readResult(replies.snapshot_restore_automated);
+  assert.deepStrictEqual(result, { name: "Verse", tracks: 3, sends: 3, skipped: 0, automated: 1, mutedSkipped: 1 });
+  assert.strictEqual(words.restoreNote(result),
+    "Restored “Verse”: 3 tracks, 3 sends written. 1 mute was left alone, because the automation mode would write it into a Mute envelope. 1 restored value has active automation and will follow it.");
+  const many = words.restoreNote({ name: "V", tracks: 1, sends: 0, skipped: 1, automated: 4, mutedSkipped: 2 });
+  assert.ok(many.includes("2 mutes were left alone"));
+  assert.ok(many.includes("4 restored values have active automation"));
+  assert.ok(many.includes("1 saved item was skipped, gone from the project."));
 });
 
 test("the recorded restore refusals are worded", () => {

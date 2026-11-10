@@ -97,6 +97,12 @@ local scenarios = {
     ask("cmd=snapshot_save&name=Verse")
     return ask("cmd=snapshot_restore&name=Verse&ticks=I")
   end },
+  { "snapshot_restore_automated", function()
+    local ask, api = saved_bridge()
+    api.tracks[1].automode, api.tracks[1].env = 3, { Volume = 2, Mute = 2 }
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_restore&name=Verse&ticks=LPMSRE")
+  end },
   { "snapshot_restore_no_ticks", function()
     local ask = saved_bridge()
     ask("cmd=snapshot_save&name=Verse")

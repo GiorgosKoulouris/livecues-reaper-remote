@@ -34,7 +34,10 @@
   function readResult(reply) {
     if (!reply || reply.status !== "ok" || reply.command !== "snapshot_restore") return null;
     if (typeof reply.tracks !== "number" || typeof reply.sends !== "number" || typeof reply.skipped !== "number") return null;
-    return { name: String(reply.name), tracks: reply.tracks, sends: reply.sends, skipped: reply.skipped };
+    return {
+      name: String(reply.name), tracks: reply.tracks, sends: reply.sends, skipped: reply.skipped,
+      automated: reply.automated > 0 ? reply.automated : 0, mutedSkipped: reply.muted_skipped > 0 ? reply.muted_skipped : 0
+    };
   }
 
   return { TICKS: TICKS, defaults: defaults, field: field, readResult: readResult };

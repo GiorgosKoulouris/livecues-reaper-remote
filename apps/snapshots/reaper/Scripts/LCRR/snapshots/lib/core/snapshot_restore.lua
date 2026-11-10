@@ -2,7 +2,7 @@
 -- save, overwrite and delete, which touch project ExtState and so cannot be undone).
 --
 --   snapshot_restore.run({ api, fields = { name, ticks } })
---     -> { status = "ok", name, tracks, sends, skipped }
+--     -> { status = "ok", name, tracks, sends, skipped, automated, muted_skipped }
 --      | refused: `empty_name`, `bad_name`, `name_too_long`, `not_found`, `unreadable`, `no_ticks` (no tick at all),
 --        `bad_ticks` (a letter that is no tick)
 --
@@ -18,6 +18,10 @@
 -- are recognised by their current names (`IEM_<name>`, `IEM-Cue`, the first `IEMs`) and, with I off, left alone and
 -- not counted.
 --
+-- `automated` counts the written values (track and send volume, pan and mute) with active automation, and
+-- `muted_skipped` the mutes left alone because they would reach a Mute envelope in a writing mode (core `automation`,
+-- ADR-0001). Neither is part of `skipped`, which is only what is gone.
+--
 -- Plan first, write afterwards: every refusal comes before the undo block opens, and nothing to write means no undo
 -- step. Levels and pans are written as `D_VOL` and `D_PAN`, never the UI functions. A stored `I_SOLO` of 5 is
 -- written as 1 and 6 as 2, because writing 5 or 6 reads back 0 (suite CONTEXT.md).
@@ -25,6 +29,7 @@
 local store = require("lib.core.snapshot_store")
 local undo = require("lib.core.undo")
 local refusal = require("lib.core.snapshots").refusal
+local automation = require("lib.core.automation")
 
 local snapshot_restore = {}
 
@@ -91,7 +96,9 @@ end
 -- key, value } }, tracks, sends, skipped }.
 local function plan(api, contents, ticks)
   local now = scan(api)
-  local result = { track_writes = {}, send_writes = {}, tracks = 0, sends = 0, skipped = 0 }
+  local auto = automation.new(api)
+  local result = { track_writes = {}, send_writes = {}, tracks = 0, sends = 0, skipped = 0, automated = 0,
+    muted_skipped = 0 }
   for _, saved in ipairs(contents.tracks) do
     local entry = now.by_guid[saved.guid]
     if not entry then
@@ -106,17 +113,30 @@ local function plan(api, contents, ticks)
           for _, key in ipairs(keys) do
             local value = saved[key[2]]
             if key[1] == "I_SOLO" then value = SOLO_WRITE[value] or value end
-            result.track_writes[#result.track_writes + 1] = { track = entry.track, key = key[1], value = value }
-            touched = true
+            if key[1] == "B_MUTE" and auto.guards_mute(entry.track) then
+              result.muted_skipped = result.muted_skipped + 1
+            else
+              result.track_writes[#result.track_writes + 1] = { track = entry.track, key = key[1], value = value }
+              if auto.track_follows(entry.track, key[1]) then result.automated = result.automated + 1 end
+              touched = true
+            end
           end
         end
       end
       if ticks.E or ticks.I then
         local queues = sends_by_dest(api, entry.track)
         local function add(category, index, send)
+          local is_send = category == SEND_CATEGORY
           for _, key in ipairs(SEND_KEYS) do
-            result.send_writes[#result.send_writes + 1] =
-              { track = entry.track, category = category, index = index, key = key[1], value = send[key[2]] }
+            if key[1] == "B_MUTE" and is_send and auto.guards_send_mute(entry.track, category, index) then
+              result.muted_skipped = result.muted_skipped + 1
+            else
+              result.send_writes[#result.send_writes + 1] =
+                { track = entry.track, category = category, index = index, key = key[1], value = send[key[2]] }
+              if is_send and auto.send_follows(entry.track, category, index, key[1]) then
+                result.automated = result.automated + 1
+              end
+            end
           end
           result.sends = result.sends + 1
         end
@@ -174,7 +194,8 @@ function snapshot_restore.run(given)
       end
     end)
   end
-  return { status = "ok", name = name, tracks = todo.tracks, sends = todo.sends, skipped = todo.skipped }
+  return { status = "ok", name = name, tracks = todo.tracks, sends = todo.sends, skipped = todo.skipped,
+    automated = todo.automated, muted_skipped = todo.muted_skipped }
 end
 
 return snapshot_restore

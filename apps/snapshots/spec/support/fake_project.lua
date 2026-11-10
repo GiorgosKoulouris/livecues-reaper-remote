@@ -22,8 +22,13 @@ local TRACK_KEYS = {
 }
 local SEND_KEYS = { D_VOL = "vol", D_PAN = "pan", B_MUTE = "mute", I_SENDMODE = "mode" }
 local TRACK_DEFAULTS = { vol = 1, pan = 0, width = 1, dual_l = -1, dual_r = 1, pan_mode = 0, mute = 0, solo = 0,
-  phase = 0, fx = 1 }
-local SEND_DEFAULTS = { vol = 1, pan = 0, mute = 0, mode = 0 }
+  phase = 0, fx = 1, automode = 0 }
+local SEND_DEFAULTS = { vol = 1, pan = 0, mute = 0, mode = 0, automode = -1 }
+-- Automation: a track has `automode` (0 Trim ... 5 Latch Preview), `env = { Volume = n, Pan = n, Mute = n }` (an
+-- envelope with n points, absent when not listed) and `inactive = { Mute = true }` for a bypassed one. A send has
+-- `automode` (-1 follows the track) and `env = { vol = n, pan = n, mute = n }`; a send's envelope always exists, with
+-- 0 points. `spec.override` is the global automation override (-1 none).
+local SEND_ENVS = { ["P_ENV:<VOLENV"] = "vol", ["P_ENV:<PANENV"] = "pan", ["P_ENV:<MUTEENV"] = "mute" }
 
 local function filled(given, defaults)
   local out = {}
@@ -82,6 +87,11 @@ function fake_project.new(spec)
   function api.GetTrackSendInfo_Value(track, category, index, key)
     local send = list_of(track, category)[index + 1]
     if key == "P_DESTTRACK" then return send.dest end
+    if key == "I_AUTOMODE" then return send.automode end
+    if SEND_ENVS[key] then
+      local which = SEND_ENVS[key]
+      return { points = (send.env or {})[which] or 0, active = "1" }
+    end
     return assert(send[assert(SEND_KEYS[key], "fake_project: unknown send key " .. key)])
   end
 
@@ -113,6 +123,15 @@ function fake_project.new(spec)
     return true
   end
   function api.Undo_EndBlock2(_, name) api.undo_names[#api.undo_names + 1] = name end
+  function api.GetTrackAutomationMode(track) return track.automode end
+  function api.GetGlobalAutomationOverride() return spec.override or -1 end
+  function api.GetTrackEnvelopeByName(track, name)
+    local points = (track.env or {})[name]
+    if not points then return nil end
+    return { points = points, active = (track.inactive or {})[name] and "0" or "1" }
+  end
+  function api.CountEnvelopePoints(env) return env.points end
+  function api.GetSetEnvelopeInfo_String(env) return true, env.active end
   function api.PreventUIRefresh() end
   function api.TrackList_AdjustWindows() end
   function api.UpdateArrange() end
