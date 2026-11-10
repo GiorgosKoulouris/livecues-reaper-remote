@@ -119,6 +119,9 @@
   function renderList(list) {
     els.empty.textContent = words.ui("empty");
     els.empty.hidden = list.length > 0;
+    var hint = document.getElementById("snapshots-hold-hint");
+    hint.textContent = words.ui("holdHint");
+    hint.hidden = list.length === 0;
     els.list.textContent = "";
     restoreUi.resetKeys();
     list.forEach(function (s) {
@@ -132,9 +135,9 @@
         li.appendChild(tags);
       }
       var keys = h("div", "snapshots-row-keys");
+      restoreUi.addKey(keys, s);
       keys.appendChild(holdButton("overwrite", s.name, function () { return client.overwrite(s.name); }));
       keys.appendChild(holdButton("delete", s.name, function () { return client.remove(s.name); }));
-      restoreUi.addKey(keys, s);
       li.appendChild(keys);
       els.list.appendChild(li);
     });

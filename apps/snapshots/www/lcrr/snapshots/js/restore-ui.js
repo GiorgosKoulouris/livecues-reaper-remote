@@ -20,6 +20,10 @@
   function syncKeys() {
     var none = !restore.field(ticks);
     keys.forEach(function (btn) { btn.disabled = none || ctx.isBusy(); });
+    // A dimmed Restore key says why, in the line beside the ticks that cause it.
+    var note = $("snapshots-ticks-note");
+    note.textContent = none ? words.error({ code: "no_ticks" }) : words.ui("tickNote");
+    note.classList.toggle("is-warn", none);
   }
 
   // The tick boxes, built once.
@@ -67,7 +71,7 @@
   function init(given) {
     ctx = given;
     buildTicks($("snapshots-ticks"));
-    $("snapshots-ticks-note").textContent = words.ui("tickNote");
+    syncKeys();
   }
 
   N.restoreUi = { init: init, addKey: addKey, resetKeys: resetKeys, clearNote: function () { setNote(""); }, syncKeys: syncKeys };

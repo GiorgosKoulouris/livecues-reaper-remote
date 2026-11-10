@@ -36,7 +36,7 @@
     return ERRORS[code] || ("Something went wrong (" + (code || "unknown") + ").");
   }
 
-  var UI = { title: "Snapshots", unsavedProject: "(unsaved project)", name: "Name", save: "Save", overwrite: "Overwrite", delete: "Delete", holdLegend: "Hold", empty: "No snapshots saved yet." };
+  var UI = { title: "Snapshots", unsavedProject: "(unsaved project)", name: "Name", save: "Save", overwrite: "Overwrite", delete: "Delete", holdLegend: "Hold", holdHint: "Hold Restore, Overwrite or Delete for one second to act. A tap does nothing.", empty: "No snapshots saved yet." };
   function ui(key) { return UI[key] || ""; }
 
   function chip(phase) { return CHIP[phase] || ""; }
