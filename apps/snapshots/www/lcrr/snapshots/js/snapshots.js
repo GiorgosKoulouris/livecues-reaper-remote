@@ -21,6 +21,13 @@
     list: $("snapshots-list")
   };
 
+  // The page's fixed labels come from words.js too, so the HTML holds no sentences.
+  $("snapshots-heading").textContent = words.ui("title");
+  $("snapshots-ticks-legend").textContent = words.ui("restore");
+  $("snapshots-name-label").textContent = words.ui("name");
+  els.save.textContent = words.ui("save");
+  els.chipText.textContent = words.chip("connecting");
+
   var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null, list: null, listing: false, busy: false };
 
   function showMessage(text) {
@@ -118,7 +125,7 @@
       var marks = words.marks(s);
       if (marks.length) {
         var tags = h("div", "snapshots-row-marks");
-        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + (m === "Solo" ? "solo" : "master"), m)); });
+        marks.forEach(function (m) { tags.appendChild(h("span", "snapshots-mark snapshots-mark-" + m.key, m.text)); });
         li.appendChild(tags);
       }
       var keys = h("div", "snapshots-row-keys");

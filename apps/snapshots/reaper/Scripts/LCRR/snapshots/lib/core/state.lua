@@ -1,6 +1,6 @@
 -- The `state` core: what the page needs to start. Read-only and headless, as every core is (Arrange ADR-0008): no
--- dialogs, codes and fields only. The project's name and path are added to every reply by lib/bridge/service.lua, so
--- this slice has nothing of its own to report yet; later commands (list, save, restore) add theirs.
+-- dialogs, codes and fields only. The page calls it to learn the bridge is answering; the project's name and path are
+-- added to every reply by lib/bridge/service.lua, so it has nothing of its own to report.
 --
 --   local result = state.run({ api = reaper })
 

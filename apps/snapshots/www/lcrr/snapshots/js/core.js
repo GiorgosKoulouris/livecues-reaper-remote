@@ -91,5 +91,5 @@
     };
   }
 
-  return { createGate: createGate, createPress: createPress, MAX_NAME: MAX_NAME, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse, clearsNote: clearsNote };
+  return { createGate: createGate, createPress: createPress, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse, clearsNote: clearsNote };
 });

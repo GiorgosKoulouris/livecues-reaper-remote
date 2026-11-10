@@ -20,11 +20,10 @@
     internal: "The bridge hit a problem with the project.",
     no_ticks: "Tick at least one kind of value to restore.",
     bad_ticks: "The bridge did not know one of the ticks. Re-run install.ps1 and restart REAPER.",
-    not_found: "That snapshot is no longer saved.",
     empty_name: "Give the snapshot a name.",
     bad_name: "A name cannot hold line breaks or other control characters.",
     name_too_long: "That name is too long. Use at most 40 characters.",
-    not_found: "That snapshot is no longer saved. The list has been refreshed.",
+    not_found: "That snapshot is no longer saved.",
     duplicate_name: "A snapshot with that name already exists. Use another name.",
     unreadable: "The saved snapshots in this project could not be read, so nothing was changed.",
     request_too_long: "The request is too long to send.",
@@ -55,11 +54,11 @@
     return plural(s.tracks, "track", "tracks") + ", " + plural(s.sends, "send", "sends") + (when ? " · " + when : "");
   }
 
-  // The marks on a row: what the snapshot holds that the engineer should see before Restore. Words, not colour alone.
+  // The marks on a row, each { key, text }: what the snapshot holds that the engineer should see before Restore. Words, not colour alone.
   function marks(s) {
     var out = [];
-    if (s.solo) out.push("Solo");
-    if (s.masterMuted) out.push("Master muted");
+    if (s.solo) out.push({ key: "solo", text: "Solo" });
+    if (s.masterMuted) out.push({ key: "master", text: "Master muted" });
     return out;
   }
 
@@ -81,8 +80,5 @@
     return "Restored “" + r.name + "”: " + plural(r.tracks, "track", "tracks") + ", " + plural(r.sends, "send", "sends") + " written." + gone + muted + auto;
   }
 
-  var NO_SNAPSHOTS = UI.empty;
-  var UNDO_NOTE = "Saving a snapshot cannot be undone.";
-
-  return { tick: tick, restoreNote: restoreNote, holdLabel: holdLabel, counts: counts, marks: marks, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
+  return { tick: tick, restoreNote: restoreNote, holdLabel: holdLabel, counts: counts, marks: marks, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
 });
