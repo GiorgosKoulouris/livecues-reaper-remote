@@ -268,6 +268,14 @@ Square by default. **Keys** (every button that acts) have one chamfered corner, 
 - **Hold keys:** Adopt and Delete are chamfered keys with a Warn Edge inset line and a HOLD legend in Warn Amber, never quiet text buttons. A mix header shows its output picker and More; More opens a ruled group holding Rename, Adopt (strays) and Delete. Rows and columns have no bulk keys: a cell is switched one tap at a time.
 - **Tag legend:** in the strip between the Filter and the Keys, names each cell tag on screen (POST, PRE, MODE, 2x). Below 1200px it takes its own line above them.
 
+### Snapshots (`lcrr-snapshots.html`)
+- **Built like IEM Setup's page:** one flat screen with the same sticky Bar, state LED and Signal banner strip ("Snapshots not running" in Warn Amber when the bridge is down), the project name after a 1px Edge rule, no lock. Controls are hidden while the bridge is not running. Content is one column capped at 48rem.
+- **Restore ticks box:** a bordered group headed by a Legend Dim legend, eight checkbox ticks wrapping on rows of 44px, then a one-sentence note in Legend Dim about what In-ears off leaves alone. With no tick on, every Restore key is disabled at 50%.
+- **Save:** a name field (Display, 1px Edge, IBM Plex Mono, 44px, Signal focus ring) with its legend above and a chamfered Key reading "Save" beside it, bottom-aligned. A refusal shows in the Warn Amber message line under the Bar.
+- **Result note:** a Display box with an Edge border under the Save field, above the list, in plain words: what a restore wrote, skipped, left to automation. It stays until the next write.
+- **Rows:** one Display row per snapshot with an Edge border: the name (500, wrapping anywhere), a small Legend Dim line ("4 tracks, 7 sends · Nov 10 14:32", tabular figures), marks, then the keys. A mark is a small boxed word led by a shape, so colour is never the only cue: `Solo` (a disc, Warn Amber) and `Master muted` (a square, Legend).
+- **Hold keys:** Restore, Overwrite and Delete are the same chamfered Key with a Warn Edge inset line and a HOLD legend in Warn Amber, 44px, wrapping. A tap does nothing; a Warn Amber bar fills along the key's bottom edge for 1 s (reduced motion: it fades in instead). Pressed is the inverted key (Legend face, Chassis text). Restore is never a quiet button.
+
 ### IEM Mix (`lcrr-iemmix.html`)
 - **Built for a laptop or tablet** (768px and wider): the same full-width page, grid and cells as IEM Setup, with a docked panel beside the grid. Below 768px wide the panel stacks under the grid; that is not a designed phone layout.
 - **Row headers:** a source's own colour fills its name cell at 25% over Key (no swatch), the same as IEM Setup; the Signal selection edge sits on top of it.
