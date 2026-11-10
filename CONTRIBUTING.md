@@ -37,7 +37,7 @@ Run this on the Windows host, from the repo folder, in PowerShell. `scripts\inst
 ```powershell
 .\scripts\install.ps1                               # copy into %APPDATA%\REAPER (re-run to update; no admin needed)
 .\scripts\install.ps1 -Link                         # symlinks instead: edits show on browser refresh (Developer Mode or admin)
-.\scripts\install.ps1 -Root D:\www -Port 9000       # custom web root, and the port for the printed URLs
+.\scripts\install.ps1 -Root D:\www -Port 9000       # custom web root, and the port the printed URLs show (default 80, left out of the URL)
 .\scripts\install.ps1 -Resource D:\PortableReaper   # REAPER resource path for the Lua (default %APPDATA%\REAPER)
 .\scripts\install.ps1 -Uninstall                    # removes lcrr*.html, the lcrr folder, Scripts\LCRR and LCRR's startup lines
 ```
