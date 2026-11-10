@@ -55,6 +55,7 @@ A suite of remote-control pages for REAPER, served by REAPER's built-in web inte
 
 - Importing `https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/dev/index.xml` and installing the `lcrr.html` package (index `LCRR`, category `Remote`, type Web Interface) works: the per-source `type="script"` entries are accepted, the web files keep their `lcrr/...` subfolders in `reaper_www_root`, the pages load, `LCRR: Install startup hook` starts the bridge after a REAPER restart, and the footer shows the version.
 - 1.1.0-beta2 (same day): ReaPack update from beta1 to beta2 works; `LCRR: Remove startup hook` removes the marked lines (a user's own line stayed); uninstalling the package in ReaPack removes the pages and Lua. The Lua lands in `Scripts\LCRR\Remote\<part>\` (e.g. `Scripts\LCRR\Remote\arrange\`), so `shared` is `Scripts\LCRR\Remote\shared\` and the `..` lookup works there. ReaPack never touches `__startup.lua`, so after an uninstall the hook's lines stay until Remove startup hook is run; they are tolerant and harmless.
+- 1.1.0-beta3 (same day): the owner reported that the live test passed after the repo rename to `livecues-reaper-remote`. The individual checklist results weren't recorded.
 
 ## Still unverified (suite)
 

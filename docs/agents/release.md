@@ -70,5 +70,5 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 
 ## State snapshot (2026-11-10; check `git` for the current truth)
 
-- Latest pre-release on GitHub: `1.1.0-beta2`, on the old history. `dev` and `stage` are condensed and pushed. Launch plan, in order: 1.1.0-beta3 commit on `dev`; promote; tag `stage`; rename the repo; delete the two old tags and the pushed archive tag from GitHub; push `stage`, `dev` and the tag; live test; ship, push `main` and make it the default branch.
+- Latest pre-release: `1.1.0-beta3`, tagged on `stage` and live. `main` is the default branch and carries the public import URL `https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/main/index.xml`. `dev` and `stage` are in step with it.
 - The owner decided to stay on beta for now; no stable 1.1.0 yet.
