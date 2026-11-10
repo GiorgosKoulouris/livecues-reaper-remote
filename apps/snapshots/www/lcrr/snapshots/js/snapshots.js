@@ -95,7 +95,8 @@
     ui.busy = true;
     showMessage("");
     send().then(function (reply) {
-      if (!reply || reply.status !== "ok") showMessage(words.error(reply && reply.error));
+      if (core.clearsNote(reply)) restoreUi.clearNote();
+      else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
       ui.busy = false;
       ui.list = null; // a refused write (not_found) may still have changed what the list should show
@@ -153,7 +154,7 @@
     els.save.disabled = true;
     showMessage("");
     client.save(check.name).then(function (reply) {
-      if (reply && reply.status === "ok") els.name.value = "";
+      if (core.clearsNote(reply)) { els.name.value = ""; restoreUi.clearNote(); }
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
       ui.busy = false;

@@ -1,5 +1,5 @@
 // Snapshots: the restore's DOM wiring. The ticks (reset at each page load), the press-and-hold Restore key on a row and
-// the result note, which stays until the next write. Logic is restore.js, sentences are words.js; text is set with
+// the result note, which stays until the next write (a restore replaces it; a successful Save, Overwrite or Delete clears it). Logic is restore.js, sentences are words.js; text is set with
 // textContent only.
 (function () {
   "use strict";
@@ -85,5 +85,5 @@
     $("snapshots-ticks-note").textContent = words.ui("tickNote");
   }
 
-  N.restoreUi = { init: init, addKey: addKey, resetKeys: resetKeys };
+  N.restoreUi = { init: init, addKey: addKey, resetKeys: resetKeys, clearNote: setNote };
 })();

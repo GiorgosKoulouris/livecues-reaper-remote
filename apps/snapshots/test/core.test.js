@@ -115,3 +115,9 @@ test("the list is not rebuilt while a hold is down, and is rebuilt once when the
   r.gate.request();
   assert.strictEqual(r.paints(), 3);
 });
+
+test("a successful Save, Overwrite or Delete clears the restore note, a refused one keeps it", () => {
+  ["snapshot_save", "snapshot_overwrite", "snapshot_delete"].forEach((k) => assert.strictEqual(core.clearsNote(replies[k]), true, k));
+  ["snapshot_save_duplicate_name", "snapshot_overwrite_not_found", "snapshot_delete_not_found", "snapshot_delete_unreadable"].forEach((k) => assert.strictEqual(core.clearsNote(replies[k]), false, k));
+  assert.strictEqual(core.clearsNote(null), false);
+});
