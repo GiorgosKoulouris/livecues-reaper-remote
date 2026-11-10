@@ -25,7 +25,7 @@ body > main { max-width:var(--lcrr-content-max); margin:0 auto; }
 #snapshots-controls { padding:.5rem 1rem; }
 .snapshots-form { display:flex; align-items:flex-end; gap:.5rem; margin:.375rem 0; }
 .snapshots-field { display:flex; flex-direction:column; gap:.125rem; flex:1 1 0; min-width:0; }
-.snapshots-field input { min-width:0; min-height:44px; padding:.25rem .625rem; background:var(--display); color:var(--legend); border:1px solid var(--edge); border-radius:0; font:inherit; font-family:var(--font-mono); }
+.snapshots-field input { min-width:0; min-height:2.75rem; padding:.25rem .625rem; background:var(--display); color:var(--legend); border:1px solid var(--edge); border-radius:0; font:inherit; font-family:var(--font-mono); }
 .snapshots-field input:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
 .snapshots-label { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
 .snapshots-key { flex:none; min-height:2.75rem; padding:0 .75rem; background:var(--key); color:var(--legend); border:1px solid var(--edge); border-radius:0; clip-path:var(--chamfer); font:inherit; font-weight:600; cursor:pointer; }

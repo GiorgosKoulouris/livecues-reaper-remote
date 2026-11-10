@@ -6,7 +6,7 @@ const words = require("../www/lcrr/snapshots/js/words.js");
 const hold = require("../../../shared/www/lcrr/shared/js/hold.js");
 
 // A fake button and document, and a fake clock for the shared hold.
-function setup(onComplete) {
+function setup(onComplete, isBlocked) {
   let now = 0, timers = [], paints = 0;
   const handlers = {};
   const classes = new Set();
@@ -19,7 +19,7 @@ function setup(onComplete) {
   const doc = { addEventListener() {}, removeEventListener() {} };
   const gate = core.createGate(() => { paints++; });
   hk.holdKey(btn, {
-    gate, doc, onComplete,
+    gate, doc, onComplete, isBlocked,
     createHold: (o) => hold.createHold(Object.assign({
       setTimer: (cb, ms) => { const t = { at: now + ms, cb }; timers.push(t); return t; },
       clearTimer: (t) => { timers = timers.filter((x) => x !== t); }
@@ -64,4 +64,30 @@ test("a released hold sends nothing and still applies the deferred refresh", () 
 
 test("the Restore key has a hold label like its neighbours", () => {
   assert.ok(words.holdLabel("restore", "Verse").startsWith("Restore Verse"));
+});
+
+test("a blocked key (a request in flight) does not start a hold", () => {
+  let restored = 0, blocked = true;
+  const r = setup(() => restored++, () => blocked);
+  r.handlers.pointerdown({ button: 0 });
+  assert.ok(!r.gate.active());
+  r.advance(2000);
+  assert.strictEqual(restored, 0);
+  blocked = false;
+  r.handlers.pointerdown({ button: 0 });
+  r.advance(1000);
+  assert.strictEqual(restored, 1);
+});
+
+test("build makes the key: text, HOLD legend, label and a snapshots-<kind> class", () => {
+  const doc = {
+    createElement: (tag) => ({ tag, children: [], attrs: {}, style: { setProperty() {} }, classList: { add() {}, remove() {} },
+      appendChild(c) { this.children.push(c); }, setAttribute(k, v) { this.attrs[k] = v; }, addEventListener() {} }),
+    addEventListener() {}, removeEventListener() {}
+  };
+  const btn = hk.build("delete", "Verse", { gate: core.createGate(() => {}), doc, createHold: () => ({ start() {}, cancel() {} }), onComplete() {} });
+  assert.strictEqual(btn.className, "snapshots-key snapshots-hold snapshots-delete");
+  assert.deepStrictEqual(btn.children.map((c) => c.textContent), [words.ui("delete"), words.ui("holdLegend")]);
+  assert.strictEqual(btn.title, words.holdLabel("delete", "Verse"));
+  assert.strictEqual(btn.attrs["aria-label"], btn.title);
 });

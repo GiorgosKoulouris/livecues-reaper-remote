@@ -64,7 +64,10 @@
 
   // A row's key names for a screen reader and its tooltip: what holding it does to which snapshot.
   var HOLD_VERBS = { delete: "Delete ", restore: "Restore ", overwrite: "Overwrite " };
-  function holdLabel(kind, name) { return (HOLD_VERBS[kind] || HOLD_VERBS.overwrite) + name + ", hold to confirm"; }
+  function holdLabel(kind, name) {
+    if (!HOLD_VERBS[kind]) throw new Error("holdLabel: unknown key " + kind);
+    return HOLD_VERBS[kind] + name + ", hold to confirm";
+  }
   // The restore's wording: the ticks' labels, the Restore key, and the result note.
   var TICK_LABELS = { levels: "Levels", pans: "Pans", mutes: "Mutes", solos: "Solos", polarity: "Polarity", sends: "Sends", fx: "FX on/off", inears: "In-ears" };
   UI.restore = "Restore";

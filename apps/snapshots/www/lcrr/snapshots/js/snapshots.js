@@ -2,7 +2,7 @@
 // words.js. DOM is built with textContent only: project names are user data.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi, holdKey = N.holdKey.holdKey;
+  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi, holdKey = N.holdKey;
   var REFRESH_MS = 3000; // while connected, re-read the project this often (another project may become the active one)
 
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1000 });
@@ -85,27 +85,30 @@
     return el;
   }
 
+  // One request at a time, page-wide: Save, Overwrite, Delete and Restore share this flag. While it is set the Save key
+  // and every Restore key are disabled, and Overwrite and Delete ignore a press (isBlocked).
+  function isBusy() { return ui.busy; }
+  function setBusy(busy) {
+    ui.busy = busy;
+    els.save.disabled = busy;
+    restoreUi.syncKeys();
+  }
+
   // Overwrite and Delete: a hold key (hold-key.js) with the legend, sending once the hold completes.
   function holdButton(kind, name, send) {
-    var btn = h("button", "snapshots-key snapshots-hold snapshots-" + kind);
-    btn.type = "button";
-    btn.appendChild(h("span", "snapshots-hold-text", words.ui(kind)));
-    btn.appendChild(h("span", "snapshots-hold-legend", words.ui("holdLegend")));
-    btn.title = words.holdLabel(kind, name);
-    btn.setAttribute("aria-label", btn.title);
-    return holdKey(btn, { gate: gate, createHold: S.hold.createHold, doc: document, isBlocked: function () { return ui.busy; }, onComplete: function () { write(send); } });
+    return holdKey.build(kind, name, { gate: gate, isBlocked: isBusy, onComplete: function () { write(send); } });
   }
 
   // One write at a time; the message of a refusal stays until the next attempt, and the list is read again either way.
   function write(send) {
     if (ui.phase !== "ready" || ui.busy) return;
-    ui.busy = true;
+    setBusy(true);
     showMessage("");
     send().then(function (reply) {
       if (core.clearsNote(reply)) restoreUi.clearNote();
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
-      ui.busy = false;
+      setBusy(false);
       ui.list = null; // a refused write (not_found) may still have changed what the list should show
       readList();
     });
@@ -157,20 +160,18 @@
     var names = (ui.list || []).map(function (s) { return s.name; });
     var check = core.checkName(els.name.value, names, N.client.nameFits);
     if (!check.name) { showMessage(words.error(check)); return; }
-    ui.busy = true;
-    els.save.disabled = true;
+    setBusy(true);
     showMessage("");
     client.save(check.name).then(function (reply) {
       if (core.clearsNote(reply)) { els.name.value = ""; restoreUi.clearNote(); }
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
-      ui.busy = false;
-      els.save.disabled = false;
+      setBusy(false);
       readList();
     });
   });
 
-  restoreUi.init({ client: client, showMessage: showMessage, gate: gate });
+  restoreUi.init({ client: client, showMessage: showMessage, gate: gate, isBusy: isBusy, setBusy: setBusy });
 
   setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();

@@ -27,8 +27,8 @@
   // Controls exist only while the bridge is running.
   function canUse(phase) { return phase === "ready"; }
 
-  // The restore note stays until the next write: a write that succeeded clears it, a refused or failed one leaves it.
-  function clearsNote(reply) { return !!reply && reply.status === "ok"; }
+  // Did the bridge do what was asked? (A successful write clears the restore note; a refused or failed one leaves it.)
+  function succeeded(reply) { return !!reply && reply.status === "ok"; }
 
   var MAX_NAME = 40; // characters; the bridge's own limit (shared.snapshot.text)
 
@@ -91,5 +91,5 @@
     };
   }
 
-  return { createGate: createGate, createPress: createPress, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse, clearsNote: clearsNote };
+  return { createGate: createGate, createPress: createPress, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse, succeeded: succeeded };
 });

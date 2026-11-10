@@ -106,3 +106,7 @@ test("marks name what a snapshot holds, in words, from the recorded list reply",
   const list = core.readList(JSON.parse(line.slice(line.indexOf("\t") + 1)));
   assert.deepStrictEqual(list.map((s) => words.marks(s).map((m) => m.key)), [[], ["solo"], ["master"], ["solo", "master"]]);
 });
+
+test("a hold label for an unknown key fails loudly", () => {
+  assert.throws(() => words.holdLabel("rename", "Verse"), /unknown key/);
+});
