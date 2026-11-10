@@ -19,7 +19,20 @@ Remote-control pages for REAPER, served by REAPER's built-in web interface. Open
 5. Allow REAPER through Windows Firewall for private networks.
 6. Open `http://<pc-ip>:<port>/` from a device on the same LAN. The dialog's "Access URL" shows the address.
 
-## Install / update on the Windows host
+## Install and update with ReaPack
+
+Needs [ReaPack](https://reapack.com) (Extensions > ReaPack). **Status: written, not yet verified in a live ReaPack** (see `CONTEXT.md`); until a release has passed the pre-release test below, use `install.ps1`.
+
+1. Extensions > ReaPack > Import repositories..., paste `https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/main/index.xml`.
+2. Extensions > ReaPack > Browse packages, find **lcrr.html**, install. It installs the pages into `reaper_www_root` and the Lua actions under `Scripts/LCRR/Remote/`.
+3. Run the action **LCRR: Install startup hook** once (Actions > Show action list). It adds the lines to `Scripts/__startup.lua` that start the Arrange and IEM Setup bridges with REAPER. Then do the Setup steps above (web interface, Default interface = `lcrr.html`).
+4. Updates: Extensions > ReaPack > Synchronize packages. **Restart REAPER after an update** so the bridges run the new code. The installed version is shown at the right of every page's footer.
+5. Before uninstalling in ReaPack, run **LCRR: Remove startup hook**. If you forget, the stale line does nothing (it only starts a bridge whose file exists); run the action later or delete the marked lines.
+6. Pre-releases (versions like `1.1.0-beta1`) appear only if you enable them in ReaPack's About/Settings (Show pre-releases).
+
+Switching from `install.ps1`: run `.\scripts\install.ps1 -Uninstall` first (it also removes its `__startup.lua` lines), then follow the steps above. ReaPack does not take over files it did not install.
+
+## Install / update with install.ps1 (development and fallback)
 
 Easiest: double-click `scripts\install.bat` in Explorer. It runs `install.ps1` (copy mode) without execution-policy prompts and keeps the window open to show the URLs. Re-run it to update.
 
@@ -74,12 +87,17 @@ Each `www/` folder holds files at the paths REAPER serves them from. Install, re
 
 ## Release (zip + ReaPack)
 
-> **For now the suite is delivered only through `scripts\install.ps1` / `install.bat`.** The zip and ReaPack index below don't carry the Arrange Lua (its bridge and actions) or its `__startup.lua` line, so Arrange would not work from them. Delivery through them will be revisited.
+Cutting a release (on `dev`; you merge to `main`):
+
+1. Bump `version` in the root `package.json` **and** in `shared/www/lcrr/shared/js/version.js` (a test fails if they differ).
+2. Add a `## <version> (<date>)` section at the top of `CHANGELOG.md`: it becomes the ReaPack changelog. A pre-release (`1.1.0-beta1`) uses its own heading, else its base version's.
+3. `npm test && npm run check`, then build the index for the tag you are about to create (below) and commit `index.xml`.
+4. Tag and push. **Pre-release first:** import the pre-release in real REAPER, install, run the startup hook, check an app works, then promote with the stable version and tag.
 
 ```
 npm test && npm run check
-npm run release -- --base-url https://raw.githubusercontent.com/<user>/<repo>/<tag>
+npm run release -- --base-url https://raw.githubusercontent.com/GiorgosKoulouris/LiveCues-RRemote/<tag>
 ```
 
 - Writes `dist/lcrr-<version>.zip` (git-ignored): every slice laid over each other plus `lcrr-INSTALL.txt`, to extract into `reaper_www_root` keeping folders. Needs the `zip` CLI. The version comes from the root `package.json`; there is one version for the suite.
-- With `--base-url` (the repo root at a tag or commit) also writes `index.xml` at the repo root: one ReaPack `webinterface` package holding every file, with `file` attributes keeping the `lcrr/...` subfolders. Commit `index.xml`; users add its raw URL via Extensions > ReaPack > Import repositories. Not yet verified in a live ReaPack (see `CONTEXT.md`).
+- With `--base-url` (the repo root at a tag or commit) also writes `index.xml` at the repo root: one ReaPack package (index name `LCRR`, category `Remote`, type `webinterface`) holding every web file, with `file` attributes keeping the `lcrr/...` subfolders, plus every Lua file as a per-source `type="script"` (entry scripts `LCRR_*.lua` register as actions). Commit `index.xml`. Not yet verified in a live ReaPack (see `CONTEXT.md`). Missing `CHANGELOG.md` section: the build warns.

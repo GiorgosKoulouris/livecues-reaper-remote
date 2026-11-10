@@ -16,3 +16,15 @@ Every app depends on the shared library (`lcrr/shared/`). ReaPack refuses to let
 - Installing LCRR gives the user every app; a fix to one app is a suite release.
 - No file-ownership conflicts and no shared-version skew between apps.
 - Revisit only if apps become large or are meant to be installed separately.
+
+## Amendment (2026-11-10): ReaPack is the delivery path, with Lua
+
+Arrange and IEM Setup ship Lua, and ReaPack cannot edit `__startup.lua`. Decided with the owner (grilling, 2026-11-10):
+
+- ReaPack is the install and update path (a prerequisite for users; no self-made updater, no native extension). Hosted in the public GitHub repo `GiorgosKoulouris/LiveCues-RRemote`, `index.xml` committed at the root, file URLs pinned to a release tag. Windows first; macOS should work but is unverified.
+- Still one package and one version. The index is named `LCRR`, with one category `Remote`; the web files are the package's `webinterface` sources, the Lua files are per-source `type="script"` sources whose `file` carries the part folder (`arrange/...`, `iem/...`, `shared/...`), so the parts stay siblings and the `..` lookup of `shared` (ADR 0001 amendment) is unchanged. Scripts land under `Scripts/LCRR/Remote/`; a package has one category, so ReaPack categories cannot name the parts. Entry scripts (`LCRR_*.lua` at the top of a part) register as actions.
+- The bridge start-up line is installed by the action `LCRR: Install startup hook` and removed by `LCRR: Remove startup hook` (`shared/startup/hook.lua`). The lines are tolerant (start a bridge only if its file exists, looking in both install layouts), so a forgotten uninstall is silent.
+- Updates take effect after a REAPER restart (documented, no self-restart). The version is in the footer (`shared/.../version.js`, kept equal to `package.json` by a test); the ReaPack changelog is the `## <version>` section of `CHANGELOG.md`.
+- Releases go out as a pre-release first, imported in real REAPER by the owner, then promoted. `install.ps1` and the zip stay as development and fallback tools; switching from `install.ps1` means running its `-Uninstall` first.
+- If live ReaPack rejects per-source types, stop and re-discuss (the two-package split was considered, not pre-approved).
+- Unverified until the live test: see `CONTEXT.md`.

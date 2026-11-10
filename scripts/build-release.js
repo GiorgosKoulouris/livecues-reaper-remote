@@ -36,8 +36,10 @@ try {
 }
 
 if (baseUrl) {
+  const notes = lib.changelogFor(fs.readFileSync(path.join(repo, "CHANGELOG.md"), "utf8"), pkg.version);
+  if (notes === null) console.warn("warning: CHANGELOG.md has no '## " + pkg.version + "' section; the index says just 'Release " + pkg.version + "'");
   const xml = lib.buildIndexXml({
-    version: pkg.version, files: files, baseUrl: baseUrl,
+    version: pkg.version, files: files, luaFiles: lib.collectLuaFiles(repo), changelog: notes, baseUrl: baseUrl,
     time: new Date().toISOString().replace(/\.\d+Z$/, "Z"), author: pkg.author || ""
   });
   const out = arg("--index-out") || path.join(repo, "index.xml");

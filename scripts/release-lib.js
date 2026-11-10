@@ -7,6 +7,8 @@ const path = require("path");
 
 const MAIN = "lcrr.html";            // the home page; also the ReaPack package's main file
 const SUITE = "LiveCues ReaperRemote";
+const INDEX_NAME = "LCRR";          // ReaPack index name: scripts install under Scripts/<index name>/<category>/
+const CATEGORY = "Remote";          // the package's one category (a package has exactly one)
 
 // Slice roots, repo-relative: shared first, then every apps/<app>/www, sorted.
 function sliceRoots(repo) {
@@ -39,6 +41,48 @@ function collectFiles(repo) {
   return out.sort((a, b) => (a.deployed < b.deployed ? -1 : a.deployed > b.deployed ? 1 : 0));
 }
 
+// Lua of every reaper slice (shared/reaper and apps/<app>/reaper), each holding Scripts/LCRR/<part>/...:
+// { deployed: "arrange/lib/log.lua", source: "apps/arrange/reaper/Scripts/LCRR/arrange/lib/log.lua" }.
+// deployed is relative to Scripts/LCRR, so <part> folders stay siblings (scripts find shared/ through "..").
+function collectLuaFiles(repo) {
+  const roots = ["shared/reaper"];
+  const apps = path.join(repo, "apps");
+  if (fs.existsSync(apps)) fs.readdirSync(apps).sort().forEach((a) => roots.push("apps/" + a + "/reaper"));
+  const out = [], seen = {};
+  roots.forEach((root) => {
+    const base = root + "/Scripts/LCRR";
+    if (!fs.existsSync(path.join(repo, base))) return;
+    (function walk(rel) {
+      const dir = path.join(repo, base, rel);
+      fs.readdirSync(dir).sort().forEach((name) => {
+        const r = rel ? rel + "/" + name : name;
+        if (fs.statSync(path.join(dir, name)).isDirectory()) return walk(r);
+        if (seen[r]) throw new Error(r + " is in both " + seen[r] + " and " + root);
+        seen[r] = root;
+        out.push({ deployed: r, source: base + "/" + r });
+      });
+    })("");
+  });
+  return out.sort((a, b) => (a.deployed < b.deployed ? -1 : a.deployed > b.deployed ? 1 : 0));
+}
+
+// The notes under a "## <version> ..." heading of CHANGELOG.md, trimmed, up to the next "## " heading.
+// A pre-release ("1.1.0-beta1") with no heading of its own uses its base version's ("1.1.0"). null if none.
+function changelogFor(markdown, version) {
+  const lines = markdown.split(/\r?\n/);
+  function section(v) {
+    const head = lines.findIndex((l) => l.indexOf("## " + v) === 0 && /^(\s|\(|$)/.test(l.slice(3 + v.length)));
+    if (head < 0) return null;
+    let end = lines.findIndex((l, i) => i > head && /^## /.test(l));
+    if (end < 0) end = lines.length;
+    return lines.slice(head + 1, end).join("\n").trim();
+  }
+  const exact = section(version);
+  if (exact !== null) return exact;
+  const base = version.replace(/-.*$/, "");
+  return base !== version ? section(base) : null;
+}
+
 function escapeXml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -46,11 +90,17 @@ function escapeXml(s) {
 // One ReaPack package for the whole suite (docs/adr/0002): every file in one <version>, so no two packages
 // ever own the same file. Package type "webinterface" installs into REAPER's reaper_www_root; `file` keeps
 // the subfolder. baseUrl points at the repo root at a tag or commit; each URL uses the file's repo path.
-// UNVERIFIED against a live ReaPack install.
+// Lua (o.luaFiles) rides along as per-source type="script". UNVERIFIED against a live ReaPack install.
 function buildIndexXml(o) {
   const main = o.files.filter((f) => f.deployed === MAIN)[0];
   if (!main) throw new Error("file list must include " + MAIN);
   const base = o.baseUrl.replace(/\/+$/, "") + "/";
+  const luaSources = (o.luaFiles || []).map((f) => {
+    // Entry scripts (LCRR_<App>_<Verb>.lua directly in a <part> folder) register as actions; lib/ and shared/ do not.
+    const entry = /^[^/]+\/LCRR_[^/]+\.lua$/.test(f.deployed);
+    return '        <source type="script"' + (entry ? ' main="main"' : "") + ' file="' + escapeXml(f.deployed) + '">' +
+      escapeXml(base + f.source) + "</source>";
+  });
   const sources = [main].concat(o.files.filter((f) => f !== main)).map((f) => {
     const url = escapeXml(base + f.source);
     return f === main ? "        <source>" + url + "</source>"
@@ -58,15 +108,15 @@ function buildIndexXml(o) {
   });
   return [
     '<?xml version="1.0" encoding="utf-8"?>',
-    '<index version="1" name="' + SUITE + '">',
-    '  <category name="Web Interfaces">',
+    '<index version="1" name="' + INDEX_NAME + '">',
+    '  <category name="' + CATEGORY + '">',
     '    <reapack name="' + MAIN + '" type="webinterface" desc="' + SUITE + ': remote pages for REAPER (home + all apps)">',
     "      <metadata>",
     "        <description><![CDATA[" + SUITE + " (LCRR): a suite of remote-control pages for REAPER's web interface, usable from a phone, tablet or desktop browser on the same LAN. After installing, choose lcrr.html as the Default interface in Preferences > Control/OSC/web.]]></description>",
     "      </metadata>",
     '      <version name="' + escapeXml(o.version) + '" author="' + escapeXml(o.author || "") + '" time="' + escapeXml(o.time) + '">',
-    "        <changelog><![CDATA[" + (o.changelog || "Release " + o.version) + "]]></changelog>",
-    sources.join("\n"),
+    "        <changelog><![CDATA[" + String(o.changelog || "Release " + o.version).replace(/\]\]>/g, "]]]]><![CDATA[>") + "]]></changelog>",
+    sources.concat(luaSources).join("\n"),
     "      </version>",
     "    </reapack>",
     "  </category>",
@@ -90,4 +140,4 @@ function installText(version) {
   ].join("\n");
 }
 
-module.exports = { sliceRoots, collectFiles, buildIndexXml, installText, escapeXml, MAIN, SUITE };
+module.exports = { sliceRoots, collectFiles, collectLuaFiles, changelogFor, buildIndexXml, installText, escapeXml, MAIN, SUITE, INDEX_NAME, CATEGORY };

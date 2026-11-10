@@ -3,7 +3,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { buildIndexXml, installText, escapeXml, collectFiles, sliceRoots } = require("../scripts/release-lib.js");
+const { buildIndexXml, installText, escapeXml, collectFiles, collectLuaFiles, sliceRoots, changelogFor } = require("../scripts/release-lib.js");
 
 const files = [
   { deployed: "lcrr-podium.html", source: "apps/podium/www/lcrr-podium.html" },
@@ -14,7 +14,7 @@ const opts = { version: "1.2.3", files, baseUrl: "https://example.com/raw/tag/",
 
 test("buildIndexXml: one suite package, main file first without a file attribute, the rest keep their subfolders", () => {
   const xml = buildIndexXml(opts);
-  assert.match(xml, /<index version="1" name="LiveCues ReaperRemote">/);
+  assert.match(xml, /<index version="1" name="LCRR">/);
   assert.strictEqual(xml.match(/<reapack /g).length, 1);
   assert.match(xml, /<reapack name="lcrr\.html" type="webinterface"/);
   assert.match(xml, /<version name="1\.2\.3" author="A &amp; B" time="2026-11-07T12:00:00Z">/);
@@ -82,4 +82,72 @@ test("the real repo's slices collect without clashes and include the home page a
   assert.ok(deployed.includes("lcrr.html"));
   assert.ok(deployed.includes("lcrr-podium.html"));
   deployed.forEach((d) => assert.ok(/^lcrr(-[a-z0-9-]+)?\.html$/.test(d) || d.startsWith("lcrr/"), d + " is outside the lcrr namespace"));
+});
+
+const lua = [
+  { deployed: "arrange/LCRR_Arrange_Bridge.lua", source: "apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua" },
+  { deployed: "arrange/lib/paths.lua", source: "apps/arrange/reaper/Scripts/LCRR/arrange/lib/paths.lua" },
+  { deployed: "shared/bridge/json.lua", source: "shared/reaper/Scripts/LCRR/shared/bridge/json.lua" }
+];
+
+test("buildIndexXml: Lua files are type=script sources keeping <part>/ subpaths; entry scripts register as actions", () => {
+  const xml = buildIndexXml({ ...opts, luaFiles: lua });
+  assert.strictEqual(xml.match(/<reapack /g).length, 1);
+  assert.match(xml, /<source type="script" main="main" file="arrange\/LCRR_Arrange_Bridge\.lua">https:\/\/example\.com\/raw\/tag\/apps\/arrange\/reaper\/Scripts\/LCRR\/arrange\/LCRR_Arrange_Bridge\.lua<\/source>/);
+  assert.match(xml, /<source type="script" file="arrange\/lib\/paths\.lua">/);
+  assert.match(xml, /<source type="script" file="shared\/bridge\/json\.lua">/);
+  assert.doesNotMatch(xml, /type="script" main="main" file="arrange\/lib/);
+});
+
+test("buildIndexXml without Lua files has no script sources", () => {
+  assert.doesNotMatch(buildIndexXml(opts), /type="script"/);
+});
+
+test("collectLuaFiles reads Scripts/LCRR/<part>/ of every reaper slice and refuses clashes", () => {
+  const repo = tmpRepo({
+    "shared/reaper/Scripts/LCRR/shared/bridge/json.lua": "",
+    "apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua": "",
+    "apps/arrange/reaper/Scripts/LCRR/arrange/lib/log.lua": "",
+    "apps/arrange/spec/log_spec.lua": "",
+    "apps/podium/www/lcrr-podium.html": ""
+  });
+  try {
+    assert.deepStrictEqual(collectLuaFiles(repo).map((f) => f.deployed),
+      ["arrange/LCRR_Arrange_Bridge.lua", "arrange/lib/log.lua", "shared/bridge/json.lua"]);
+    assert.strictEqual(collectLuaFiles(repo)[0].source, "apps/arrange/reaper/Scripts/LCRR/arrange/LCRR_Arrange_Bridge.lua");
+  } finally { fs.rmSync(repo, { recursive: true, force: true }); }
+  const bad = tmpRepo({ "shared/reaper/Scripts/LCRR/x/a.lua": "", "apps/a/reaper/Scripts/LCRR/x/a.lua": "" });
+  try { assert.throws(() => collectLuaFiles(bad), /x\/a\.lua is in both/); }
+  finally { fs.rmSync(bad, { recursive: true, force: true }); }
+});
+
+test("the real repo's Lua slices collect and include the Arrange and IEM bridges and the shared runner", () => {
+  const d = collectLuaFiles(path.join(__dirname, "..")).map((f) => f.deployed);
+  ["arrange/LCRR_Arrange_Bridge.lua", "iem/LCRR_IEM_Bridge.lua", "shared/bridge/runner.lua"].forEach((x) => assert.ok(d.includes(x), x));
+});
+
+const CL = "# Changelog\n\n## 1.1.0 (2026-11-20)\n\n- Added thing\n  - detail\n- Fixed other (abc123)\n\n## 1.0.0 (2026-11-10)\n\n- First\n\n## 2026-11-01\n\n- Old\n";
+
+test("changelogFor returns the notes under the version's heading, up to the next heading", () => {
+  assert.strictEqual(changelogFor(CL, "1.1.0"), "- Added thing\n  - detail\n- Fixed other (abc123)");
+  assert.strictEqual(changelogFor(CL, "1.0.0"), "- First");
+});
+
+test("changelogFor: a pre-release uses its base version's section", () => {
+  assert.strictEqual(changelogFor(CL, "1.1.0-beta1"), "- Added thing\n  - detail\n- Fixed other (abc123)");
+});
+
+test("changelogFor: an exact pre-release heading wins over the base version", () => {
+  const md = "## 1.1.0-beta1\n\n- beta note\n\n## 1.1.0\n\n- final note\n";
+  assert.strictEqual(changelogFor(md, "1.1.0-beta1"), "- beta note");
+});
+
+test("changelogFor: no section for the version gives null; 1.1 does not match 1.1.0", () => {
+  assert.strictEqual(changelogFor(CL, "2.0.0"), null);
+  assert.strictEqual(changelogFor("## 1.1.0\n\n- x\n", "1.1"), null);
+});
+
+test("buildIndexXml puts the changelog in a CDATA block, safe against a closing marker", () => {
+  const xml = buildIndexXml({ ...opts, changelog: "- a ]]> b" });
+  assert.match(xml, /<changelog><!\[CDATA\[- a \]\]\]\]><!\[CDATA\[> b\]\]><\/changelog>/);
 });
