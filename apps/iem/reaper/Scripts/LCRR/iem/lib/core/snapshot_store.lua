@@ -10,6 +10,9 @@
 -- GUID. `read` is what recall uses.
 
 local tracks = require("lib.core.tracks")
+local text_util = require("shared.snapshot.text")
+
+local escape, unescape, split, number = text_util.escape, text_util.unescape, text_util.split, text_util.number
 
 local store = {}
 
@@ -17,33 +20,16 @@ store.SECTION = tracks.EXT_SECTION
 store.INDEX_KEY = "snapshots"
 store.VERSION = 1
 
-local function escape(text)
-  return (text:gsub("[%%,;%c]", function(c) return ("%%%02X"):format(c:byte()) end))
-end
-
-local function unescape(text)
-  return (text:gsub("%%(%x%x)", function(hex) return string.char(tonumber(hex, 16)) end))
-end
+-- Name cleaning and the index lookups are the shared module's; the record shape of the index stays here.
+store.MAX_NAME = text_util.MAX_NAME
+store.clean_name = text_util.clean_name
+store.find = text_util.find
+store.next_id = text_util.next_id
 
 local function get(api, key)
   local found, value = api.GetProjExtState(0, store.SECTION, key)
   if found and found ~= 0 and value ~= "" then return value end
   return nil
-end
-
-local function number(value) return ("%.17g"):format(value) end
-
-local function split(text, separator)
-  local parts, from = {}, 1
-  while true do
-    local at = text:find(separator, from, true)
-    if not at then
-      parts[#parts + 1] = text:sub(from)
-      return parts
-    end
-    parts[#parts + 1] = text:sub(from, at - 1)
-    from = at + #separator
-  end
 end
 
 --- The index: a list of `{ id, saved, mixes, sends, name }` in save order. Empty when nothing is saved; nil and
@@ -61,19 +47,6 @@ function store.list(api)
     }
   end
   return list
-end
-
-function store.find(list, name)
-  for position, entry in ipairs(list) do
-    if entry.name == name then return entry, position end
-  end
-  return nil
-end
-
-function store.next_id(list)
-  local top = 0
-  for _, entry in ipairs(list) do top = math.max(top, entry.id) end
-  return top + 1
 end
 
 local function write_index(api, list)
@@ -142,16 +115,6 @@ function store.remove(api, list, entry)
   table.remove(list, position)
   write_index(api, list)
   api.SetProjExtState(0, store.SECTION, data_key(entry.id), "")
-end
-
---- A snapshot name as typed: trimmed, not empty, at most MAX_NAME characters, no control characters.
-store.MAX_NAME = 40
-function store.clean_name(raw)
-  local name = (raw or ""):match("^%s*(.-)%s*$")
-  if name == "" then return nil, "empty_name" end
-  if name:find("%c") or not utf8.len(name) then return nil, "bad_name" end
-  if utf8.len(name) > store.MAX_NAME then return nil, "name_too_long" end
-  return name
 end
 
 return store
