@@ -18,6 +18,9 @@
     request_truncated: "The request was cut off on the way to REAPER.",
     unknown_command: "This page asked for something the installed bridge does not know. Re-run install.ps1 and restart REAPER.",
     internal: "The bridge hit a problem with the project.",
+    no_ticks: "Tick at least one kind of value to restore.",
+    bad_ticks: "The bridge did not know one of the ticks. Re-run install.ps1 and restart REAPER.",
+    not_found: "That snapshot is no longer saved.",
     empty_name: "Give the snapshot a name.",
     bad_name: "A name cannot hold line breaks or other control characters.",
     name_too_long: "That name is too long. Use at most 40 characters.",
@@ -54,9 +57,21 @@
 
   // A row's key names for a screen reader and its tooltip: what holding it does to which snapshot.
   function holdLabel(kind, name) { return (kind === "delete" ? "Delete " : "Overwrite ") + name + ", hold to confirm"; }
+  // The restore's wording: the ticks' labels, the Restore key, and the result note.
+  var TICK_LABELS = { levels: "Levels", pans: "Pans", mutes: "Mutes", solos: "Solos", polarity: "Polarity", sends: "Sends", fx: "FX on/off" };
+  UI.restore = "Restore";
+  UI.tickNote = "In-ear tracks and the sends into them are never restored here. Restoring a source track’s mute, polarity or FX can still change what the musicians hear.";
+  function tick(key) { return TICK_LABELS[key] || ""; }
+
+  // The last restore's result: what was written, what was skipped because it is gone.
+  function restoreNote(r) {
+    var gone = r.skipped ? " " + plural(r.skipped, "saved item was", "saved items were") + " skipped, gone from the project." : "";
+    if (!r.tracks && !r.sends) return "Nothing was restored from “" + r.name + "”." + gone;
+    return "Restored “" + r.name + "”: " + plural(r.tracks, "track", "tracks") + ", " + plural(r.sends, "send", "sends") + " written." + gone;
+  }
 
   var NO_SNAPSHOTS = UI.empty;
   var UNDO_NOTE = "Saving a snapshot cannot be undone.";
 
-  return { holdLabel: holdLabel, counts: counts, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
+  return { tick: tick, restoreNote: restoreNote, holdLabel: holdLabel, counts: counts, NO_SNAPSHOTS: NO_SNAPSHOTS, UNDO_NOTE: UNDO_NOTE, error: error, ui: ui, chip: chip, banner: banner, projectName: projectName };
 });

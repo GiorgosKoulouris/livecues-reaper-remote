@@ -98,6 +98,25 @@ function fake_project.new(spec)
   function api.MarkProjectDirty() api.dirty = api.dirty + 1 end
   function api.Undo_BeginBlock2() api.undo_blocks = api.undo_blocks + 1 end
 
+  -- Writing (restore): a written value lands on the fake track, and each write is logged in `api.writes` as
+  -- `{ key, value }` so a spec can see what was touched. `api.undo_names` has each closed block's name.
+  api.writes, api.undo_names = {}, {}
+  function api.GetSetMediaTrackInfo_String(track, key) assert(key == "P_NAME"); return true, track.name end
+  function api.SetMediaTrackInfo_Value(track, key, value)
+    track[assert(TRACK_KEYS[key], "fake_project: unknown track key " .. key)] = value
+    api.writes[#api.writes + 1] = { key = key, value = value }
+    return true
+  end
+  function api.SetTrackSendInfo_Value(track, category, index, key, value)
+    list_of(track, category)[index + 1][assert(SEND_KEYS[key], "fake_project: unknown send key " .. key)] = value
+    api.writes[#api.writes + 1] = { key = key, value = value }
+    return true
+  end
+  function api.Undo_EndBlock2(_, name) api.undo_names[#api.undo_names + 1] = name end
+  function api.PreventUIRefresh() end
+  function api.TrackList_AdjustWindows() end
+  function api.UpdateArrange() end
+
   return api
 end
 

@@ -41,3 +41,9 @@ button.snapshots-hold { position:relative; overflow:hidden; display:inline-flex;
   .snapshots-hold::after { transform:none; opacity:0; }
   .snapshots-hold.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
 }
+
+/* Restore: the ticks, the hold key on a row and the result note. */
+.snapshots-ticks-box { margin:.375rem 0; padding:0; border:0; }
+.snapshots-ticks { display:flex; flex-wrap:wrap; gap:.25rem 1rem; }
+.snapshots-tick { display:inline-flex; align-items:center; gap:.4rem; min-height:2.75rem; }
+.snapshots-note { margin:.375rem 0; padding:.375rem .5rem; background:var(--display); border:1px solid var(--edge); font-size:.85rem; }

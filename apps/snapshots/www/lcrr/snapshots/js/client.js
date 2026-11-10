@@ -26,13 +26,16 @@
     // Save the project's mix under a name. Only the name travels; the bridge reads the values.
     function save(name) { return call("snapshot_save", { name: name }); }
 
+    // Restore a snapshot into the project; `ticks` is restore.js's compact field.
+    function restore(name, ticks) { return call("snapshot_restore", { name: name, ticks: ticks }); }
+
     // Replace a saved snapshot's values with the project's now; it keeps its name and place in the list.
     function overwrite(name) { return call("snapshot_save", { name: name, overwrite: 1 }); }
 
     // Delete a saved snapshot. It cannot be undone.
     function remove(name) { return call("snapshot_delete", { name: name }); }
 
-    return { call: call, state: state, snapshots: snapshots, save: save, overwrite: overwrite, remove: remove };
+    return { restore: restore, call: call, state: state, snapshots: snapshots, save: save, overwrite: overwrite, remove: remove };
   }
 
   return { createClient: createClient, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };

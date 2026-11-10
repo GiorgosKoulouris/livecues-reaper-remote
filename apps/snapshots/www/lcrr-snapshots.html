@@ -25,6 +25,11 @@
 <main>
   <!-- Everything that acts on the project lives in here; it stays hidden while the bridge is not running. -->
   <div id="snapshots-controls" hidden>
+    <fieldset class="snapshots-ticks-box">
+      <legend class="snapshots-label">Restore</legend>
+      <div id="snapshots-ticks" class="snapshots-ticks"></div>
+      <p id="snapshots-ticks-note" class="snapshots-hint"></p>
+    </fieldset>
     <form id="snapshots-form" class="snapshots-form" autocomplete="off">
       <label class="snapshots-field">
         <span class="snapshots-label">Name</span>
@@ -32,6 +37,7 @@
       </label>
       <button id="snapshots-save" class="snapshots-key" type="submit">Save</button>
     </form>
+    <p id="snapshots-note" class="snapshots-note" role="status" hidden></p>
     <p id="snapshots-empty" class="snapshots-hint" hidden></p>
     <ul id="snapshots-list" class="snapshots-list"></ul>
   </div>
@@ -54,6 +60,8 @@
 <script src="lcrr/snapshots/js/client.js"></script>
 <script src="lcrr/snapshots/js/core.js"></script>
 <script src="lcrr/snapshots/js/words.js"></script>
+<script src="lcrr/snapshots/js/restore.js"></script>
+<script src="lcrr/snapshots/js/restore-ui.js"></script>
 <script src="lcrr/snapshots/js/snapshots.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // words.js. DOM is built with textContent only: project names are user data.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words;
+  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi;
   var REFRESH_MS = 3000; // while connected, re-read the project this often (another project may become the active one)
 
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1000 });
@@ -132,6 +132,7 @@
     els.empty.textContent = words.ui("empty");
     els.empty.hidden = list.length > 0;
     els.list.textContent = "";
+    restoreUi.resetKeys();
     list.forEach(function (s) {
       var li = h("li", "snapshots-row");
       li.appendChild(h("span", "snapshots-row-name", s.name));
@@ -139,6 +140,7 @@
       var keys = h("div", "snapshots-row-keys");
       keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
       keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));
+      restoreUi.addKey(keys, s);
       li.appendChild(keys);
       els.list.appendChild(li);
     });
@@ -178,6 +180,8 @@
       readList();
     });
   });
+
+  restoreUi.init({ client: client, showMessage: showMessage });
 
   setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();
