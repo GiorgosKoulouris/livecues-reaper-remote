@@ -2,7 +2,7 @@
 // words.js. DOM is built with textContent only: project names are user data.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi;
+  var S = LCRR.shared, N = LCRR.snapshots, wire = N.wire, core = N.core, words = N.words, restoreUi = N.restoreUi, holdKey = N.holdKey.holdKey;
   var REFRESH_MS = 3000; // while connected, re-read the project this often (another project may become the active one)
 
   var conn = S.guard.createConnection({ failuresToOffline: 2, settleMs: 1000 });
@@ -78,38 +78,15 @@
     return el;
   }
 
-  // A press-and-hold key (LCRR.shared.hold, 1 s) for Overwrite and Delete. A plain tap must never act, so there is no
-  // click handler. A release is also caught on the document, so a hold ends even if the key was replaced.
-  var HOLD_MS = 1000;
-  var DOC_RELEASE = ["pointerup", "pointercancel"];
-  function holdKey(kind, name, send) {
+  // Overwrite and Delete: a hold key (hold-key.js) with the legend, sending once the hold completes.
+  function holdButton(kind, name, send) {
     var btn = h("button", "snapshots-key snapshots-hold snapshots-" + kind);
     btn.type = "button";
     btn.appendChild(h("span", "snapshots-hold-text", words.ui(kind)));
     btn.appendChild(h("span", "snapshots-hold-legend", words.ui("holdLegend")));
     btn.title = words.holdLabel(kind, name);
     btn.setAttribute("aria-label", btn.title);
-    var press = core.createPress({
-      holdMs: HOLD_MS, createHold: S.hold.createHold, gate: gate,
-      onComplete: function () { btn.classList.remove("holding"); stopDocument(); write(send); }
-    });
-    function stopDocument() { DOC_RELEASE.forEach(function (n) { document.removeEventListener(n, release); }); }
-    function release() { press.up(); btn.classList.remove("holding"); stopDocument(); }
-    function start() {
-      if (btn.disabled || ui.busy || press.isDown()) return;
-      btn.classList.add("holding");
-      DOC_RELEASE.forEach(function (n) { document.addEventListener(n, release); });
-      press.down();
-    }
-    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
-    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
-    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
-    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    btn.addEventListener("keydown", function (e) {
-      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
-    });
-    btn.addEventListener("keyup", release);
-    return btn;
+    return holdKey(btn, { gate: gate, createHold: S.hold.createHold, doc: document, isBlocked: function () { return ui.busy; }, onComplete: function () { write(send); } });
   }
 
   // One write at a time; the message of a refusal stays until the next attempt, and the list is read again either way.
@@ -144,8 +121,8 @@
         li.appendChild(tags);
       }
       var keys = h("div", "snapshots-row-keys");
-      keys.appendChild(holdKey("overwrite", s.name, function () { return client.overwrite(s.name); }));
-      keys.appendChild(holdKey("delete", s.name, function () { return client.remove(s.name); }));
+      keys.appendChild(holdButton("overwrite", s.name, function () { return client.overwrite(s.name); }));
+      keys.appendChild(holdButton("delete", s.name, function () { return client.remove(s.name); }));
       restoreUi.addKey(keys, s);
       li.appendChild(keys);
       els.list.appendChild(li);
@@ -185,7 +162,7 @@
     });
   });
 
-  restoreUi.init({ client: client, showMessage: showMessage });
+  restoreUi.init({ client: client, showMessage: showMessage, gate: gate });
 
   setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();

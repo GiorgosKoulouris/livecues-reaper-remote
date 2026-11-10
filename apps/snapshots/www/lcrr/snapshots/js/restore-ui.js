@@ -3,16 +3,21 @@
 // textContent only.
 (function () {
   "use strict";
-  var S = LCRR.shared, N = LCRR.snapshots, restore = N.restore, words = N.words;
-  var HOLD_MS = 1000;
-  var RELEASE = ["pointerup", "pointercancel"];
+  var S = LCRR.shared, N = LCRR.snapshots, restore = N.restore, words = N.words, holdKey = N.holdKey.holdKey;
 
   var ticks = restore.defaults();
-  var ctx = null; // { client, showMessage } from snapshots.js
+  var ctx = null; // { client, showMessage, gate } from snapshots.js
   var busy = false;
   var keys = [];
 
   function $(id) { return document.getElementById(id); }
+
+  function span(cls, text) {
+    var el = document.createElement("span");
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  }
 
   function setNote(text) {
     var el = $("snapshots-note");
@@ -57,42 +62,17 @@
     });
   }
 
-  // A press-and-hold key (LCRR.shared.hold). No click handler on purpose: a plain tap must never act.
-  function holdKey(btn, onComplete) {
-    var down = false;
-    function finish() {
-      if (!down) return;
-      down = false;
-      RELEASE.forEach(function (n) { document.removeEventListener(n, release); });
-      btn.classList.remove("holding");
-    }
-    var hold = S.hold.createHold({ holdMs: HOLD_MS, onCancel: finish, onComplete: function () { finish(); onComplete(); } });
-    function release() { hold.cancel(); finish(); }
-    function start() {
-      if (btn.disabled || down) return;
-      down = true;
-      btn.classList.add("holding");
-      RELEASE.forEach(function (n) { document.addEventListener(n, release); });
-      hold.start();
-    }
-    btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
-    btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
-    ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
-    btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    btn.addEventListener("keydown", function (e) {
-      if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
-    });
-    btn.addEventListener("keyup", release);
-  }
-
   // Add the Restore key to a row; rows are rebuilt with the list, so the old keys are dropped first (resetKeys).
   function addKey(parent, snapshot) {
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "snapshots-key snapshots-hold";
-    btn.textContent = words.ui("restore");
+    btn.appendChild(span("snapshots-hold-text", words.ui("restore")));
+    btn.appendChild(span("snapshots-hold-legend", words.ui("holdLegend")));
+    btn.title = words.holdLabel("restore", snapshot.name);
+    btn.setAttribute("aria-label", btn.title);
     btn.disabled = !restore.field(ticks) || busy;
-    holdKey(btn, function () { doRestore(snapshot.name); });
+    holdKey(btn, { gate: ctx.gate, createHold: S.hold.createHold, doc: document, onComplete: function () { doRestore(snapshot.name); } });
     keys.push(btn);
     parent.appendChild(btn);
   }
