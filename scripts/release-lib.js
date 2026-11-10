@@ -83,6 +83,41 @@ function changelogFor(markdown, version) {
   return base !== version ? section(base) : null;
 }
 
+// Everything wrong with publishing `tag` of `repo` ("owner/name"), as messages; [] when it can go out. Guards the tag
+// workflow (scripts/verify-release.js): the tag names this version, the changelog has its notes, and every file URL in
+// the committed index points at this tag of this repo, so ReaPack never gets a dead or foreign link.
+function releaseProblems(o) {
+  const problems = [];
+  if (o.tag !== "v" + o.version) problems.push("tag " + o.tag + " does not match package.json version " + o.version);
+  if (!changelogFor(o.changelog, o.version)) problems.push("CHANGELOG.md has no notes for " + o.version);
+  if (o.indexXml.indexOf('<version name="' + o.version + '"') < 0) problems.push("index.xml does not list version " + o.version);
+  const prefix = "https://raw.githubusercontent.com/" + o.repo + "/" + o.tag + "/";
+  const urls = [];
+  o.indexXml.replace(/<source[^>]*>([^<]+)<\/source>/g, (_, url) => urls.push(url));
+  if (!urls.length) problems.push("index.xml has no source URLs");
+  urls.filter((u) => u.indexOf(prefix) !== 0).forEach((u) => problems.push("index.xml URL is not under " + prefix + ": " + u));
+  return problems;
+}
+
+// The body of the GitHub Release: the changelog section, then how to install or update through ReaPack.
+function releaseNotes(o) {
+  const url = "https://raw.githubusercontent.com/" + o.repo + "/main/index.xml";
+  const pre = /-/.test(o.version);
+  return [
+    changelogFor(o.changelog, o.version),
+    "",
+    "## Install or update",
+    "",
+    "In REAPER, go to **Extensions > ReaPack > Import repositories...** and paste:",
+    "",
+    "```",
+    url,
+    "```",
+    ""
+  ].concat(pre ? ["This is a beta: in **Extensions > ReaPack > Manage repositories**, open the LCRR entry and enable **Show pre-releases**.", ""] : [])
+    .concat(["Already installed? Run **Extensions > ReaPack > Synchronize packages**, then restart REAPER.", ""]).join("\n");
+}
+
 function escapeXml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -140,4 +175,4 @@ function installText(version) {
   ].join("\n");
 }
 
-module.exports = { sliceRoots, collectFiles, collectLuaFiles, changelogFor, buildIndexXml, installText, escapeXml, MAIN, SUITE, INDEX_NAME, CATEGORY };
+module.exports = { sliceRoots, collectFiles, collectLuaFiles, changelogFor, releaseProblems, releaseNotes, buildIndexXml, installText, escapeXml, MAIN, SUITE, INDEX_NAME, CATEGORY };

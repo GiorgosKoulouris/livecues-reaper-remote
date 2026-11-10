@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in LCRR doesn't work as it should.
+labels: ["needs-triage"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem?
+      options:
+        - Home
+        - Podium
+        - Monitor
+        - IEM Setup
+        - IEM Mix
+        - Arrange
+        - Install, update or remove
+    validations:
+      required: true
+  - type: input
+    id: lcrr-version
+    attributes:
+      label: LCRR version
+      description: Shown at the right of the footer on every app page.
+      placeholder: 1.1.0-beta3
+    validations:
+      required: true
+  - type: input
+    id: reaper
+    attributes:
+      label: REAPER version and operating system
+      placeholder: REAPER 7.82, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser showing the page
+      placeholder: iPhone 15, Safari
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install LCRR?
+      options:
+        - ReaPack
+        - install.bat or install.ps1
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Podium with a project that has regions
+        2. Press and hold a region
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, browser console errors, or REAPER messages.

@@ -3,6 +3,9 @@
 ## Unreleased
 
 - install.ps1 -Uninstall (and a re-install) now also remove or replace the __startup.lua lines written by the LCRR: Install startup hook action; both match on the bridge id (test/startup-ids.test.js)
+- The repository is now livecues-reaper-remote and main is its default branch: import the ReaPack URL from the README again
+- GitHub: CI, tag-based releases, issue forms, pull request template and SECURITY.md
+- The IBM Plex license text ships with the fonts
 
 ## 1.1.0-beta2 (2026-11-10)
 
@@ -17,21 +20,21 @@
 
 ## 2026-11-10
 
-- Restructure as the LiveCues ReaperRemote (LCRR) suite (02b0cfb8dc)
-- Podium polish: hover colors, whole-second times, padded rows, suite favicon (5a5f85d971)
-- Tooling: install.bat wrapper and LCRR devcontainer (a09efdd8ac)
-- Arrange: migrate the Repack Lua suite and split scripts into core and dialog front end (adca184b0e)
-- Arrange: bridge front end and web page, fix step-pair order (issue 02) (0b0b388a82)
-- Arrange: phase 2 spec, sidecar detection, edit core, check token, bridge commands (issues 03-06) (0d7b053c77)
-- Arrange: Run and Edit tabs, Arrangement editor, Undo, clear applied Headroom (issues 07-09) (276de24c50)
-- Arrange: envelope points survive tempo moves on beat tracks (issue 10) (96913ec8f5)
-- Arrange: review follow-ups, docs consolidation, host-check notes (49d74e8921)
-- Monitor: app skeleton, mix view, source faders, mute and master (issues 02-06) (b6c0e03a7d)
-- Arrange: plain refusals, short results and trimmed hints (issues 13-16) (85c507e5fe)
-- Monitor: compact one-line rows and solo in my mix (ac51569c13)
-- Remove done scratch issues and stale files (869e9b30af)
-- Rebrand to Silkscreen Desk: Impeccable docs, tokens, self-hosted IBM Plex fonts, new icon (0636cc1b1e)
-- IEM Setup: spec, bridge, lock, mixes, delete and hardware outputs (issues 01-06) (9af3221647)
+- Restructure as the LiveCues ReaperRemote (LCRR) suite
+- Podium polish: hover colors, whole-second times, padded rows, suite favicon
+- Tooling: install.bat wrapper and LCRR devcontainer
+- Arrange: migrate the Repack Lua suite and split scripts into core and dialog front end
+- Arrange: bridge front end and web page, fix step-pair order (issue 02)
+- Arrange: phase 2 spec, sidecar detection, edit core, check token, bridge commands (issues 03-06)
+- Arrange: Run and Edit tabs, Arrangement editor, Undo, clear applied Headroom (issues 07-09)
+- Arrange: envelope points survive tempo moves on beat tracks (issue 10)
+- Arrange: review follow-ups, docs consolidation, host-check notes
+- Monitor: app skeleton, mix view, source faders, mute and master (issues 02-06)
+- Arrange: plain refusals, short results and trimmed hints (issues 13-16)
+- Monitor: compact one-line rows and solo in my mix
+- Remove done scratch issues and stale files
+- Rebrand to Silkscreen Desk: Impeccable docs, tokens, self-hosted IBM Plex fonts, new icon
+- IEM Setup: spec, bridge, lock, mixes, delete and hardware outputs (issues 01-06)
   - IEM Setup: spec, issues and host spike results (issue 01)
   - IEM Setup: move the bridge transport into shared Lua (issue 02)
   - IEM Setup: bridge with a state command and the read-only matrix page (issue 03)
@@ -41,7 +44,7 @@
   - IEM Setup: set, replace and clear a mix's hardware output, shared outputs flagged (issue 06)
   - IEM Setup: share the refusal and mix lookup across cores, drop stale comments, cover a first-track delete and blank channel names
   - IEM Setup: record the review decisions in CONTEXT.md
-- IEM Setup: cells, bulk switches, copy and adopt, shared cleanups, compact bar (22e1e3f4ca)
+- IEM Setup: cells, bulk switches, copy and adopt, shared cleanups, compact bar
   - IEM Setup: switch a matrix cell on and off, off removes every send of the pair (issue 07)
   - IEM Setup: switch a whole source row or mix column on (one tap) or off (press and hold) (issue 08)
   - IEM Setup: create a mix by copying another's sends, same undo step as the creation (issue 09)
@@ -61,7 +64,7 @@
   - IEM Setup: issue 11 resolved, real-REAPER results and the reorder depth finding recorded
   - IEM Setup: remove the eleven resolved issues (kept in git history, results in apps/iem/CONTEXT.md)
   - IEM Setup: compact bar, tools row and grid headers; control height 44px on touch, 34px with a mouse
-- IEM Mix: skeleton, live grid, docked panel, wheel and pan, shared fader (7e3f258673)
+- IEM Mix: skeleton, live grid, docked panel, wheel and pan, shared fader
   - Shared: move Monitor's fader logic and fader control to shared/, Monitor behaviour unchanged
   - IEM Mix: app skeleton and the read-only live grid of sources by mixes, with name filter, 2x tag, muted-track mark and offline banner
   - IEM Mix: the lock, the docked panel with level faders, the stale check and holds, and faster panel reads
@@ -71,7 +74,7 @@
   - IEM Mix: a project marker in project ExtState relocks on a project change, the wheel steps per notch with small events gathered, a name on an unlisted track is read-only, and a cell tap only highlights
   - IEM Mix: 44px hit areas on the pan thumb and the name buttons, the Lock key chamfered with an inset focus ring, and a Signal edge in place of the selection's box-shadow
   - IEM Mix: docs brought in line with the code, a DESIGN.md section for the pan control, panel and lock, and small cleanups
-- IEM Mix: Listen, snapshots and recall, IEM-Cue track, shared bridge client (f0cfd4b528)
+- IEM Mix: Listen, snapshots and recall, IEM-Cue track, shared bridge client
   - Shared: one bridge wire and client transport for Arrange and IEM Setup, with the ExtState section as a parameter
   - IEM Setup: a cue track (IEM-Cue) with a level-0 send from every mix, its own output, the send added by create and adopt, and no source row for it
   - IEM Mix: Listen, a key per mix that switches the level of its send to the cue track IEM-Cue, one mix at a time, read from the sends, with the missing cases disabled and a note, and gated by the lock
@@ -85,7 +88,7 @@
   - Docs: the Recall keys in the design system, IEM Mix and the browser io in the shared notes, and two comments that had gone stale
   - IEM Mix: key labels come from one table, mixByNumber replaces three lookups, the recall note counts skipped levels (sends and master levels), and the Listen tap plan has a name
   - Docs: the send pan, send index, undo and project ExtState facts measured for IEM Mix, and the read cost of a sweep
-- IEM Setup and IEM Mix: cue creation, summary line, track colour, one strip, look-only cells (83820df359)
+- IEM Setup and IEM Mix: cue creation, summary line, track colour, one strip, look-only cells
   - IEM Setup: create and adopt make the IEM-Cue track when the project has none, every mix and the cue track get solo defeat, Create cue repairs a missing send or solo defeat, and the cue output asks to be chosen
   - IEM Setup: summary line with Mixes, Folder and Cue disclosures, hold keys for Adopt and Delete, keyboard grid navigation, and the IEM Mix spec
   - Design system: document IEM Mix Listen and wheel, the hard-line shadow exceptions, and add the .impeccable sidecar

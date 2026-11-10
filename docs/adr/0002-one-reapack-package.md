@@ -28,3 +28,11 @@ Arrange and IEM Setup ship Lua, and ReaPack cannot edit `__startup.lua`. Decided
 - Releases go out as a pre-release first, imported in real REAPER by the owner, then promoted. `install.ps1` and the zip stay as development and fallback tools; switching from `install.ps1` means running its `-Uninstall` first.
 - If live ReaPack rejects per-source types, stop and re-discuss (the two-package split was considered, not pre-approved).
 - Live tests (2026-11-10, Windows, 1.1.0-beta1 and beta2): install, subfolders, per-source script types (Lua lands in `Scripts\LCRR\Remote\<part>\`), startup hook, footer, update, Remove startup hook and uninstall all worked; the hook's lines stay after an uninstall by design. macOS remains unverified: see `CONTEXT.md`.
+
+## Amendment (2026-11-10): one public home for the import URL
+
+Decided with the owner (grilling, 2026-11-10), before the first public launch:
+
+- The repo is renamed `GiorgosKoulouris/livecues-reaper-remote`. Earlier mentions of `LiveCues-RRemote` in this ADR and in `CONTEXT.md`'s verified notes describe what was true at the time.
+- `main` is the default branch from 1.1.0-beta3 on, and the ReaPack import URL is `.../main/index.xml` for betas and stable alike, so users only ever need one URL. `dev` stays the working branch. `main` moves only to a release commit that has passed the live test.
+- The history is condensed once before launch. The tags `v1.1.0-beta1` and `v1.1.0-beta2` are deleted as a one-time exception to "tags are immutable", and 1.1.0-beta3 is the first release in the clean history.

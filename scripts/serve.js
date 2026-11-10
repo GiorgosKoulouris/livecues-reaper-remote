@@ -2,7 +2,7 @@
 // Local smoke-test server: serves all slices laid over each other, like REAPER's reaper_www_root.
 //   npm run serve [-- --port 8081]
 // REAPER is not reachable from here, so /_/ requests return 503 and the pages show their offline state.
-// Never use 8080 in the devcontainer (it shadows REAPER on the host; see README).
+// Never use 8080 in the devcontainer (it shadows REAPER on the host; see CONTRIBUTING.md).
 "use strict";
 const http = require("http");
 const fs = require("fs");

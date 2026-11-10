@@ -1,0 +1,31 @@
+name: Feature idea
+description: Suggest something LCRR could do.
+labels: ["needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation at the show or rehearsal, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which app is this about?
+      options:
+        - Home
+        - Podium
+        - Monitor
+        - IEM Setup
+        - IEM Mix
+        - Arrange
+        - A new app
+    validations:
+      required: true

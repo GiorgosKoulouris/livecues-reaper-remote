@@ -1,6 +1,6 @@
-# Issue tracker: Local Markdown
+# Issue tracker: GitHub Issues for the public, local Markdown for planning
 
-Issues and specs for this repo live as markdown files in `.scratch/`.
+Bug reports and ideas from users are [GitHub Issues](https://github.com/GiorgosKoulouris/livecues-reaper-remote/issues). Specs and agent tickets are markdown files in `.scratch/`, which is git-ignored and exists only on the maintainer's machine. Everything below is about `.scratch/`, unless a skill is pointed at a GitHub issue by the owner.
 
 ## Conventions
 

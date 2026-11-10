@@ -68,7 +68,7 @@ There is no lock command and no lock on the page (`docs/adr/0001`).
 
 ## Verified on real REAPER (issue 11, 2026-11-09)
 
-The whole path was walked on a copy of a project (`podium-dummy3`, REAPER 7.82, Windows, a two-output device, the page in Chrome with Monitor open): create, copy from a mix, rename, colour, Move to end, delete by hold, set/replace/clear outputs, matrix cells, row and column toggles, adopt (a stray below an emptied folder, a stray above the folder and no folder yet), the banner with the bridge stopped, both bridges after a REAPER restart, the tablet layout. Each operation undoes as one step. Only adopt needed a fix (the reorder finding above, commit 60f43f2); the rest worked as built. The unit specs run against a fake REAPER, so a bug that only real REAPER shows (like that one) is caught by this kind of walk, not by `npm test`.
+The whole path was walked on a copy of a project (`podium-dummy3`, REAPER 7.82, Windows, a two-output device, the page in Chrome with Monitor open): create, copy from a mix, rename, colour, Move to end, delete by hold, set/replace/clear outputs, matrix cells, row and column toggles, adopt (a stray below an emptied folder, a stray above the folder and no folder yet), the banner with the bridge stopped, both bridges after a REAPER restart, the tablet layout. Each operation undoes as one step. Only adopt needed a fix (the reorder finding above); the rest worked as built. The unit specs run against a fake REAPER, so a bug that only real REAPER shows (like that one) is caught by this kind of walk, not by `npm test`.
 
 ## Snapshot commands (issues 10 and 11; used by IEM Mix, not by this page)
 

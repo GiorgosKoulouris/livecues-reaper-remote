@@ -3,7 +3,7 @@ const assert = require("node:assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { buildIndexXml, installText, escapeXml, collectFiles, collectLuaFiles, sliceRoots, changelogFor } = require("../scripts/release-lib.js");
+const { buildIndexXml, installText, escapeXml, collectFiles, collectLuaFiles, sliceRoots, changelogFor, releaseProblems, releaseNotes } = require("../scripts/release-lib.js");
 
 const files = [
   { deployed: "lcrr-podium.html", source: "apps/podium/www/lcrr-podium.html" },
@@ -150,4 +150,47 @@ test("changelogFor: no section for the version gives null; 1.1 does not match 1.
 test("buildIndexXml puts the changelog in a CDATA block, safe against a closing marker", () => {
   const xml = buildIndexXml({ ...opts, changelog: "- a ]]> b" });
   assert.match(xml, /<changelog><!\[CDATA\[- a \]\]\]\]><!\[CDATA\[> b\]\]><\/changelog>/);
+});
+
+const REPO = "owner/repo";
+const TAG = "v1.2.3-beta1";
+const goodIndex = '<version name="1.2.3-beta1" author="A" time="T">\n' +
+  '<source>https://raw.githubusercontent.com/owner/repo/v1.2.3-beta1/apps/home/www/lcrr.html</source>\n' +
+  '<source file="lcrr/x.js">https://raw.githubusercontent.com/owner/repo/v1.2.3-beta1/shared/www/lcrr/x.js</source>\n</version>';
+const goodRelease = { tag: TAG, repo: REPO, version: "1.2.3-beta1", indexXml: goodIndex, changelog: "# Changelog\n\n## 1.2.3-beta1 (2026-01-01)\n\n- A change\n" };
+
+test("releaseProblems: a matching tag, version, changelog and index has no problems", () => {
+  assert.deepStrictEqual(releaseProblems(goodRelease), []);
+});
+
+test("releaseProblems: a tag that is not v<version> is a problem", () => {
+  assert.match(releaseProblems({ ...goodRelease, tag: "v9.9.9" }).join("\n"), /v9\.9\.9.*1\.2\.3-beta1/);
+});
+
+test("releaseProblems: a missing or empty changelog section is a problem", () => {
+  assert.match(releaseProblems({ ...goodRelease, changelog: "# Changelog\n" }).join("\n"), /CHANGELOG/);
+  assert.match(releaseProblems({ ...goodRelease, changelog: "## 1.2.3-beta1\n\n## 1.0.0\n- old\n" }).join("\n"), /CHANGELOG/);
+});
+
+test("releaseProblems: an index for another version is a problem", () => {
+  assert.match(releaseProblems({ ...goodRelease, indexXml: goodIndex.replace('name="1.2.3-beta1"', 'name="1.2.2"') }).join("\n"), /index\.xml.*1\.2\.3-beta1/);
+});
+
+test("releaseProblems: an index with no sources, or a source off this tag or repo, is a problem", () => {
+  assert.match(releaseProblems({ ...goodRelease, indexXml: '<version name="1.2.3-beta1"></version>' }).join("\n"), /no source/);
+  assert.match(releaseProblems({ ...goodRelease, indexXml: goodIndex.replace("/v1.2.3-beta1/shared", "/dev/shared") }).join("\n"), /\/dev\/shared/);
+  assert.match(releaseProblems({ ...goodRelease, indexXml: goodIndex.replace("owner/repo/v1.2.3-beta1/apps", "owner/old/v1.2.3-beta1/apps") }).join("\n"), /owner\/old/);
+});
+
+test("releaseNotes: a pre-release has its changelog, the main import URL and the pre-release step", () => {
+  const notes = releaseNotes(goodRelease);
+  assert.match(notes, /- A change/);
+  assert.match(notes, /https:\/\/raw\.githubusercontent\.com\/owner\/repo\/main\/index\.xml/);
+  assert.match(notes, /Show pre-releases/);
+});
+
+test("releaseNotes: a stable release has no pre-release step", () => {
+  const notes = releaseNotes({ ...goodRelease, version: "1.2.3", changelog: "## 1.2.3 (2026-01-01)\n\n- Stable\n" });
+  assert.match(notes, /- Stable/);
+  assert.doesNotMatch(notes, /pre-release/i);
 });

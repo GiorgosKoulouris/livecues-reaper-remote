@@ -4,6 +4,7 @@
   "private": true,
   "description": "LiveCues ReaperRemote (LCRR): remote-control pages for REAPER's web interface",
   "author": "Giorgos Koulouris",
+  "license": "MIT",
   "scripts": {
     "test": "node --test \"test/*.test.js\" \"shared/test/*.test.js\" \"apps/*/test/*.test.js\" && node scripts/lua.js test",
     "check": "node scripts/check.js",

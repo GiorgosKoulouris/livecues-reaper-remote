@@ -6,6 +6,9 @@
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
     "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
     "updateRemoteUserUID": true,
     "postStartCommand": "bash .devcontainer/setup-onstart.sh",
     "customizations": {

@@ -6,7 +6,12 @@ dist/
 *.log
 *arrangements.lua
 Backups/
-.impeccable/hook.cache.json
+
+# Local working state: planning notes and tool state
+.scratch/
+.impeccable/
+.claude/settings.local.json
+skills-lock.json
 
 # Empty lockfile (no dependencies yet); revisit when a dependency is added
 package-lock.json
