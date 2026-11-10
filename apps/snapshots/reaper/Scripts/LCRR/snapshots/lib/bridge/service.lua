@@ -7,7 +7,8 @@
 --
 -- This module owns no ExtState and no loop (LCRR_Snapshots_Bridge.lua has those), so the whole of it runs under busted.
 --
--- **What the page can ask for** (`cmd`): `state` (read-only). Each reply is
+-- **What the page can ask for** (`cmd`): `state` and `snapshots` (read-only), and
+-- `snapshot_save` (`name`; stores in project ExtState). Each reply is
 --
 --   { v, command, project = { name, path }, status, ... }
 --
@@ -19,6 +20,8 @@
 local json = require("shared.bridge.json")
 local request = require("shared.bridge.request")
 local state = require("lib.core.state")
+local snapshots = require("lib.core.snapshots")
+local snapshot_save = require("lib.core.snapshot_save")
 
 local service = {}
 
@@ -37,6 +40,15 @@ local function handlers(given)
 
   function h.state()
     return state.run(given)
+  end
+
+  -- Snapshots live in project ExtState, which ignores undo: no undo block, no undo step.
+  function h.snapshots()
+    return snapshots.run(given)
+  end
+
+  function h.snapshot_save(fields)
+    return snapshot_save.run({ api = given.api, fields = fields, now = given.now })
   end
 
   return h

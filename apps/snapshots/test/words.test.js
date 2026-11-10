@@ -48,3 +48,25 @@ test("every connection phase has a chip, and only the failing ones a banner", ()
   clean(words.banner("offline"), "offline");
   clean(words.banner("bridge-down"), "bridge-down");
 });
+
+test("every refusal a save or a list can meet is worded, matching the recorded replies", () => {
+  ["snapshot_save_empty_name", "snapshot_save_bad_name", "snapshot_save_name_too_long", "snapshot_save_duplicate_name", "snapshots_unreadable"].forEach((name) => {
+    assert.strictEqual(replies[name].status, "refused", name);
+    const text = words.error(replies[name].error);
+    clean(text, name);
+    assert.ok(!text.startsWith("Something went wrong"), name);
+    assert.strictEqual(words.error({ code: replies[name].error.code }), text);
+  });
+  ["empty_name", "bad_name", "name_too_long", "duplicate_name"].forEach((code) => {
+    assert.ok(!words.error({ code }).startsWith("Something went wrong"), code);
+  });
+});
+
+test("a recorded list is pushed through to its row text", () => {
+  const list = core.readList(replies.snapshots);
+  assert.strictEqual(words.counts(list[0], "Nov 10 12:00"), "2 tracks, 3 sends · Nov 10 12:00");
+  assert.strictEqual(words.counts({ tracks: 1, sends: 1 }, ""), "1 track, 1 send");
+  clean(words.ui("empty"), "empty");
+  clean(words.ui("name"), "name");
+  clean(words.ui("save"), "save");
+});

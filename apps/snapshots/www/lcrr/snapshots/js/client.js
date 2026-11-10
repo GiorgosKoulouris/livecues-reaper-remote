@@ -20,7 +20,13 @@
     // The active project's name and path.
     function state() { return call("state", {}); }
 
-    return { call: call, state: state };
+    // The saved snapshots, in save order (the bridge reads only its index).
+    function snapshots() { return call("snapshots", {}); }
+
+    // Save the project's mix under a name. Only the name travels; the bridge reads the values.
+    function save(name) { return call("snapshot_save", { name: name }); }
+
+    return { call: call, state: state, snapshots: snapshots, save: save };
   }
 
   return { createClient: createClient, CALL_TIMEOUT_MS: CALL_TIMEOUT_MS };

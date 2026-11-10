@@ -16,10 +16,12 @@
   function $(id) { return document.getElementById(id); }
   var els = {
     chip: $("snapshots-state"), chipText: $("snapshots-state-text"), banner: $("snapshots-banner"),
-    message: $("snapshots-message"), projectName: $("snapshots-project-name"), controls: $("snapshots-controls")
+    message: $("snapshots-message"), projectName: $("snapshots-project-name"), controls: $("snapshots-controls"),
+    form: $("snapshots-form"), name: $("snapshots-name"), save: $("snapshots-save"), empty: $("snapshots-empty"),
+    list: $("snapshots-list")
   };
 
-  var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null };
+  var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null, list: null, listing: false, busy: false };
 
   function showMessage(text) {
     els.message.textContent = text || "";
@@ -36,7 +38,7 @@
     els.banner.textContent = words.banner(next);
     els.banner.hidden = !words.banner(next);
     els.controls.hidden = !core.canUse(next); // no bridge, no controls
-    if (next === "ready" && was !== "ready") readState();
+    if (next === "ready" && was !== "ready") { readState(); readList(); }
   }
 
   poller.subscribe(function (e) {
@@ -63,6 +65,67 @@
     });
   }
 
-  setInterval(function () { if (!document.hidden) readState(); }, REFRESH_MS);
+  function savedText(seconds) {
+    var d = new Date(seconds * 1000);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function h(tag, cls, text) {
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  // Rebuilt only when the list changed, so a steady 3 s read never touches the rows.
+  function renderList(list) {
+    els.empty.textContent = words.ui("empty");
+    els.empty.hidden = list.length > 0;
+    els.list.textContent = "";
+    list.forEach(function (s) {
+      var li = h("li", "snapshots-row");
+      li.appendChild(h("span", "snapshots-row-name", s.name));
+      li.appendChild(h("span", "snapshots-row-meta", words.counts(s, savedText(s.saved))));
+      els.list.appendChild(li);
+    });
+  }
+
+  function readList() {
+    if (ui.phase !== "ready" || ui.listing) return;
+    ui.listing = true;
+    client.snapshots().then(function (reply) {
+      ui.listing = false;
+      var list = core.readList(reply);
+      if (!list) { if (reply && reply.status === "refused") showMessage(words.error(reply.error)); return; }
+      if (ui.list && core.sameList(ui.list, list)) return;
+      ui.list = list;
+      renderList(list);
+    }, function () { ui.listing = false; });
+  }
+
+  // The message of a refused save stays until the next attempt.
+  els.form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (ui.phase !== "ready" || ui.busy) return;
+    var names = (ui.list || []).map(function (s) { return s.name; });
+    var check = core.checkName(els.name.value, names, function (name) {
+      return !wire.tooLong(wire.setRequestCommand(wire.buildRequest("xxxxxxxxxxxx-xxxx", { cmd: "snapshot_save", name: name })));
+    });
+    if (!check.name) { showMessage(words.error(check)); return; }
+    ui.busy = true;
+    els.save.disabled = true;
+    showMessage("");
+    client.save(check.name).then(function (reply) {
+      if (reply && reply.status === "ok") els.name.value = "";
+      else showMessage(words.error(reply && reply.error));
+    }, function (err) { showMessage(words.error(err)); }).then(function () {
+      ui.busy = false;
+      els.save.disabled = false;
+      readList();
+    });
+  });
+
+  setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
   poller.start();
 })();

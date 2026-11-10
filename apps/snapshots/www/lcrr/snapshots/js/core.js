@@ -27,5 +27,30 @@
   // Controls exist only while the bridge is running.
   function canUse(phase) { return phase === "ready"; }
 
-  return { connectionPhase: connectionPhase, readState: readState, canUse: canUse };
+  var MAX_NAME = 40; // characters; the bridge's own limit (shared.snapshot.text)
+
+  // A name as the bridge will see it: trimmed, not empty, not too long, no control characters, not taken.
+  // `existing` is the list's names; `fits(name)` tells whether the request would stay under the URL limit.
+  // Returns { name } or { code }.
+  function checkName(raw, existing, fits) {
+    var name = String(raw === undefined || raw === null ? "" : raw).trim();
+    if (!name) return { code: "empty_name" };
+    if (/[\u0000-\u001f\u007f]/.test(name)) return { code: "bad_name" };
+    if (Array.from(name).length > MAX_NAME || (fits && !fits(name))) return { code: "name_too_long" };
+    if ((existing || []).indexOf(name) >= 0) return { code: "duplicate_name" };
+    return { name: name };
+  }
+
+  // The `snapshots` reply's list, or null when it is not one the page can draw.
+  function readList(reply) {
+    if (!reply || reply.status !== "ok" || reply.command !== "snapshots" || !Array.isArray(reply.snapshots)) return null;
+    return reply.snapshots.map(function (s) {
+      return { name: String(s.name), saved: s.saved, tracks: s.tracks, sends: s.sends, solo: !!s.solo, masterMuted: !!s.master_muted };
+    });
+  }
+
+  // Do two lists draw the same? An identical reply leaves the rows untouched.
+  function sameList(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  return { MAX_NAME: MAX_NAME, checkName: checkName, readList: readList, sameList: sameList, connectionPhase: connectionPhase, readState: readState, canUse: canUse };
 });

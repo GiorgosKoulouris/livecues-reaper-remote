@@ -23,9 +23,46 @@ local function bridge(path)
   end
 end
 
+local function saved_bridge()
+  local api = fake_project.new({
+    path = PATH,
+    tracks = {
+      { name = "Kick", vol = 0.5, solo = 1, sends = { { to = "Bus", vol = 0.7 } }, outputs = { {} } },
+      { name = "Bus" },
+    },
+    master = { mute = 1, outputs = { {} } },
+  })
+  local handler = service.new({ api = api, now = function() return 1731240000 end })
+  return function(body)
+    local _, reply = handler.handle(raw("q1", body))
+    return reply
+  end, api
+end
+
 local scenarios = {
   { "state", function() return bridge()("cmd=state") end },
   { "state_unsaved", function() return bridge("")("cmd=state") end },
+  { "snapshots_empty", function() return saved_bridge()("cmd=snapshots") end },
+  { "snapshot_save", function() return saved_bridge()("cmd=snapshot_save&name=Verse") end },
+  { "snapshots", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    ask("cmd=snapshot_save&name=Chorus")
+    return ask("cmd=snapshots")
+  end },
+  { "snapshot_save_empty_name", function() return saved_bridge()("cmd=snapshot_save&name=%20") end },
+  { "snapshot_save_bad_name", function() return saved_bridge()("cmd=snapshot_save&name=a%0Ab") end },
+  { "snapshot_save_name_too_long", function() return saved_bridge()("cmd=snapshot_save&name=" .. ("x"):rep(41)) end },
+  { "snapshot_save_duplicate_name", function()
+    local ask = saved_bridge()
+    ask("cmd=snapshot_save&name=Verse")
+    return ask("cmd=snapshot_save&name=Verse")
+  end },
+  { "snapshots_unreadable", function()
+    local ask, api = saved_bridge()
+    api.ext.LCRR_SNAPSHOTS = { snapshots = "garbage" }
+    return ask("cmd=snapshots")
+  end },
   { "unknown_command", function() return bridge()("cmd=nope") end },
   { "request_truncated", function()
     local _, reply = service.new({ api = fake_project.new({ path = PATH }) }).handle("q1|40|cmd=sta")

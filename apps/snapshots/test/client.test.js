@@ -30,3 +30,16 @@ test("a request REAPER does not take rejects as unreachable; one nobody answers 
   await assert.rejects(rig(() => Promise.reject(new Error("x"))).c.state(), { code: "unreachable" });
   await assert.rejects(rig((url) => Promise.resolve(url.indexOf("SET") !== -1 ? "" : "EXTSTATE\tLCRR_SNAPSHOTS\tres\t\n")).c.state(), { code: "no_reply" });
 });
+
+test("snapshots() and save(name) send their commands; only the name travels with a save", async () => {
+  async function sent(call) {
+    const { c, urls } = rig((url, seen) => {
+      if (url.indexOf("/_/SET/") === 0) return Promise.resolve("");
+      return Promise.resolve("EXTSTATE\tLCRR_SNAPSHOTS\tres\tid1|{\"status\":\"ok\"}\n");
+    });
+    await call(c);
+    return decodeURIComponent(urls[0]);
+  }
+  assert.ok((await sent((c) => c.snapshots())).endsWith("|cmd=snapshots"));
+  assert.ok((await sent((c) => c.save("Verse & Chorus"))).endsWith("|cmd=snapshot_save&name=Verse%20%26%20Chorus"));
+});
