@@ -26,20 +26,20 @@ Read this before you bump a version, build the index, create or push a tag, or t
 ## Version rules
 
 - The version is in **three** places, changed together: root `package.json` (`version`), `package-lock.json` (lines 3 and 9, the root package entries), `shared/www/lcrr/shared/js/version.js` (`var version`). `shared/test/version.test.js` fails if `version.js` and `package.json` differ.
-- Scheme: `MAJOR.MINOR.PATCH`, with `-betaN` for pre-releases (`1.1.0-beta2`). Tags are `v<version>` (`v1.1.0-beta2`).
+- Scheme: `MAJOR.MINOR.PATCH`. Releases are stable from 1.1.0 on. `-betaN` pre-releases (`1.2.0-beta1`) remain supported by the tooling for a risky change, but are optional. Tags are `v<version>` (`v1.1.0`).
 - `CHANGELOG.md` holds only release notes for users: one `## <version> (YYYY-MM-DD)` section per version, newest first, written in the release commit before promote. The section becomes the ReaPack changelog and the GitHub Release body (`changelogFor` in `scripts/release-lib.js`). `npm test` enforces the layout (`changelogProblems`): the top section is the `package.json` version, every section has a bullet, and a stable section replaces its betas.
 
 ## Release procedure
 
-Pre-release first, always. Stable only after a pre-release passed the live test.
+Stable releases, from 1.1.0 on. A `-betaN` pre-release first is optional: use one for a risky change the owner wants to test before users see it (the steps are the same, with the beta version and `Show pre-releases` in ReaPack).
 
-1. On `dev`, working tree clean. Bump the version in the three places. Add the CHANGELOG section.
+1. On `dev`, working tree clean. Bump the version in the three places. Add the CHANGELOG section (newest first, `## X.Y.Z (YYYY-MM-DD)`; if you shipped betas of it, replace them with this one section).
 2. `npm test && npm run check` (both must pass).
 3. `npm run release -- --base-url https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/v<version>` (writes `index.xml` and `dist/lcrr-<version>.zip`; `dist/` is git-ignored). Check the warning line about the changelog is absent, and that `index.xml` shows the new version and the new tag in its URLs.
-4. Commit everything including `index.xml`: message like `1.1.0-beta3: <purpose>`. Do not tag yet. The owner runs `/branch-flow promote`; then create the **local** tag on the new tip of `stage`: `git tag v<version> stage`.
-5. Give the owner the push commands: `git push origin stage v<version>`, then `git push --force-with-lease origin dev`. Do not run them yourself unless told to. Pushing a `v*` tag runs `.github/workflows/release.yml`: it re-runs CI, checks the tag against the version, `CHANGELOG.md` and every `index.xml` URL (`scripts/verify-release.js`), then creates the GitHub Release, marked pre-release when the version has a `-`. It attaches no zip, because the zip has no Lua.
-6. Owner runs the live test (below, from the `dev` URL) and reports. If it passes, the owner runs `/branch-flow ship` and `git push origin main`, which is what publishes it to users. Record verified results in `CONTEXT.md` (verified section), the README's beta note if the tested platforms change, and the ADR 0002 amendment when something new is proven.
-7. **Stable release** (only on the owner's go): bump to `X.Y.Z`, replace that version's beta sections in the CHANGELOG with one `## X.Y.Z (<date>)` section, rebuild the index for `vX.Y.Z`, commit, then promote, tag and push as in steps 4 and 5. The owner moves `main` to it as in step 6; users import `.../main/index.xml`, so `main` must contain that `index.xml` before the release is announced. At the first stable release, update the README: remove or reword the "Currently in beta" note, drop the pre-releases step, and renumber the references to the install steps in the README and `apps/arrange/README.md`.
+4. Commit everything including `index.xml`: message like `1.1.1: <purpose>`. Do not tag yet. The owner runs `/branch-flow promote`; then create the **local** tag on the new tip of `stage`: `git tag v<version> stage`.
+5. Give the owner the push commands: `git push origin stage v<version>`, then `git push --force-with-lease origin dev`. Do not run them yourself unless told to. Pushing a `v*` tag runs `.github/workflows/release.yml`: it re-runs CI, checks the tag against the version, `CHANGELOG.md` and every `index.xml` URL (`scripts/verify-release.js`), then creates the GitHub Release (marked pre-release only when the version has a `-`). It attaches no zip, because the zip has no Lua.
+6. Live test before `main` moves. The tag's files are on GitHub after step 5, but users read `main/index.xml`, which still lists the previous release. The owner imports `.../stage/index.xml` in ReaPack (a separate test import, removed afterwards) and runs the checklist below. If it passes, the owner runs `/branch-flow ship` and `git push origin main`, which is what publishes it to users: `main` must contain the new `index.xml` before the release is announced. Record verified results in `CONTEXT.md` (verified section) and the ADR 0002 amendment when something new is proven, and update the README's platform note if the tested platforms change.
+7. If the live test fails, do not move `main`. Fix on `dev` and ship a new patch version; never move or delete the pushed tag.
 
 Tags are immutable once pushed: never move or delete a pushed tag; ship a new version instead. The one exception was deleting `v1.1.0-beta1` and `beta2` for the pre-launch history reset (ADR 0002). Do not retag after docs-only commits; the tag's files only need to match what the index lists.
 
@@ -50,7 +50,7 @@ Tags are immutable once pushed: never move or delete a pushed tag; ship a new ve
 
 ## Live test checklist (owner runs it in real REAPER on Windows)
 
-Import `.../dev/index.xml` (beta) in ReaPack, enable pre-releases, then:
+Import `.../stage/index.xml` in ReaPack (and enable pre-releases only when testing a `-beta`), then:
 
 - **Install:** the `lcrr.html` package installs; pages and the `lcrr/` folder are in `%APPDATA%\REAPER\reaper_www_root`; Lua is in `%APPDATA%\REAPER\Scripts\LCRR\Remote\{arrange,iem,snapshots,shared}`.
 - **Startup hook:** run action `LCRR: Install startup hook`, restart REAPER; `Scripts/__startup.lua` has one marked line per bridge; the bridges run (Arrange, IEM Setup and Snapshots pages connect).
@@ -59,7 +59,7 @@ Import `.../dev/index.xml` (beta) in ReaPack, enable pre-releases, then:
 - **Remove hook:** put a line of their own in `__startup.lua`, run `LCRR: Remove startup hook`: our `LCRR-*-BRIDGE` lines are gone, theirs stays.
 - **Uninstall:** uninstall the package in ReaPack: pages and Lua are gone; a stale startup line does nothing and causes no error on restart.
 
-Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source script types, startup hook, footer, update, remove-hook, uninstall (1.1.0-beta1 and beta2). **Not verified:** macOS, and anything not in that list.
+Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source script types, startup hook, footer, update, remove-hook, uninstall (1.1.0-beta1 to beta3). Not yet live-tested: 1.1.0 itself, including Snapshots. **Not verified:** macOS, and anything not in that list.
 
 ## Changing the release machinery
 
@@ -70,5 +70,5 @@ Verified on Windows so far (see `CONTEXT.md`): install, subfolders, per-source s
 
 ## State snapshot (2026-11-10; check `git` for the current truth)
 
-- Latest pre-release: `1.1.0-beta3`, tagged on `stage` and live. `main` is the default branch and carries the public import URL `https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/main/index.xml`. `dev` and `stage` are in step with it.
-- The owner decided to stay on beta for now; no stable 1.1.0 yet.
+- Latest tagged release: `v1.1.0-beta3` (pre-release). `1.1.0`, the first stable release, is prepared on `dev` and waits for promote, the tag, the live test and ship. `main` is the default branch and carries the public import URL `https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/main/index.xml`.
+- The owner has moved off beta: releases are stable from 1.1.0.

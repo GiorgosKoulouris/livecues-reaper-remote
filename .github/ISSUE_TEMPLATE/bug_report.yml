@@ -21,7 +21,7 @@ body:
     attributes:
       label: LCRR version
       description: Shown at the right of the footer on every app page.
-      placeholder: 1.1.0-beta3
+      placeholder: 1.1.0
     validations:
       required: true
   - type: input

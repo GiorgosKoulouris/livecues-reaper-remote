@@ -44,3 +44,11 @@ Decided with the owner (grilling, 2026-11-10):
 - `CHANGELOG.md` holds only `## <version> (YYYY-MM-DD)` sections for users, newest first, written in the release commit. Commit detail lives in the `stage` commit messages. The earlier commit log with `stage` hashes is removed: it repeated those messages, and because it could only be written after a promote, each release needed an extra commit and a second promote.
 - There is no `## Unreleased` section. A stable section replaces its betas. A version needs its own section: the fallback to the base version's section is gone.
 - `npm test` enforces the layout (`changelogProblems` in `scripts/release-lib.js`). The repo sets `Changelog: version-notes` for `/branch-flow`, so the release order is promote, then ship.
+
+## Amendment (2026-11-10): stable releases from 1.1.0
+
+Decided with the owner, after 1.1.0-beta3:
+
+- LCRR leaves beta. The first stable release is 1.1.0 (it replaces the three betas in `CHANGELOG.md` and adds Snapshots). Betas are no longer required before a stable release; `-betaN` stays available for risky changes.
+- Because `main` is what users import, the live test of a stable release runs from the `stage` index after the tag is pushed and before `main` moves (`/branch-flow ship`). A failed test means a new patch version, never a moved tag.
+- The README no longer tells users to enable pre-releases. GitHub marks only versions with a `-` as pre-releases, so 1.1.0 is a normal release and `v1.1.0-beta3` stays a pre-release.

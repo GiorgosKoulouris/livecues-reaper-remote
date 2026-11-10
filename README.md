@@ -1,7 +1,7 @@
 # LiveCues ReaperRemote
 
 [![CI](https://github.com/GiorgosKoulouris/livecues-reaper-remote/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GiorgosKoulouris/livecues-reaper-remote/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/GiorgosKoulouris/livecues-reaper-remote?include_prereleases&label=release)](https://github.com/GiorgosKoulouris/livecues-reaper-remote/releases)
+[![Latest release](https://img.shields.io/github/v/release/GiorgosKoulouris/livecues-reaper-remote?label=release)](https://github.com/GiorgosKoulouris/livecues-reaper-remote/releases)
 [![License: MIT](https://img.shields.io/github/license/GiorgosKoulouris/livecues-reaper-remote)](LICENSE)
 
 Control REAPER from your phone, tablet or any browser on your network.
@@ -10,7 +10,7 @@ LiveCues ReaperRemote (LCRR) is a set of small web pages for live shows and rehe
 
 There's nothing to install on the phone: you just open a link. LCRR runs on REAPER's built-in web interface and doesn't need SWS.
 
-> **Currently in beta.** LCRR is developed and tested on Windows. macOS and Linux are untested.
+> LCRR is developed and tested on Windows. macOS and Linux are untested.
 
 ## The apps
 
@@ -27,13 +27,13 @@ Open the **Home** page and pick an app. It also shows whether REAPER is connecte
 ### At the desk
 
 **IEM Setup: create and route in-ear mixes.** Create, copy and rename mixes, choose which tracks feed each one, and pick its hardware output.
-*Needs:* the startup hook (step 4 of the install).
+*Needs:* the startup hook (step 3 of the install).
 
 **IEM Mix: balance every in-ear mix.** The engineer's view: a live grid of every source in every mix, plus a side panel with faders, pans and mutes. Listen to any mix through a cue track, and save and recall snapshots. The page opens locked, and one tap unlocks it.
 *Needs:* in-ear mixes in the project. Listen and snapshots also rely on IEM Setup and the startup hook.
 
 **Snapshots: save and restore the whole mix.** Save the project's mix under a name and bring it back with one press, playing or stopped: levels, pans, mutes, solos, polarity, sends and, if you tick them, FX on/off and the in-ears. Restore is one undo step. Tick what to restore, and hold a key to restore, overwrite or delete. Saving, overwriting and deleting can't be undone. Snapshots are stored in the project, so save the project to keep them.
-*Needs:* the startup hook (step 4 of the install).
+*Needs:* the startup hook (step 3 of the install).
 
 **Arrange: put project regions in a new order.** Describe the order you want, check what would happen, then apply it. Regions move with everything inside them: media, automation, markers and tempo. It changes your project, so try it on a copy first. The [Arrange guide](apps/arrange/README.md) explains how it works and what it won't do.
 *Needs:* the startup hook, and a project with uniquely named regions.
@@ -48,12 +48,11 @@ You need REAPER and [ReaPack](https://reapack.com) on the computer, and your pho
    https://raw.githubusercontent.com/GiorgosKoulouris/livecues-reaper-remote/main/index.xml
    ```
 
-2. Turn on pre-releases, since LCRR is in beta: **Extensions > ReaPack > Manage repositories**, open the LCRR entry and enable **Show pre-releases** (or use the global option in ReaPack's options).
-3. Go to **Extensions > ReaPack > Browse packages**, find **lcrr.html** and install it.
-4. Open **Actions > Show action list**, run **LCRR: Install startup hook** once, then restart REAPER. This starts the background scripts that Arrange and IEM Setup rely on.
-5. Go to **Preferences > Control/OSC/web > Add > Web browser interface**. Set the port to **80**, so the address needs no port number, and choose **lcrr.html** as the **Default interface**. Add a username and password if you want a login.
-6. Allow REAPER through Windows Firewall for private networks.
-7. On your phone, open `http://<pc-ip>/`. The **Access URL** in REAPER's web interface settings shows the address. If you chose a port other than 80, add it: `http://<pc-ip>:<port>/`.
+2. Go to **Extensions > ReaPack > Browse packages**, find **lcrr.html** and install it.
+3. Open **Actions > Show action list**, run **LCRR: Install startup hook** once, then restart REAPER. This starts the background scripts that Arrange, IEM Setup and Snapshots rely on.
+4. Go to **Preferences > Control/OSC/web > Add > Web browser interface**. Set the port to **80**, so the address needs no port number, and choose **lcrr.html** as the **Default interface**. Add a username and password if you want a login.
+5. Allow REAPER through Windows Firewall for private networks.
+6. On your phone, open `http://<pc-ip>/`. The **Access URL** in REAPER's web interface settings shows the address. If you chose a port other than 80, add it: `http://<pc-ip>:<port>/`.
 
 **Use LCRR on a network you trust, and don't expose it to the internet.** Anyone who can reach the page can control REAPER. See [SECURITY.md](SECURITY.md) for details and how to report a problem.
 
@@ -74,7 +73,7 @@ If you can't use ReaPack, a script installs the same pages and scripts on Window
 
 1. [Download the repository](https://github.com/GiorgosKoulouris/livecues-reaper-remote/archive/refs/heads/main.zip) and extract it.
 2. Double-click `scripts\install.bat`. It installs into `%APPDATA%\REAPER` and shows the addresses to open.
-3. Restart REAPER, then follow steps 5 to 7 of the [install](#install).
+3. Restart REAPER, then follow steps 4 to 6 of the [install](#install).
 
 To use Arrange's actions from REAPER's action list as well as from its page, load them once: **Actions > Show action list > New action > Load ReaScript**, then select the `LCRR_Arrange_*.lua` files in `Scripts\LCRR\arrange\`.
 

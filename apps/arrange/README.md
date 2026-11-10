@@ -12,7 +12,7 @@ sounds like the same material in a new sequence.
 The scope is deliberately narrow. This is not a general project-management
 tool; it does regions and markers, and it tries to do them exactly right.
 
-> **Beta, and it changes your project.** Arrange is used on real projects, but
+> **Arrange changes your project.** Arrange is used on real projects, but
 > its operations are hard to undo by hand. Try it on a copy first, and read
 > [What to expect](#what-to-expect).
 
