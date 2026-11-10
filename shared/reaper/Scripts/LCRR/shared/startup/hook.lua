@@ -18,6 +18,7 @@ local M = {}
 M.bridges = {
   { name = "Arrange", id = "LCRR-ARRANGE-BRIDGE", script = "arrange/LCRR_Arrange_Bridge.lua" },
   { name = "IEM Setup", id = "LCRR-IEM-BRIDGE", script = "iem/LCRR_IEM_Bridge.lua" },
+  { name = "Snapshots", id = "LCRR-SNAPSHOTS-BRIDGE", script = "snapshots/LCRR_Snapshots_Bridge.lua" },
 }
 
 function M.line(bridge)
@@ -77,8 +78,8 @@ function M.run(ctx, present)
     ctx.fs.write(path, new)
   end
   if present then
-    return "The LCRR bridges (Arrange, IEM Setup) will now start with REAPER. Restart REAPER, or run the bridge "
-      .. "actions once by hand, to start them now."
+    return "The LCRR bridges (Arrange, IEM Setup, Snapshots) will now start with REAPER. "
+      .. "Restart REAPER, or run the bridge actions once by hand, to start them now."
   end
   return "The LCRR bridges no longer start with REAPER. Any already running stay on until REAPER closes."
 end

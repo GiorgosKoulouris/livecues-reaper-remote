@@ -121,9 +121,9 @@ test("collectLuaFiles reads Scripts/LCRR/<part>/ of every reaper slice and refus
   finally { fs.rmSync(bad, { recursive: true, force: true }); }
 });
 
-test("the real repo's Lua slices collect and include the Arrange and IEM bridges and the shared runner", () => {
+test("the real repo's Lua slices collect and include the Arrange, IEM and Snapshots bridges and the shared runner", () => {
   const d = collectLuaFiles(path.join(__dirname, "..")).map((f) => f.deployed);
-  ["arrange/LCRR_Arrange_Bridge.lua", "iem/LCRR_IEM_Bridge.lua", "shared/bridge/runner.lua"].forEach((x) => assert.ok(d.includes(x), x));
+  ["arrange/LCRR_Arrange_Bridge.lua", "iem/LCRR_IEM_Bridge.lua", "snapshots/LCRR_Snapshots_Bridge.lua", "shared/bridge/runner.lua"].forEach((x) => assert.ok(d.includes(x), x));
 });
 
 const CL = "# Changelog\n\n## 1.1.0 (2026-11-20)\n\n- Added thing\n  - detail\n- Fixed other (abc123)\n\n## 1.0.0 (2026-11-10)\n\n- First\n\n## 2026-11-01\n\n- Old\n";
