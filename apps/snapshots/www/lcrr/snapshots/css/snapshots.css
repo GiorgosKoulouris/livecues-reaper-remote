@@ -37,9 +37,8 @@ body > main { max-width:var(--lcrr-content-max); margin:0 auto; }
 #snapshots-save.snapshots-primary:focus-visible { outline-color:var(--signal-ink); }
 @media (hover:hover) { #snapshots-save.snapshots-primary:hover:not(:disabled) { background:color-mix(in srgb, var(--signal) 88%, var(--legend)); } }
 #snapshots-save.snapshots-primary:active:not(:disabled) { background:var(--legend); color:var(--chassis); border-color:var(--legend); }
-/* Pressed: every key inverts (DESIGN.md). A hold key inverts too and keeps its sweep on top while held. */
-.snapshots-key:active:not(:disabled) { background:var(--legend); color:var(--chassis); }
-.snapshots-key:active:not(:disabled) .snapshots-hold-legend { color:var(--chassis); }
+/* Pressed: every key inverts (DESIGN.md). A hold key shows its fill instead, as Podium's Rec and Stop do. */
+.snapshots-key:active:not(:disabled):not(.snapshots-hold) { background:var(--legend); color:var(--chassis); }
 .snapshots-hint { margin:.25rem 0; font-size:.8rem; color:var(--legend-dim); }
 .snapshots-list { list-style:none; margin:.25rem 0 0; padding:0; display:flex; flex-direction:column; gap:.375rem; }
 .snapshots-row { display:flex; flex-direction:column; padding:.375rem .5rem; background:var(--display); border:1px solid var(--edge); }
@@ -54,11 +53,11 @@ body > main { max-width:var(--lcrr-content-max); margin:0 auto; }
 .snapshots-mark-solo { color:var(--warn-amber); border-color:var(--warn-amber); }
 
 /* Row keys, in the order of use: Restore is the big key (Signal edge, HOLD legend); Overwrite and Delete are smaller and
-   quieter, Delete set apart at the end. All three hold for a second: a Warn Amber bar fills along the bottom edge. */
-.snapshots-row-keys { display:grid; grid-template-columns:2fr 1fr 1fr; gap:.375rem; margin-top:.5rem; }
+   quieter, Delete set apart at the end. All three hold for a second: a Warn Amber fill sweeps across the whole key. */
+.snapshots-row-keys { display:grid; grid-template-columns:2fr 1fr 1fr; gap:.375rem; margin-top:.5rem; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
 /* Phone: Restore takes the full line, Overwrite and Delete share the one below (never one key left alone on a line). */
 @media (max-width:30rem) { .snapshots-row-keys { grid-template-columns:1fr 1fr; } button.snapshots-restore { grid-column:1 / -1; } }
-button.snapshots-hold { position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; line-height:1; padding:.25rem .75rem; touch-action:none; user-select:none; -webkit-user-select:none; }
+button.snapshots-hold { position:relative; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; line-height:1; padding:.25rem .75rem; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 button.snapshots-restore { justify-content:space-between; font-weight:700; box-shadow:inset 0 0 0 2px var(--signal); }
 button.snapshots-overwrite, button.snapshots-delete { background:none; color:var(--legend-dim); box-shadow:inset 0 0 0 1px var(--warn-edge); }
 button.snapshots-delete { margin-left:.375rem; }
@@ -66,11 +65,14 @@ button.snapshots-delete { margin-left:.375rem; }
 /* HOLD is printed once per row, on Restore; the line above the list says the other two work the same way. */
 .snapshots-hold-legend { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--warn-amber); }
 .snapshots-overwrite .snapshots-hold-legend, .snapshots-delete .snapshots-hold-legend { display:none; }
-.snapshots-hold::after { content:""; position:absolute; left:0; right:0; bottom:0; height:.25rem; background:var(--warn-amber); transform:scaleX(0); transform-origin:left; }
+.snapshots-hold > span { position:relative; z-index:1; user-select:none; -webkit-user-select:none; pointer-events:none; }
+.snapshots-hold::after { content:""; position:absolute; inset:0; background:var(--warn-amber); opacity:.4; transform:scaleX(0); transform-origin:left; pointer-events:none; }
 .snapshots-hold.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 1000ms) linear; }
+/* While held, the text goes to full Legend (the quiet keys' Legend Dim would fall under 3:1 on the fill). */
+.snapshots-hold.holding, .snapshots-hold.holding .snapshots-hold-legend { color:var(--legend); }
 @media (prefers-reduced-motion:reduce) {
   .snapshots-hold::after { transform:none; opacity:0; }
-  .snapshots-hold.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
+  .snapshots-hold.holding::after { opacity:.4; transition:opacity var(--hold-ms, 1000ms) linear; }
 }
 
 /* Restore: the ticks are toggle keys (a real checkbox, hidden, inside each label): on is a Key face with a filled square,

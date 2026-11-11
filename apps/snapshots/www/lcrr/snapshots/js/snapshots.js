@@ -28,11 +28,15 @@
   els.save.textContent = words.ui("save");
   els.chipText.textContent = words.chip("connecting");
 
-  var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null, list: null, listing: false, busy: false };
+  var ui = { phase: "connecting", everLive: false, reading: false, projectPath: null, list: null, listing: false, busy: false,
+    stateMessage: false };
 
-  function showMessage(text) {
+  // `fromState`: the message is readState's own, so its next success may clear it. Any other message (a refused or
+  // failed write) stays until the next attempt; the 3 s refresh must not wipe it.
+  function showMessage(text, fromState) {
     els.message.textContent = text || "";
     els.message.hidden = !text;
+    ui.stateMessage = !!text && !!fromState;
   }
 
   function applyPhase() {
@@ -61,14 +65,14 @@
     client.state().then(function (reply) {
       ui.reading = false;
       var state = core.readState(reply);
-      if (!state) { showMessage(words.error(reply && reply.error)); return; }
-      showMessage("");
+      if (!state) { showMessage(words.error(reply && reply.error), true); return; }
+      if (ui.stateMessage) showMessage("");
       ui.projectPath = state.project.path;
       els.projectName.textContent = words.projectName(state.project);
       els.projectName.title = els.projectName.textContent;
     }, function (err) {
       ui.reading = false;
-      showMessage(words.error(err));
+      showMessage(words.error(err), true);
     });
   }
 
@@ -105,7 +109,7 @@
     setBusy(true);
     showMessage("");
     send().then(function (reply) {
-      if (core.clearsNote(reply)) restoreUi.clearNote();
+      if (core.succeeded(reply)) restoreUi.clearNote();
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
       setBusy(false);
@@ -166,7 +170,7 @@
     setBusy(true);
     showMessage("");
     client.save(check.name).then(function (reply) {
-      if (core.clearsNote(reply)) { els.name.value = ""; restoreUi.clearNote(); }
+      if (core.succeeded(reply)) { els.name.value = ""; restoreUi.clearNote(); }
       else showMessage(words.error(reply && reply.error));
     }, function (err) { showMessage(words.error(err)); }).then(function () {
       setBusy(false);
@@ -176,6 +180,8 @@
 
   restoreUi.init({ client: client, showMessage: showMessage, gate: gate, isBusy: isBusy, setBusy: setBusy });
 
-  setInterval(function () { if (!document.hidden) { readState(); readList(); } }, REFRESH_MS);
+  // Calls to the bridge go one at a time (the shared transport queues them); a write re-reads the list itself, so the
+  // refresh skips its turn rather than queue behind it.
+  setInterval(function () { if (!document.hidden && !ui.busy) { readState(); readList(); } }, REFRESH_MS);
   poller.start();
 })();

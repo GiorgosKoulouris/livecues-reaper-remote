@@ -21,6 +21,12 @@ The page and the script talk through three ExtState keys in section
 that was never set reads as an empty value, which looks like any other empty
 value. The bridge clears all three keys when it starts and when it stops.
 
+**One request at a time.** There is one `req` and one `res`, and the bridge looks
+once per tick: a request written before that tick replaces the one before it
+(which never runs), and a later reply can replace an earlier one before the page
+reads it. The shared transport (`shared/www/lcrr/shared/js/bridge-client.js`)
+queues its calls, so a page with one client per bridge cannot overlap them.
+
 REAPER serves web requests on its main thread. While an action runs (Apply, mostly) **every
 request waits**, the page's own included, and no busy flag can be read. The page
 knows an action is running because its own request is still open.

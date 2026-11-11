@@ -53,9 +53,20 @@
     var now = opts.now || function () { return Date.now(); };
     var wait = opts.wait || function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
+    // **One call at a time.** The bridge has one `req` slot and one `res` slot: a second request written before the
+    // bridge's next tick replaces the first (which then never runs), and a later reply can replace an earlier one
+    // before the page reads it. So each call waits until the one before it has its reply or has given up.
+    var tail = Promise.resolve();
+
     // Resolves with the bridge's reply object; rejects with an Error carrying `code`:
     //   request_too_long (never sent), unreachable (REAPER did not take the request), no_reply (it did, the bridge did not answer).
     function call(cmd, fields, callOpts) {
+      var run = tail.then(function () { return exchange(cmd, fields, callOpts); });
+      tail = run.then(function () {}, function () {});
+      return run;
+    }
+
+    function exchange(cmd, fields, callOpts) {
       callOpts = callOpts || {};
       var id = newId();
       var all = { cmd: cmd };

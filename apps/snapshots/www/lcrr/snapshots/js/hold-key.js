@@ -31,7 +31,10 @@
     btn.style.setProperty("--hold-ms", HOLD_MS + "ms");
     btn.addEventListener("pointerdown", function (e) { if (e.button === 0) start(); });
     ["pointerup", "pointerleave", "pointercancel", "blur"].forEach(function (n) { btn.addEventListener(n, release); });
+    // A long press must not start a text selection or a context menu: either makes the browser cancel the pointer.
     btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    btn.addEventListener("selectstart", function (e) { e.preventDefault(); });
+    btn.addEventListener("dragstart", function (e) { e.preventDefault(); });
     btn.addEventListener("keydown", function (e) {
       if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); }
     });
