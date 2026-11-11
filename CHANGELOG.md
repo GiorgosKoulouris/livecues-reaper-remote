@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1 (2026-11-11)
+
+- Snapshots: save, overwrite and delete work again. The bridge now handles one call at a time
+- Snapshots: hold keys fill the whole key, and text selection and the touch callout are blocked during a hold
+- IEM Mix and IEM Setup: a quiet key in each bar links to the other page
+- IEM Setup: the grid keeps its scroll position after a write
+- IEM Setup: a narrower grid with an Outputs row, a shorter More menu, a crosshair on the grid, and the cue track follows the shared colour
+- IEM Setup: clearer wording in the Add mix panel
+- README: install, update and remove steps for both ReaPack and script installs; the startup hook actions are described correctly
+
 ## 1.1.0 (2026-11-10)
 
 - First stable release. LCRR installs and updates through ReaPack: import the index, install the lcrr.html package, run LCRR: Install startup hook once
