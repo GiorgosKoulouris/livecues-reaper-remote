@@ -50,3 +50,10 @@ test("every app page with the suite footer loads version.js", () => {
   });
   assert.ok(pages >= 5, "expected the app pages, found " + pages);
 });
+
+test("IEM Mix and IEM Setup link to each other from their bars", () => {
+  const www = (a, f) => fs.readFileSync(path.join(repo, "apps", a, "www", f), "utf8");
+  const bar = (html) => html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+  assert.ok(/class="lcrr-sibling" href="lcrr-iem\.html"/.test(bar(www("iemmix", "lcrr-iemmix.html"))));
+  assert.ok(/class="lcrr-sibling" href="lcrr-iemmix\.html"/.test(bar(www("iem", "lcrr-iem.html"))));
+});

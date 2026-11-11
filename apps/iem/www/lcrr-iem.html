@@ -17,10 +17,10 @@
     <h1 class="iem-title">IEM Setup</h1>
     <span id="iem-project-name" class="iem-project-name"></span>
     <span id="iem-state" role="status" aria-live="polite" aria-atomic="true" data-state="connecting"><i class="iem-shape" aria-hidden="true"></i><span id="iem-state-text">Connecting&hellip;</span></span>
+    <a class="lcrr-sibling" href="lcrr-iemmix.html" title="Balance all mixes">IEM Mix<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 4.5v15L19 12z"/></svg></a>
   </div>
   <div id="iem-banner" role="alert" hidden></div>
   <p id="iem-message" class="iem-message" role="alert" hidden></p>
-  <p id="iem-done" class="iem-done" role="status" hidden></p>
 </header>
 
 <main>
@@ -29,7 +29,8 @@
     <input id="iem-filter" class="iem-filter" type="text" placeholder="Filter tracks" aria-label="Filter tracks" autocomplete="off" spellcheck="false" disabled>
     <p id="iem-legend" class="iem-legend" hidden></p>
     <div class="iem-toggles">
-      <button id="iem-tog-mixes" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-mixes"><span class="iem-toggle-name">Mixes</span><span class="iem-toggle-status" id="iem-status-mixes"></span></button>
+      <button id="iem-tog-mixes" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-mixes"><span class="iem-toggle-name">Add mix</span><span class="iem-toggle-status" id="iem-status-mixes"></span></button>
+      <button id="iem-tog-outputs" class="iem-toggle" type="button" aria-pressed="false" hidden><span class="iem-toggle-name">Outputs</span><span class="iem-toggle-status" id="iem-status-outputs"></span></button>
       <button id="iem-tog-folder" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-folder"><span class="iem-toggle-name">Folder</span><span class="iem-toggle-status" id="iem-status-folder"></span></button>
       <button id="iem-tog-cue" class="iem-toggle" type="button" aria-expanded="false" aria-controls="iem-panel-cue"><span class="iem-toggle-name">Cue</span><span class="iem-toggle-status" id="iem-status-cue"></span></button>
     </div>

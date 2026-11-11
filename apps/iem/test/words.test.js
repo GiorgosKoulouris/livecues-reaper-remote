@@ -88,7 +88,7 @@ test("every refusal a write can answer with has its own wording", () => {
 
 test("the editing controls have labels", () => {
   ["newMix", "create", "rename", "save", "cancel", "colour", "moveToEnd",
-    "moveToEndHint", "copyFrom", "copyFromNone", "copyFromHint", "adopt", "adoptHint", "colourHint", "delete", "deleteHint", "undoNote"].forEach((key) => clean(words.ui(key), key));
+    "moveToEndHint", "copyFrom", "copyFromNone", "copyFromHint", "adopt", "adoptHint", "colourHint", "delete", "deleteHint"].forEach((key) => clean(words.ui(key), key));
   assert.match(words.renameLabel("Drums"), /Drums/);
   assert.match(words.deleteLabel("Drums"), /Drums.*hold/);
   assert.match(words.adoptLabel("Drums"), /Drums.*IEMs folder.*hold/);
@@ -134,7 +134,7 @@ test("the panels, the hold legend, the cue and folder sentences and the tag lege
   clean(words.doubleLegend, "double");
 });
 
-test("the summary line and the done lines have words", () => {
+test("the summary line has words", () => {
   assert.strictEqual(words.mixesStatus(0), "None yet");
   assert.strictEqual(words.mixesStatus(1), "1 mix");
   assert.strictEqual(words.mixesStatus(3), "3 mixes");
@@ -145,7 +145,13 @@ test("the summary line and the done lines have words", () => {
   assert.strictEqual(words.cueSummary({ exists: true, action: "repair" }), "Needs repair");
   assert.strictEqual(words.cueSummary({ exists: true, action: null, needsOutput: true }), "Choose output");
   assert.strictEqual(words.cueSummary({ exists: true, action: null, needsOutput: false }), "Ready");
-  ["create", "rename", "colour", "move", "delete", "adopt", "cue", "output", "cellOn", "cellOff"].forEach((k) => clean(words.done(k, "A", "B"), k));
-  assert.strictEqual(words.done("cellOn", "Kick", "Drummer"), "Switched on Kick to Drummer.");
-  assert.match(words.emptyMatrix({ sources: [{}], mixes: [] }), /Mixes above/);
+  assert.match(words.emptyMatrix({ sources: [{}], mixes: [] }), /Add mix above/);
+});
+
+test("short output labels for a narrow header", () => {
+  assert.equal(words.outputShort(null), "None");
+  assert.equal(words.outputShort({ channel: 0, mono: false }), "1–2");
+  assert.equal(words.outputShort({ channel: 2, mono: true }), "Mono 3");
+  assert.equal(words.outputsStatus(0), "All set");
+  assert.equal(words.outputsStatus(2), "2 without output");
 });

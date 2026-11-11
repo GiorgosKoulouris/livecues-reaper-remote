@@ -6,4 +6,3 @@ The stage transport and cue list, `lcrr-podium.html`. Before changing behaviour,
 - Pure logic goes in `www/lcrr/podium/js/core.js` with tests in `test/`; DOM wiring in `podium.js`. Anything not Podium-specific belongs in `shared/` (see `shared/CLAUDE.md`).
 - IDs and classes use the `podium-` prefix. Shared look comes from `lcrr/shared/css/`; `DESIGN.md` at the root is the design system.
 - Design critique snapshots: `apps/podium/.impeccable/critique/` (historical; paths inside them predate the restructure).
-- Test data: `dev/reaper-projects/podium-dummy*.rpp` at the repo root.

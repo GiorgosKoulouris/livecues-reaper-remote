@@ -2,7 +2,10 @@
 [hidden] { display:none !important; }
 
 /* Every key that writes is a 44px target (DESIGN.md), with a mouse or a finger: a touch laptop reports a fine pointer too. */
-:root { --iem-ctl:44px; }
+/* --iem-row is the grid's own height (cells, row names, the More key, the Outputs picker, menu rows). It is 44px, and 36px only
+   when no touch screen is present at all: a touch laptop still reports a coarse pointer, so it keeps the 44px target. */
+:root { --iem-ctl:44px; --iem-row:44px; }
+@media (any-pointer:fine) and (not (any-pointer:coarse)) { :root { --iem-row:36px; } }
 
 .iem-bar { position:sticky; top:0; z-index:20; background:var(--bar); border-bottom:1px solid var(--line); }
 .iem-bar-inner { display:flex; align-items:center; gap:.75rem; margin:0 auto; padding:.25rem 1rem; min-height:2.75rem; }
@@ -22,15 +25,15 @@ body > main { max-width:none; padding:.375rem 1rem; }
 .iem-label { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
 
 /* The strip above the grid: the filter, the tag legend, then one disclosure key per setup job with its status in words. */
-.iem-setup { display:flex; flex-wrap:wrap; align-items:flex-end; gap:.25rem .75rem; margin-bottom:.375rem; }
+.iem-setup { display:flex; flex-wrap:wrap; align-items:center; gap:.25rem .75rem; margin-bottom:.375rem; }
 /* An open key sits on its panel: no gap between them, the same Bar face, the key's Signal line as the join. */
 .iem-setup:has(+ .iem-panels .iem-panel:not([hidden])) { margin-bottom:0; }
 .iem-filter { flex:0 1 16rem; min-width:9rem; }
 .iem-filter::placeholder { color:var(--legend-dim); opacity:1; }
 .iem-toggles { display:flex; flex-wrap:wrap; gap:.25rem; margin-left:auto; }
-button.iem-toggle { display:inline-flex; align-items:baseline; gap:.5rem; }
+button.iem-toggle { display:inline-flex; align-items:center; gap:.5rem; }
 .iem-toggle-status { font-size:.8rem; font-weight:500; color:var(--legend-dim); letter-spacing:0; }
-button.iem-toggle[aria-expanded=true] { position:relative; z-index:1; background:var(--bar); box-shadow:inset 0 -2px 0 var(--signal); }
+button.iem-toggle[aria-expanded=true], button.iem-toggle[aria-pressed=true] { position:relative; z-index:1; background:var(--bar); box-shadow:inset 0 -2px 0 var(--signal); }
 button.iem-toggle[data-attn=true] .iem-toggle-status { color:var(--warn-amber); font-weight:700; }
 .iem-field { display:flex; flex-direction:column; gap:.125rem; }
 .iem-panel .iem-field { flex-direction:row; align-items:center; gap:.375rem; }
@@ -60,12 +63,10 @@ button { min-height:var(--iem-ctl); padding:.25rem .875rem; background:var(--key
 button:not(:disabled):active { background:var(--legend); color:var(--chassis); }
 button:focus-visible { outline:2px solid var(--signal); outline-offset:-4px; }
 button.iem-primary { font-weight:700; background:var(--signal); color:var(--signal-ink); }
-button.iem-quiet { background:none; clip-path:none; color:var(--legend-dim); text-decoration:underline; padding:.125rem .5rem; min-height:var(--iem-ctl); font-size:1rem; }
-/* Hold keys (Delete, All off): a chamfered key with a warn edge and a HOLD legend, set apart from the quiet keys. */
-button.iem-hold { display:inline-flex; align-items:center; line-height:1; gap:.5rem; padding:.25rem .625rem; box-shadow:inset 0 0 0 1px var(--warn-edge); }
+/* Hold keys (Delete, Adopt) in the More menu: a menu row with a warn-amber HOLD legend at the right. */
+button.iem-hold { gap:.5rem; }
 .iem-hold-legend { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--warn-amber); }
-.iem-hold-group { display:flex; flex-wrap:wrap; gap:.25rem; margin-top:.375rem; padding-top:.375rem; border-top:1px solid var(--line); }
-.iem-key-note { margin:.125rem 0 0; font-size:.72rem; line-height:1.35; font-weight:400; color:var(--legend-dim); }
+.iem-key-note { margin:0; padding:.25rem .75rem .5rem; font-size:.72rem; line-height:1.35; font-weight:400; color:var(--legend-dim); }
 .iem-delete, .iem-adopt { position:relative; overflow:hidden; }
 .iem-delete::after, .iem-adopt::after { content:""; position:absolute; inset:0; background:var(--warn-amber); opacity:.35; transform:scaleX(0); transform-origin:left; pointer-events:none; }
 .iem-delete.holding::after, .iem-adopt.holding::after { transform:scaleX(1); transition:transform var(--hold-ms, 1000ms) linear; }
@@ -73,9 +74,6 @@ button.iem-hold { display:inline-flex; align-items:center; line-height:1; gap:.5
   .iem-delete::after, .iem-adopt::after { transform:none; opacity:0; }
   .iem-delete.holding::after, .iem-adopt.holding::after { opacity:.35; transition:opacity var(--hold-ms, 1000ms) linear; }
 }
-/* A mix header's actions sit on one wrapping row instead of a stack of keys. */
-.iem-mix-keys { display:flex; flex:none; gap:0 .125rem; margin:0 -.5rem 0 0; }
-.iem-mix-keys button { padding-inline:.5rem; }
 .iem-rename { display:flex; flex-direction:column; gap:.25rem; }
 .iem-rename input[type=text] { min-height:var(--iem-ctl); width:100%; }
 .iem-rename-keys { display:flex; gap:.25rem; }
@@ -85,7 +83,6 @@ input[type=text] { min-height:var(--iem-ctl); padding:.25rem .625rem; background
 input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
 
 /* A refusal sits in the sticky bar, so it stays in view however far the grid is scrolled. */
-.iem-done { margin:0; padding:.375rem 1rem; background:var(--bar); border-top:1px solid var(--line); font-weight:500; }
 .iem-message { margin:0; padding:.5rem 1rem; background:var(--warn-umber); color:var(--warn-cream); border-top:1px solid var(--warn-edge); font-weight:600; }
 .iem-notice { margin:.375rem 0; padding:.375rem .75rem; background:var(--display); border:1px solid var(--edge); }
 /* The legend fits between the filter and the keys on a wide screen; narrower, it takes its own line above them, so an open key stays on its panel. */
@@ -97,43 +94,70 @@ input[type=text]:focus-visible { outline:2px solid var(--signal); outline-offset
 /* iem.js sets max-height from the box's real top and the footer, so the page itself does not scroll as well; this is the fallback. */
 .iem-scroll { overflow:auto; max-height:calc(100vh - 9rem); max-height:calc(100dvh - 9rem); min-height:12rem; background:var(--display); border:1px solid var(--edge); }
 .iem-scroll:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
-.iem-grid { border-collapse:separate; border-spacing:0; min-width:100%; font-variant-numeric:tabular-nums; }
+.iem-grid { border-collapse:separate; border-spacing:0; font-variant-numeric:tabular-nums; }
 .iem-grid th, .iem-grid td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:0; }
 
-.iem-grid thead th { position:sticky; top:0; z-index:5; background:var(--bar); vertical-align:bottom; min-width:8rem; max-width:11rem; padding:.375rem .5rem .25rem; text-align:left; font-weight:500; }
-.iem-grid thead th.iem-corner { left:0; z-index:7; min-width:11rem; max-width:none; vertical-align:bottom; }
-.iem-grid tbody th { position:sticky; left:0; z-index:3; background:var(--bar); min-width:11rem; max-width:20rem; text-align:left; font-weight:500; padding:0 .75rem 0 0; }
+.iem-grid thead th { position:sticky; top:0; z-index:5; background:var(--bar); vertical-align:bottom; min-width:5.5rem; max-width:8rem; padding:.25rem .375rem 0; text-align:left; font-weight:500; }
+.iem-grid thead th.iem-corner { left:0; z-index:7; min-width:8rem; max-width:none; vertical-align:bottom; }
+.iem-grid thead th.has-menu { z-index:6; }
+/* The Outputs row sticks right under the names (iem.js sets --iem-head1 to the names row's height). */
+.iem-grid thead .iem-out-row th { top:var(--iem-head1, 0); vertical-align:middle; padding:.25rem .375rem; }
+.iem-grid tbody th { position:sticky; left:0; z-index:3; background:var(--bar); min-width:8rem; max-width:14rem; text-align:left; font-weight:500; padding:0 .5rem 0 0; }
 .iem-corner { font-size:.72rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--legend-dim); }
 
-/* The name and its More key share one line; the output picker and flags stack under them, so a header stays short. */
-.iem-mix-top { display:flex; align-items:center; justify-content:space-between; gap:.25rem; }
-.iem-mix-name { display:block; flex:1 1 auto; min-width:0; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
-.iem-mix-out { display:block; margin-top:.125rem; font-family:var(--font-mono); font-size:.8rem; color:var(--legend-dim); }
+/* The name on top; under it the More key (and, while the Outputs row is hidden, a "No out" mark). The key is a full 44px target. */
+.iem-mix { position:sticky; }
+.iem-mix-name { display:block; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+.iem-mix-bar { display:flex; align-items:center; justify-content:space-between; gap:.25rem; }
+.iem-nout { padding:0 .25rem; border:1px solid var(--warn-edge); color:var(--warn-amber); font-size:.72rem; font-weight:700; line-height:1.3; white-space:nowrap; }
+button.iem-more { margin:0 -.375rem 0 auto; min-height:var(--iem-row); min-width:var(--iem-row); padding:0; background:none; clip-path:none; color:var(--legend-dim); display:inline-flex; align-items:center; justify-content:center; }
+button.iem-more svg { width:1.25rem; height:1.25rem; display:block; }
+@media (hover:hover) { button.iem-more:not(:disabled):hover { color:var(--legend); } }
+button.iem-more[aria-expanded=true] { background:var(--key); color:var(--legend); }
+button.iem-more:focus-visible { outline-offset:-2px; }
+/* The menu is a popover on the Bar face with an Edge line, under the header, so the sticky header keeps its height. It opens
+   rightward; the last column opens leftward so it never widens the grid. */
+.iem-more-menu { position:absolute; top:100%; left:0; z-index:10; min-width:9.5rem; background:var(--bar); border:1px solid var(--edge); }
+.iem-mix.is-last .iem-more-menu { left:auto; right:0; }
+.iem-menu-item { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:var(--iem-row); padding:0 .75rem; background:none; clip-path:none; text-align:left; font-weight:500; letter-spacing:0; color:var(--legend); }
+.iem-menu-item + .iem-menu-item, .iem-menu-item + .iem-key-note, .iem-key-note + .iem-menu-item { border-top:1px solid var(--line); }
+@media (hover:hover) { .iem-menu-item:not(:disabled):hover { background:var(--key-hover); } }
+button.iem-menu-item:focus-visible { outline-offset:-3px; }
+/* The closed picker is a short label with the native select laid invisibly over it. */
+.iem-out-pick { position:relative; display:flex; align-items:center; justify-content:space-between; gap:.25rem; min-height:var(--iem-row); padding:0 .5rem; background:var(--display); border:1px solid var(--edge); font-family:var(--font-mono); font-size:.8rem; }
+.iem-out-pick::after { content:""; flex:none; width:0; height:0; border:.3125rem solid transparent; border-top-color:var(--legend-dim); border-bottom-width:0; }
+.iem-out-pick.is-none .iem-out-short { color:var(--warn-amber); font-weight:700; }
+.iem-out-pick:focus-within { outline:2px solid var(--signal); outline-offset:2px; }
+.iem-out-select { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:1rem; }
+.iem-out-select:disabled { cursor:default; }
+.iem-mix-out { display:block; font-family:var(--font-mono); font-size:.8rem; color:var(--legend-dim); }
 .iem-mix.is-no-output .iem-mix-out { color:var(--warn-amber); }
-.iem-out-pick { margin-top:.125rem; }
-.iem-out-select { max-width:100%; min-height:2.125rem; padding-block:.125rem; font-family:var(--font-mono); font-size:.75rem; }
-.iem-out-note { display:block; margin-top:.125rem; font-size:.72rem; color:var(--warn-amber); }
-.iem-flags { display:flex; flex-wrap:wrap; gap:.125rem; margin-top:.25rem; }
+.iem-flags { display:flex; flex-wrap:wrap; gap:.125rem; margin-top:.125rem; }
 .iem-flag { display:inline-block; padding:0 .25rem; border:1px solid var(--warn-edge); background:var(--warn-umber); color:var(--warn-cream); font-size:.72rem; font-weight:600; line-height:1.3; }
 
 /* The track's own colour fills its name cell at 25% over Key, as Monitor tints a fader: the name stays above 4.5:1 on any colour. */
 .iem-grid tbody th.is-tinted { background:color-mix(in srgb, var(--c) 25%, var(--key)); }
-.iem-row-name { display:inline-flex; vertical-align:middle; align-items:center; min-height:var(--iem-ctl); padding:.125rem 0 .125rem .75rem; overflow-wrap:anywhere; }
+.iem-row-name { display:inline-flex; vertical-align:middle; align-items:center; min-height:var(--iem-row); padding:.125rem 0 .125rem .75rem; overflow-wrap:anywhere; }
 .iem-row.is-folder .iem-row-name { font-weight:700; }
 
-.iem-cell { height:var(--iem-ctl); min-width:8rem; text-align:center; vertical-align:middle; }
+.iem-cell { height:var(--iem-row); min-width:3.5rem; text-align:center; vertical-align:middle; }
 .iem-cell:has(.iem-cell-key) { padding:0; }
-.iem-cell-key { display:flex; align-items:center; justify-content:center; width:100%; height:var(--iem-ctl); min-width:44px; margin:0; padding:0; background:transparent; border:0; border-radius:0; clip-path:none; cursor:pointer; color:inherit; letter-spacing:0; }
+.iem-cell-key { display:flex; align-items:center; justify-content:center; width:100%; height:var(--iem-row); min-width:44px; margin:0; padding:0; background:transparent; border:0; border-radius:0; clip-path:none; cursor:pointer; color:inherit; letter-spacing:0; }
 @media (hover:hover) { .iem-cell-key:not(:disabled):hover { background:var(--key-hover); } }
 .iem-cell-key:disabled { cursor:default; }
 .iem-cell.is-on { background:var(--key); }
-.iem-cell-inner { display:inline-flex; align-items:center; justify-content:center; gap:.375rem; padding:0 .375rem; }
-.iem-db { font-family:var(--font-mono); font-size:1.05rem; font-weight:500; color:var(--legend); }
-/* A muted send stays visible but recedes by weight and the red strike, not by colour: Legend Dim fails 4.5:1 on the key face. */
-.iem-cell.is-muted .iem-db { font-weight:400; text-decoration:line-through; text-decoration-color:var(--led-red); }
+.iem-cell-inner { display:inline-flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.125rem .25rem; padding:0 .25rem; }
+/* ON is the Key face plus a drawn mark, never colour alone; a muted send keeps the face but its mark is hollow. */
+.iem-mark { width:.75rem; height:.75rem; border-radius:50%; background:var(--legend); flex:none; }
+.iem-cell.is-muted .iem-mark { background:none; box-shadow:inset 0 0 0 2px var(--legend); }
 .iem-tag { padding:.0625rem .3125rem; border:1px solid var(--warn-edge); color:var(--warn-amber); font-size:.72rem; font-weight:700; letter-spacing:.08em; line-height:1.2; }
 .iem-tag.is-double { background:var(--warn-umber); color:var(--warn-cream); }
 
 @media (max-width: 767px) {
-  .iem-grid tbody th, .iem-grid thead th.iem-corner { min-width:9rem; }
+  .iem-grid tbody th, .iem-grid thead th.iem-corner { min-width:6.5rem; }
 }
+
+/* The crosshair: the hovered (or focused) cell lays a faint wash over its whole row and column, headers included, so what a
+   tap will change is plain. It is an overlay, so tinted track names and Key faces keep their own colour. */
+.iem-grid .is-hl, .iem-grid .is-hl-head { background-image:linear-gradient(color-mix(in srgb, var(--legend) 5%, transparent), color-mix(in srgb, var(--legend) 5%, transparent)); }
+.iem-grid .is-hl-head { background-image:linear-gradient(color-mix(in srgb, var(--legend) 9%, transparent), color-mix(in srgb, var(--legend) 9%, transparent)); }

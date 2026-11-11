@@ -1,6 +1,6 @@
 -- The `colour` core: the one colour of the folder and every mix in it. It is
 -- stored in the project (so it survives a reload and rides with the .rpp) and
--- applied to the folder and the mixes inside it; a stray mix is left alone
+-- applied to the folder, the mixes inside it and the cue track; a stray mix is left alone
 -- until it is adopted. One undo step.
 --
 --   colour.run({ api, fields = { colour = "rrggbb" } })
@@ -30,6 +30,9 @@ function colour.run(given)
       local entry = list[position]
       if tracks.is_mix_name(entry.name) then tracks.set_colour(api, entry.track, hex) end
     end
+    -- The cue track is part of the IEM set and wears the same colour, wherever it sits.
+    local cue = tracks.find_cue(list)
+    if cue then tracks.set_colour(api, cue.track, hex) end
   end)
 
   return { status = "ok", colour = hex }

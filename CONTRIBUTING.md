@@ -61,7 +61,6 @@ apps/<app>/                     one folder per app
   www/lcrr/<app>/{css,js}/      its assets
   reaper/Scripts/LCRR/<app>/    Lua actions and lib/, for apps with a REAPER side (specs in spec/)
 scripts/                        install, local server, checks and release build (tests in test/)
-dev/reaper-projects/            dummy REAPER projects for testing
 ```
 
 Each `www/` folder holds files at the exact paths REAPER serves them from. Install, release and `npm run serve` lay them over each other. A `reaper/` folder does the same for REAPER's resource path.
@@ -74,10 +73,6 @@ Start at [apps/arrange/CLAUDE.md](apps/arrange/CLAUDE.md), which lists the traps
 
 - `lib/` must stay beside the `LCRR_Arrange_*.lua` scripts, because each script finds it relative to itself.
 - To run only Arrange's specs and lint, run `busted` and `luacheck .` in `apps/arrange/`.
-
-## Dummy projects
-
-`dev/reaper-projects/podium-dummy.rpp` has 5 regions (4 colored, plus an uncolored "Outro (no color)", back to back), 3 markers (one unnamed, one colored) and one track. It's hand-written: if REAPER complains or colors look off, fix it in REAPER and re-save. REAPER's `Backups/` folder is git-ignored.
 
 ## Releases
 

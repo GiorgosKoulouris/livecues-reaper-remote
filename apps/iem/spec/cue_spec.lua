@@ -111,6 +111,23 @@ describe("cue", function()
     end)
   end)
 
+  describe("colour", function()
+    it("a repair puts the cue track back on the shared colour; the colour command recolours it too", function()
+      local colour = require("lib.core.colour")
+      local api = band()
+      cue.run({ api = api })
+      local want = cue_track(api).colour
+      assert.are_not.equal(0, want)
+      cue_track(api).colour = 0
+      cue_track(api).solo_defeat = 0 -- something to repair, so the run is not a no-op
+      cue.run({ api = api })
+      assert.are.equal(want, cue_track(api).colour)
+      colour.run({ api = api, fields = { colour = "ff8000" } })
+      assert.are.equal(api.tracks[2].colour, cue_track(api).colour)
+      assert.are_not.equal(want, cue_track(api).colour)
+    end)
+  end)
+
   describe("solo defeat", function()
     it("is on for the cue track and every mix once the cue is made", function()
       local api = band()

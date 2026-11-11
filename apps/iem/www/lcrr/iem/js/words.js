@@ -42,7 +42,7 @@
 
   // Labels and hints for the editing controls.
   var UI = {
-    newMix: "New mix", newMixName: "Name", create: "Create", rename: "Rename", save: "Save", cancel: "Cancel",
+    newMix: "Mix name", newMixName: "Name", create: "Add", rename: "Rename", save: "Save", cancel: "Cancel",
     copyFrom: "Copy from", copyFromNone: "Nothing (empty mix)",
     copyFromHint: "Start the new mix with the same sources, levels, pans, mutes and signal points as this mix. Its output is not copied.",
     colour: "Colour", moveToEnd: "Move to end",
@@ -51,7 +51,6 @@
     output: "Output", outputNone: "No output",
     deviceClosed: "Audio device closed: channels unknown",
     outputReadOnly: "Several outputs: change in REAPER",
-    undoNote: "Every change is one undo step in REAPER (Ctrl+Z).",
     createCue: "Create cue", repairCue: "Repair cue", cueOutput: "Cue output", cueOutputNeeded: "Cue output: choose the headphones",
     createCueHint: "Make the IEM-Cue track in the IEMs folder, with a send at level 0 from every mix, and turn solo defeat on for it and every mix. IEM Mix listens through it. REAPER undo brings it back.",
     repairCueHint: "A mix has no send to the cue track, or a mix or the cue track has no solo defeat. Add the missing sends at level 0 and turn solo defeat on.",
@@ -63,7 +62,7 @@
     delete: "Delete", deleteHint: "Press and hold to delete this mix and its sends. REAPER undo brings it back.",
     holdLegend: "Hold", more: "More", less: "Less",
     moreHint: "Rename, Adopt and Delete. Adopt and Delete act only on a press and hold.",
-    panelMixes: "Mixes", panelFolder: "Folder", panelCue: "Cue",
+    panelMixes: "Add mix", panelOutputs: "Outputs", panelFolder: "Folder", panelCue: "Cue", outputsRow: "Outputs", noOutShort: "No out", outputsHint: "Show or hide a row with every mix’s output",
     applying: "Applying…", tracks: "Tracks", unsavedProject: "(unsaved project)",
     cueReady: "The cue track is ready."
   };
@@ -95,6 +94,14 @@
     if (option.mono) return "Mono " + channelName(names, option.channel);
     return "Stereo " + channelName(names, option.channel) + " + " + channelName(names, option.channel + 1);
   }
+  // The short form a narrow header shows for a picker's current choice; the open list has the full names.
+  function outputShort(output) {
+    if (!output) return "None";
+    var first = output.channel + 1;
+    return output.mono ? "Mono " + first : first + "–" + (first + 1);
+  }
+  function moreLabel(open, mixName) { return (open ? "Close more for mix " : "More for mix ") + mixName; }
+  function outputsStatus(missing) { return missing === 0 ? "All set" : missing + " without output"; }
   function pickerLabel(mixName) { return "Output of mix " + mixName; }
   var CUE_PICKER_LABEL = "Output of the cue track";
 
@@ -124,7 +131,7 @@
   function cellLabel(row, header, cell) {
     var text = row.name + " to " + header.name + ": ";
     if (!cell) return text + "off";
-    return text + cell.db + " dB" + (cell.muted ? ", muted" : "") + (cell.nonStandard ? ", " + modeText(cell.mode) : "")
+    return text + "on" + (cell.muted ? ", muted" : "") + (cell.nonStandard ? ", " + modeText(cell.mode) : "")
       + (cell.doubleFeed ? ", double feed" : "");
   }
 
@@ -168,7 +175,7 @@
 
   function emptyMatrix(state) {
     if (!state.sources.length && !state.mixes.length) return "This project has no tracks yet.";
-    if (!state.mixes.length) return "No in-ear mixes yet. A mix is a track named IEM_ followed by a name. Create one with Mixes above.";
+    if (!state.mixes.length) return "No in-ear mixes yet. A mix is a track named IEM_ followed by a name. Add one with Add mix above.";
     return "";
   }
 
@@ -182,24 +189,9 @@
     return "Ready";
   }
 
-  // The line shown after a change went through. `a` and `b` are the names it needs.
-  var DONE = {
-    create: function (a) { return "Created mix " + a + "."; },
-    rename: function (a) { return "Renamed the mix to " + a + "."; },
-    colour: function () { return "Changed the folder colour."; },
-    move: function () { return "Moved the IEMs folder to the end."; },
-    delete: function (a) { return "Deleted mix " + a + "."; },
-    adopt: function (a) { return "Adopted mix " + a + " into the IEMs folder."; },
-    cue: function () { return "The cue track is ready."; },
-    output: function (a) { return "Changed the output of " + a + "."; },
-    cellOn: function (a, b) { return "Switched on " + a + " to " + b + "."; },
-    cellOff: function (a, b) { return "Switched off " + a + " to " + b + "."; },
-  };
-  function done(kind, a, b) { return DONE[kind] ? DONE[kind](a, b) : ""; }
-
   function noMatch(filter) { return "No track matches “" + filter + "”."; }
 
-  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, chip: chip, banner: banner, outputText: outputText, optionLabel: optionLabel, pickerLabel: pickerLabel, cuePickerLabel: CUE_PICKER_LABEL, clashText: clashText, modeText: modeText, modeTag: modeTag,
+  return { error: error, ui: ui, renameLabel: renameLabel, deleteLabel: deleteLabel, adoptLabel: adoptLabel, chip: chip, banner: banner, outputText: outputText, outputShort: outputShort, moreLabel: moreLabel, outputsStatus: outputsStatus, optionLabel: optionLabel, pickerLabel: pickerLabel, cuePickerLabel: CUE_PICKER_LABEL, clashText: clashText, modeText: modeText, modeTag: modeTag,
     modeNote: modeNote, modeLegend: modeLegend, doubleLegend: DOUBLE_LEGEND, cueStatus: cueStatus, folderNote: folderNote, doubleFeedNote: doubleFeedNote, cellLabel: cellLabel, cellAction: cellAction, headerFlags: headerFlags,
-    emptyMatrix: emptyMatrix, noMatch: noMatch, mixesStatus: mixesStatus, folderStatus: folderStatus, cueSummary: cueSummary, done: done };
+    emptyMatrix: emptyMatrix, noMatch: noMatch, mixesStatus: mixesStatus, folderStatus: folderStatus, cueSummary: cueSummary };
 });

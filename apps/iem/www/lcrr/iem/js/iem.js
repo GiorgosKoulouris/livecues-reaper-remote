@@ -21,7 +21,7 @@
   function $(id) { return document.getElementById(id); }
   var els = {
     chip: $("iem-state"), chipText: $("iem-state-text"), banner: $("iem-banner"),
-    setup: $("iem-setup"), projectName: $("iem-project-name"), filter: $("iem-filter"), done: $("iem-done"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
+    setup: $("iem-setup"), projectName: $("iem-project-name"), filter: $("iem-filter"), create: $("iem-create"), createLabel: $("iem-create-label"), createName: $("iem-create-name"),
     createCopy: $("iem-create-copy"), createCopyLabel: $("iem-create-copy-label"),
     createGo: $("iem-create-go"), colourBox: $("iem-colour-box"), colourLabel: $("iem-colour-label"), colour: $("iem-colour"),
     move: $("iem-move"), cue: $("iem-cue"), cueOutBox: $("iem-cue-out-box"), cueOutLabel: $("iem-cue-out-label"),
@@ -41,7 +41,7 @@
   // while a column header is being edited. `open`: the setup panel showing (undefined until the first read picks one, null
   // for none). `more`: the mix whose More group is open.
   var ui = { phase: "connecting", everLive: false, state: null, stateKey: null, reading: false, again: false, projectPath: null,
-    busy: false, focusCell: null, note: "", renaming: null, more: null, focusMore: null, open: undefined, undoTold: false, doneTimer: null };
+    busy: false, focusCell: null, note: "", renaming: null, more: null, focusMore: null, open: undefined, outputs: undefined };
 
   function h(tag, cls, text) {
     var e = document.createElement(tag);
@@ -87,6 +87,18 @@
   els.move.title = words.ui("moveToEndHint");
   els.colourBox.title = words.ui("colourHint");
 
+  // The Outputs row under the mix names: hidden until asked for, except that the first read of a project shows it
+  // while a mix has no output (a silent mix must not go unnoticed). The choice then stays for the session.
+  var outputsToggle = $("iem-tog-outputs"), outputsStatus = $("iem-status-outputs");
+  function noOutputCount() { return ui.state ? ui.state.mixes.filter(function (m) { return m.outputs.length === 0; }).length : 0; }
+  function showOutputs() {
+    if (ui.outputs === undefined && ui.state) ui.outputs = noOutputCount() > 0;
+    return !!ui.outputs;
+  }
+  outputsToggle.firstChild.textContent = words.ui("panelOutputs");
+  outputsToggle.title = words.ui("outputsHint");
+  outputsToggle.addEventListener("click", function () { ui.outputs = !showOutputs(); updateControls(); render(); });
+
   function editable() { return core.canEdit(ui.phase) && !ui.busy; }
 
   function updateControls() {
@@ -120,6 +132,11 @@
     if (ui.open === undefined) {
       ui.open = attn.mixes ? "mixes" : null;
     }
+    var missing = noOutputCount();
+    outputsToggle.hidden = !ui.state.mixes.length;
+    outputsToggle.setAttribute("aria-pressed", showOutputs() ? "true" : "false");
+    outputsToggle.setAttribute("data-attn", missing > 0 ? "true" : "false");
+    if (outputsStatus.textContent !== words.outputsStatus(missing)) outputsStatus.textContent = words.outputsStatus(missing);
     SETUP.forEach(function (k) {
       var on = ui.open === k;
       if (setup[k].status.textContent !== text[k]) setup[k].status.textContent = text[k];
@@ -178,31 +195,22 @@
     els.cueOut.value = info.value;
   }
 
-  els.cue.addEventListener("click", function () { write(function () { return client.createCue(); }, words.done("cue")); });
+  els.cue.addEventListener("click", function () { write(function () { return client.createCue(); }); });
   els.cueOut.addEventListener("change", function () {
     var offer = ui.state && core.cueOffer(ui.state);
     var choice = core.parseOutputChoice(els.cueOut.value);
-    if (offer && offer.exists && choice) write(function () { return client.setOutput(offer.guid, choice); }, words.done("output", "the cue track"));
+    if (offer && offer.exists && choice) write(function () { return client.setOutput(offer.guid, choice); });
   });
 
   // The one gate for every project change: refused while busy or the bridge is away. `send` returns the client's
-  // promise; `doneText` is the line shown when the bridge says ok (the first one adds where undo is). A refusal is shown
+  // promise. A refusal is shown
   // in words; either way the page then re-reads the project, so it shows what REAPER holds now (including after "that
   // track is gone"). Resolves true when the bridge said ok.
-  function showDone(text) {
-    clearTimeout(ui.doneTimer);
-    if (text && !ui.undoTold) { text += " " + words.ui("undoNote"); ui.undoTold = true; }
-    els.done.textContent = text || "";
-    els.done.hidden = !text;
-    if (text) ui.doneTimer = setTimeout(function () { showDone(""); }, 6000);
-  }
-
-  function write(send, doneText) {
+  function write(send) {
     if (!editable()) return Promise.resolve(false);
     ui.busy = true;
     ui.note = "";
     showMessage("");
-    showDone("");
     updateControls();
     return send().then(function (reply) {
       return !!reply && reply.status === "ok" ? "" : words.error(reply && reply.error);
@@ -212,7 +220,6 @@
       ui.busy = false;
       ui.note = note;
       showMessage(note);
-      if (!note) showDone(doneText);
       updateControls();
       // A refresh that landed while the write was out painted every key disabled, and updateControls does not reach
       // them; with nothing changed in REAPER the next read would not repaint either, so repaint here.
@@ -233,7 +240,7 @@
     var check = core.checkMixName(ui.state, els.createName.value, null);
     if (!check.ok) { refuse(check.code); return; }
     var copyFrom = els.createCopy.value;
-    write(function () { return client.create(check.name, copyFrom); }, words.done("create", check.name)).then(function (ok) {
+    write(function () { return client.create(check.name, copyFrom); }).then(function (ok) {
       if (ok) { els.createName.value = ""; els.createCopy.value = ""; }
     });
   });
@@ -241,12 +248,12 @@
   els.colour.addEventListener("change", function () {
     var hex = core.colourField(els.colour.value);
     if (!hex) { refuse("bad_colour"); return; }
-    write(function () { return client.colour(hex); }, words.done("colour"));
+    write(function () { return client.colour(hex); });
   });
 
   els.move.addEventListener("click", function () {
     var offer = ui.state && core.folderOffer(ui.state);
-    if (offer && offer.moveToEnd) write(function () { return client.moveToEnd(offer.guid); }, words.done("move"));
+    if (offer && offer.moveToEnd) write(function () { return client.moveToEnd(offer.guid); });
   });
 
   function saveRename() {
@@ -255,7 +262,7 @@
     var check = core.checkMixName(ui.state, r.value, r.guid);
     if (!check.ok) { refuse(check.code); return; }
     if (check.unchanged) { ui.renaming = null; showMessage(""); render(); return; }
-    write(function () { return client.rename(r.guid, check.name); }, words.done("rename", check.name)).then(function (ok) {
+    write(function () { return client.rename(r.guid, check.name); }).then(function (ok) {
       if (ok) { ui.renaming = null; render(); }
     });
   }
@@ -306,7 +313,7 @@
       showMessage(ui.note);
       var path = state.project ? state.project.path : "";
       // Another project became the active one: nothing half-done (a rename, an open More, a message) carries over.
-      if (ui.projectPath !== null && ui.projectPath !== path) { ui.renaming = null; ui.more = null; ui.note = ""; showMessage(""); showDone(""); ui.open = undefined; }
+      if (ui.projectPath !== null && ui.projectPath !== path) { ui.renaming = null; ui.more = null; ui.note = ""; showMessage(""); ui.open = undefined; ui.outputs = undefined; }
       ui.projectPath = path;
       var key = JSON.stringify(state);
       if (key === ui.stateKey) { updateControls(); return; } // nothing changed in REAPER: leave the grid (and its scroll position) alone
@@ -404,23 +411,23 @@
 
   // Delete: a press-and-hold in the mix's More group, through write() like every change.
   function deleteKey(col) {
-    var btn = holdFace(h("button", "iem-hold iem-delete"), words.ui("delete"));
+    var btn = holdFace(h("button", "iem-menu-item iem-hold iem-delete"), words.ui("delete"));
     btn.type = "button";
     btn.disabled = ui.busy;
     btn.title = words.ui("deleteHint");
     btn.setAttribute("aria-label", words.deleteLabel(col.name));
-    return holdKey(btn, function () { write(function () { return client.deleteMix(col.guid); }, words.done("delete", col.name)); });
+    return holdKey(btn, function () { write(function () { return client.deleteMix(col.guid); }); });
   }
 
   // Adopt, shown only on a stray: it moves the track, turns its master send off and changes its sends, which can change
   // what a musician hears, so it is a press-and-hold like Delete. Through write() like every change.
   function adoptKey(col) {
-    var btn = holdFace(h("button", "iem-hold iem-adopt"), words.ui("adopt"));
+    var btn = holdFace(h("button", "iem-menu-item iem-hold iem-adopt"), words.ui("adopt"));
     btn.type = "button";
     btn.disabled = ui.busy;
     btn.title = words.ui("adoptHint");
     btn.setAttribute("aria-label", words.adoptLabel(col.name));
-    return holdKey(btn, function () { write(function () { return client.adopt(col.guid); }, words.done("adopt", col.name)); });
+    return holdKey(btn, function () { ui.more = null; write(function () { return client.adopt(col.guid); }); });
   }
 
   // The output picker of one mix, never shown for a mix with several outputs (read-only: the
@@ -432,6 +439,10 @@
     var info = core.outputPicker(ui.state, mix);
     var names = ui.state.device ? ui.state.device.channels : [];
     var box = h("div", "iem-out-pick");
+    var current = mix.outputs.length ? mix.outputs[0] : null;
+    // A narrow column cannot show a channel name: the closed picker is a short label (1–2, Mono 3, None) with the
+    // real select laid over it, so a touch screen still gets its native list with the full names.
+    box.appendChild(h("span", "iem-out-short", words.outputShort(current)));
     var select = h("select", "iem-out-select");
     select.setAttribute("aria-label", words.pickerLabel(col.name));
     info.options.forEach(function (o) {
@@ -443,65 +454,73 @@
     select.disabled = ui.busy || info.deviceClosed;
     if (info.deviceClosed) {
       select.title = words.ui("deviceClosed");
-      box.appendChild(select);
-      box.appendChild(h("span", "iem-out-note", words.ui("deviceClosed")));
-      return box;
+      box.title = words.ui("deviceClosed");
+    } else {
+      var guard = core.createPickerGuard({ begin: function () { gate.begin(); }, end: function () { gate.end(); } });
+      ["focus", "pointerdown", "mousedown", "touchstart"].forEach(function (n) { select.addEventListener(n, guard.open); });
+      select.addEventListener("blur", guard.close);
+      select.addEventListener("keydown", function (e) { if (e.key === "Escape") guard.close(); });
+      select.addEventListener("change", function () {
+        var choice = core.parseOutputChoice(select.value);
+        guard.close();
+        if (!choice) return;
+        write(function () { return client.setOutput(col.guid, choice); });
+      });
     }
-    var guard = core.createPickerGuard({ begin: function () { gate.begin(); }, end: function () { gate.end(); } });
-    ["focus", "pointerdown", "mousedown", "touchstart"].forEach(function (n) { select.addEventListener(n, guard.open); });
-    select.addEventListener("blur", guard.close);
-    select.addEventListener("keydown", function (e) { if (e.key === "Escape") guard.close(); });
-    select.addEventListener("change", function () {
-      var choice = core.parseOutputChoice(select.value);
-      guard.close();
-      if (!choice) return;
-      write(function () { return client.setOutput(col.guid, choice); }, words.done("output", col.name));
-    });
+    if (!current) box.classList.add("is-none");
     box.appendChild(select);
     return box;
   }
 
-  function headerCell(col) {
-    var th = h("th", "iem-mix" + (col.noOutput ? " is-no-output" : ""));
-    th.scope = "col";
-    var top = null;
-    var editing = ui.renaming && ui.renaming.guid === col.guid;
-    if (editing) {
-      th.appendChild(renameBox(col));
-    } else {
-      top = h("div", "iem-mix-top");
-      top.appendChild(h("span", "iem-mix-name", col.name));
-      th.appendChild(top);
-      if (core.canEdit(ui.phase)) {
-        // Two things in the header: the output picker below, and More. Rename, Adopt and Delete sit
-        // in More; the ones that remove or change what is heard are press-and-hold.
-        var keys = h("div", "iem-mix-keys");
-        var open = ui.more === col.guid;
-        var more = h("button", "iem-quiet iem-more", words.ui(open ? "less" : "more"));
-        more.type = "button";
-        more.setAttribute("aria-expanded", open ? "true" : "false");
-        more.title = words.ui("moreHint");
-        more.addEventListener("click", function () { ui.more = open ? null : col.guid; ui.focusMore = col.guid; render(); });
-        more.setAttribute("data-more", col.guid);
-        keys.appendChild(more);
-        top.appendChild(keys);
-        if (col.stray) th.appendChild(h("p", "iem-key-note", words.ui("adoptNote")));
-        if (open) {
-          var group = h("div", "iem-hold-group");
-          var rename = h("button", "iem-quiet", words.ui("rename"));
-          rename.type = "button";
-          rename.disabled = ui.busy;
-          rename.setAttribute("aria-label", words.renameLabel(col.name));
-          rename.addEventListener("click", function () { ui.renaming = { guid: col.guid, value: col.name, focus: true }; ui.more = null; render(); });
-          group.appendChild(rename);
-          if (col.stray) group.appendChild(adoptKey(col));
-          group.appendChild(deleteKey(col));
-          th.appendChild(group);
-        }
-      }
+  // The More menu of one mix: a small popover under its header, so the sticky header keeps its height.
+  var MORE_DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>';
+  function moreMenu(col) {
+    var menu = h("div", "iem-more-menu");
+    menu.setAttribute("role", "group");
+    menu.setAttribute("aria-label", "More for mix " + col.name);
+    var rename = h("button", "iem-menu-item", words.ui("rename"));
+    rename.type = "button";
+    rename.disabled = ui.busy;
+    rename.setAttribute("aria-label", words.renameLabel(col.name));
+    rename.addEventListener("click", function () { ui.renaming = { guid: col.guid, value: col.name, focus: true }; ui.more = null; render(); });
+    menu.appendChild(rename);
+    if (col.stray) {
+      menu.appendChild(adoptKey(col));
+      menu.appendChild(h("p", "iem-key-note", words.ui("adoptNote")));
     }
-    if (core.canEdit(ui.phase) && !col.readOnlyOutput) th.appendChild(outputPicker(col));
-    else th.appendChild(h("span", "iem-mix-out", words.outputText(col.output)));
+    menu.appendChild(deleteKey(col));
+    return menu;
+  }
+
+  function headerCell(col, last) {
+    var th = h("th", "iem-mix" + (col.noOutput ? " is-no-output" : "") + (ui.more === col.guid ? " has-menu" : "") + (last ? " is-last" : ""));
+    th.scope = "col";
+    if (ui.renaming && ui.renaming.guid === col.guid) {
+      th.appendChild(renameBox(col));
+      return th;
+    }
+    th.appendChild(h("span", "iem-mix-name", col.name));
+    var bar = h("div", "iem-mix-bar");
+    // A mix with no output is silent: while the Outputs row is hidden its header says so.
+    if (col.noOutput && !showOutputs()) {
+      var none = h("span", "iem-nout", words.ui("noOutShort"));
+      none.title = words.outputText(null);
+      bar.appendChild(none);
+    }
+    if (core.canEdit(ui.phase)) {
+      var open = ui.more === col.guid;
+      var more = h("button", "iem-more");
+      more.innerHTML = MORE_DOTS; // a fixed drawn icon, no user text
+      more.type = "button";
+      more.setAttribute("aria-expanded", open ? "true" : "false");
+      more.setAttribute("aria-label", words.moreLabel(open, col.name));
+      more.title = words.ui("moreHint");
+      more.addEventListener("click", function () { ui.more = open ? null : col.guid; ui.focusMore = col.guid; render(); });
+      more.setAttribute("data-more", col.guid);
+      bar.appendChild(more);
+    }
+    th.appendChild(bar);
+    if (core.canEdit(ui.phase) && ui.more === col.guid) th.appendChild(moreMenu(col));
     var flags = words.headerFlags(col).filter(function (f) { return f.code !== "no-output"; });
     if (flags.length) {
       var box = h("div", "iem-flags");
@@ -511,8 +530,16 @@
     return th;
   }
 
-  // A cell is a key: one tap switches it on, or off (every send of the pair, no warning; the done line says where undo
-  // is). It goes through write(), so a second tap while one is out is ignored (the key is disabled while busy).
+  // The Outputs row: one picker under each mix name, in the same column.
+  function outputCell(col) {
+    var th = h("th", "iem-out-cell" + (col.noOutput ? " is-no-output" : ""));
+    th.scope = "col";
+    if (core.canEdit(ui.phase) && !col.readOnlyOutput) th.appendChild(outputPicker(col));
+    else th.appendChild(h("span", "iem-mix-out", words.outputText(col.output)));
+    return th;
+  }
+
+  // A cell is a key: one tap switches it on, or off (every send of the pair, no warning). It goes through write(), so a second tap while one is out is ignored (the key is disabled while busy).
   function cellKey(row, col, cell) {
     var btn = h("button", "iem-cell-key");
     btn.type = "button";
@@ -524,7 +551,7 @@
     btn.title = words.cellAction(row, col, cell);
     btn.addEventListener("click", function () {
       var ask = core.cellRequest(row, col, cell);
-      write(function () { return client.cell(ask.source, ask.mix, ask.on); }, words.done(ask.on ? "cellOn" : "cellOff", row.name, col.name));
+      write(function () { return client.cell(ask.source, ask.mix, ask.on); });
     });
     return btn;
   }
@@ -538,7 +565,7 @@
     if (!cell) return td;
     var inner = h("span", "iem-cell-inner");
     inner.setAttribute("aria-hidden", "true");
-    inner.appendChild(h("span", "iem-db", cell.db));
+    inner.appendChild(h("span", "iem-mark"));
     if (cell.nonStandard) {
       var tag = h("span", "iem-tag", words.modeTag(cell.mode));
       tag.title = words.modeNote(cell.mode);
@@ -624,6 +651,31 @@
     if (next && !next.disabled) next.focus();
   });
 
+  // The crosshair: the cell under the pointer (or holding focus) washes its row and column, headers included. Only classes
+  // change, so the grid is never rebuilt by a hover; a repaint puts the wash back from `ui.hl`.
+  function paintCrosshair() {
+    Array.prototype.forEach.call(els.scroll.querySelectorAll(".is-hl, .is-hl-head"), function (e) { e.classList.remove("is-hl", "is-hl-head"); });
+    var at = ui.hl;
+    if (!at || !els.body.rows[at.row]) return;
+    var tr = els.body.rows[at.row];
+    Array.prototype.forEach.call(tr.cells, function (c, i) { if (i) c.classList.add("is-hl"); });
+    tr.cells[0].classList.add("is-hl-head");
+    Array.prototype.forEach.call(els.body.rows, function (r) { if (r.cells[at.col]) r.cells[at.col].classList.add("is-hl"); });
+    Array.prototype.forEach.call(els.head.rows, function (r) { if (r.cells[at.col]) r.cells[at.col].classList.add("is-hl-head"); });
+  }
+  function crosshairAt(target) {
+    var td = target && target.closest ? target.closest("td") : null;
+    var next = td && td.parentNode.parentNode === els.body ? { row: td.parentNode.sectionRowIndex, col: td.cellIndex } : null;
+    if (!next && !ui.hl) return;
+    if (next && ui.hl && next.row === ui.hl.row && next.col === ui.hl.col) return;
+    ui.hl = next;
+    paintCrosshair();
+  }
+  els.body.addEventListener("mouseover", function (e) { crosshairAt(e.target); });
+  els.body.addEventListener("mouseleave", function () { if (!els.body.contains(document.activeElement)) crosshairAt(null); });
+  els.body.addEventListener("focusin", function (e) { crosshairAt(e.target); });
+  els.body.addEventListener("focusout", function () { if (!els.body.matches(":hover")) crosshairAt(null); });
+
   function paint() {
     var state = ui.state;
     if (!state) return;
@@ -638,14 +690,25 @@
     els.scroll.hidden = !matrix.columns.length;
     els.filter.hidden = els.scroll.hidden; // no grid, nothing to filter
 
+    // Emptying the grid collapses its scroll box and the browser resets the scroll to 0, so keep where it was and put it back.
+    var keep = { left: els.scroll.scrollLeft, top: els.scroll.scrollTop, page: window.pageYOffset || 0 };
     clear(els.head);
     clear(els.body);
     var tr = h("tr");
     var corner = h("th", "iem-corner", words.ui("tracks"));
     corner.scope = "col";
     tr.appendChild(corner);
-    matrix.columns.forEach(function (col) { tr.appendChild(headerCell(col)); });
+    matrix.columns.forEach(function (col, i) { tr.appendChild(headerCell(col, i === matrix.columns.length - 1)); });
     els.head.appendChild(tr);
+    if (showOutputs()) {
+      var out = h("tr", "iem-out-row");
+      var oc = h("th", "iem-corner", words.ui("outputsRow"));
+      oc.scope = "col";
+      out.appendChild(oc);
+      matrix.columns.forEach(function (col) { out.appendChild(outputCell(col)); });
+      els.head.appendChild(out);
+    }
+    els.head.style.setProperty("--iem-head1", tr.offsetHeight + "px"); // the Outputs row sticks right under the names
 
     matrix.rows.forEach(function (row) {
       var r = h("tr", "iem-row" + (row.isFolder ? " is-folder" : ""));
@@ -664,7 +727,11 @@
 
     paintLegend(matrix);
     fitScroll();
+    els.scroll.scrollLeft = keep.left;
+    els.scroll.scrollTop = keep.top;
+    if ((window.pageYOffset || 0) !== keep.page) window.scrollTo(0, keep.page);
     restoreCellFocus();
+    paintCrosshair();
     if (ui.focusMore) {
       var wanted = ui.focusMore;
       ui.focusMore = null;
@@ -676,6 +743,16 @@
       if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
     }
   }
+
+  // The More menu closes on Escape (focus goes back to its key) and on a click anywhere outside it.
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || !ui.more) return;
+    ui.focusMore = ui.more; ui.more = null; render();
+  });
+  document.addEventListener("click", function (e) {
+    if (!ui.more || !e.target.closest || e.target.closest(".iem-more-menu") || e.target.closest("[data-more]")) return;
+    ui.more = null; render();
+  });
 
   els.filter.addEventListener("input", render);
   setInterval(function () { if (!document.hidden) readState(); }, REFRESH_MS);

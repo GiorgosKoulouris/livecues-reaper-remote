@@ -74,6 +74,8 @@ function cue.ensure(api, colour)
     local at, depth = tracks.open_slot(api, list, tracks.find_folder(list), colour)
     track = tracks.new_track(api, at, tracks.CUE_NAME, depth, colour)
     list = tracks.scan(api)
+  else
+    tracks.set_colour(api, track, colour) -- a repair brings it back to the shared colour
   end
   local have, added, protected = cue.senders(api, track), 0, 0
   if cue.protect(api, track) then protected = protected + 1 end
