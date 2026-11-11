@@ -18,11 +18,29 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      # Same toolchain as .devcontainer/Dockerfile. REAPER embeds Lua 5.4; lua-busted makes 5.1 the default `lua`.
+      # Same tools as .devcontainer/Dockerfile (Lua 5.4 as REAPER embeds, busted, luacheck), but not from apt: on 2026-11-11 the runner's
+      # Ubuntu mirrors were unreachable for 30+ minutes and hung CI (exit code 100). Lua and LuaRocks are built from their pinned,
+      # checksummed release tarballs, and busted/luacheck come from LuaRocks. `make linux` (5.4: no readline, but -Wl,-E -ldl so C rocks such as
+      # luafilesystem can load; `make posix` lacks both). apps/arrange/.busted pins `lua = "lua5.4"`, so the interpreter is installed under that name.
       - name: Install the Lua toolchain
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lua5.4 lua-busted lua-check
-          sudo update-alternatives --set lua-interpreter /usr/bin/lua5.4
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -sSfL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 120 -O https://www.lua.org/ftp/lua-5.4.7.tar.gz
+          curl -sSfL --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 120 -O https://luarocks.org/releases/luarocks-3.11.1.tar.gz
+          echo "9fbf5e28ef86c69858f6d3d34eccc32e911c1a28b4120ff3e84aaa70cfbf1e30  lua-5.4.7.tar.gz" | sha256sum -c -
+          echo "c3fb3d960dffb2b2fe9de7e3cb004dc4d0b34bb3d342578af84f84325c669102  luarocks-3.11.1.tar.gz" | sha256sum -c -
+          tar xzf lua-5.4.7.tar.gz
+          make -C lua-5.4.7 linux
+          sudo make -C lua-5.4.7 install
+          sudo ln -sf /usr/local/bin/lua /usr/local/bin/lua5.4
+          tar xzf luarocks-3.11.1.tar.gz
+          (cd luarocks-3.11.1 && ./configure --with-lua=/usr/local >/dev/null && make >/dev/null && sudo make install >/dev/null)
+          sudo luarocks install busted
+          sudo luarocks install luacheck
+          lua5.4 -v
+          busted --lua=lua5.4 --version
+          luacheck --version
       - run: npm test
       - run: npm run check
